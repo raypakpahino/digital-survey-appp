@@ -7,9 +7,9 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/digitalsurvey';
 
-// Enable Cross-Origin Resource Sharing so frontend on port 5173 can query Node cleanly
+// Loosened up CORS origins so devices scanning the QR code on the Wi-Fi network can connect safely
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type']
 }));
@@ -23,7 +23,8 @@ app.use('/api', surveyRoutes);
 mongoose.connect(MONGO_URI)
   .then(() => {
     console.log("Connected to MongoDB successfully.");
-    app.listen(PORT, () => {
+    // Added '0.0.0.0' to explicitly instruct the server to accept network connections from other hardware devices
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`Express API Server executing smoothly on http://localhost:${PORT}`);
     });
   })

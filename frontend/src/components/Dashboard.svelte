@@ -5,6 +5,29 @@
   export let onDeleteSurvey = (id) => {};
   export let onEditSurvey = (id) => {};
   export let onTestSurvey = (id) => {};
+
+  // Update this to match your current laptop network IP
+  const LAN_IP = "10.136.33.14"; 
+  const FRONTEND_PORT = "5173";
+
+  let activeShareSurvey = null;
+  let showShareModal = false;
+
+  function openShareHub(survey) {
+    activeShareSurvey = survey;
+    showShareModal = true;
+  }
+
+  function closeShareHub() {
+    showShareModal = false;
+    activeShareSurvey = null;
+  }
+
+  function copyKioskLink(surveyId) {
+    const directLink = `http://${LAN_IP}:${FRONTEND_PORT}/#/kiosk?id=${surveyId}`;
+    navigator.clipboard.writeText(directLink);
+    alert("🚀 Direct Kiosk Link copied to clipboard!");
+  }
 </script>
 
 <div class="w-full space-y-8 animate-fade pb-12">
@@ -50,7 +73,6 @@
             <button 
               on:click={() => onDeleteSurvey(survey._id)}
               class="absolute top-4 right-4 text-slate-500 hover:text-rose-400 bg-slate-950 hover:bg-rose-950/20 border border-slate-800/60 hover:border-rose-900/40 h-8 w-8 rounded-xl flex items-center justify-center text-xs transition-all opacity-0 group-hover:opacity-100 shadow-sm"
-              title="Delete Survey Form Layout"
             >
               ✕
             </button>
@@ -63,20 +85,21 @@
               <h3 class="text-lg font-bold text-white tracking-tight truncate border-l-2 border-cyan-500 pr-8 pl-3">
                 {survey.title}
               </h3>
-              <p class="text-xs text-slate-400 pt-1"> Contains <span class="text-cyan-400 font-semibold">{survey.questions?.length || 0} layout validation fields</span> configured.</p>
+              <p class="text-xs text-slate-400 pt-1"> Contains <span class="text-cyan-400 font-semibold">{survey.questions?.length || 0} layout fields</span>.</p>
             </div>
 
-            <div class="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800/60">
-              <button 
-                on:click={() => onEditSurvey(survey._id)}
-                class="w-full text-center bg-slate-950 hover:bg-slate-800 text-slate-200 font-bold py-2.5 px-4 text-xs rounded-xl border border-slate-800 hover:border-slate-700 transition-all active:scale-[0.98]">
-                🛠️ Open Designer
-              </button>
-              <button 
-                on:click={() => onTestSurvey(survey._id)}
-                disabled={!survey.questions || survey.questions.length === 0}
-                class="w-full text-center bg-cyan-950/40 hover:bg-cyan-950/80 text-cyan-400 font-bold py-2.5 px-4 text-xs rounded-xl border border-cyan-950/80 hover:border-cyan-500/40 transition-all active:scale-[0.98] disabled:opacity-20 disabled:cursor-not-allowed">
-                📱 Test Kiosk
+            <div class="flex flex-col gap-2 pt-2 border-t border-slate-800/60">
+              <div class="grid grid-cols-2 gap-2">
+                <button on:click={() => onEditSurvey(survey._id)} class="w-full text-center bg-slate-950 hover:bg-slate-800 text-slate-200 font-bold py-2.5 px-4 text-xs rounded-xl border border-slate-800 transition-all">
+                  🛠️ Open Designer
+                </button>
+                <button on:click={() => onTestSurvey(survey._id)} disabled={!survey.questions || survey.questions.length === 0} class="w-full text-center bg-cyan-950/40 hover:bg-cyan-950/80 text-cyan-400 font-bold py-2.5 px-4 text-xs rounded-xl border border-cyan-950/80 transition-all disabled:opacity-20">
+                  📱 Test Kiosk
+                </button>
+              </div>
+              
+              <button on:click={() => openShareHub(survey)} disabled={!survey.questions || survey.questions.length === 0} class="w-full bg-slate-950 text-emerald-400 font-bold py-2 px-4 text-xs rounded-xl border border-slate-800 hover:border-emerald-500/30 hover:bg-emerald-950/10 transition-all flex items-center justify-center space-x-2 disabled:opacity-20">
+                <span>⚡</span> <span>Deploy & Share Form</span>
               </button>
             </div>
           </div>
@@ -84,4 +107,39 @@
       </div>
     {/if}
   </div>
+
+  <!-- SHARE HUB OVERLAY MODAL -->
+  {#if showShareModal && activeShareSurvey}
+    <div class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade">
+      <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-6 text-center space-y-6 shadow-2xl relative">
+        
+        <button on:click={closeShareHub} class="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-950 border border-slate-800/80 h-8 w-8 rounded-full flex items-center justify-center text-xs transition-all">
+          ✕
+        </button>
+
+        <div class="space-y-1">
+          <span class="text-[10px] font-bold text-cyan-400 tracking-widest uppercase block">Direct Form Access</span>
+          <h3 class="text-base font-extrabold text-white truncate max-w-[280px] mx-auto">{activeShareSurvey.title}</h3>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl inline-block shadow-inner mx-auto border-4 border-slate-950/20">
+          <img 
+            src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={encodeURIComponent(`http://${LAN_IP}:${FRONTEND_PORT}/#/kiosk?id=${activeShareSurvey._id}`)}&color=0f172a" 
+            alt="Survey Kiosk Link QR Code" 
+            class="h-44 w-44 block"
+          />
+        </div>
+
+        <p class="text-xs text-slate-400 max-w-xs mx-auto px-2">
+          Scan this QR code to load this specific survey configuration directly in full-screen mode on any mobile or tablet device.
+        </p>
+
+        <div class="pt-2 border-t border-slate-800/60">
+          <button on:click={() => copyKioskLink(activeShareSurvey._id)} class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-4 text-xs rounded-xl transition-all shadow-md flex items-center justify-center space-x-2">
+            <span>🔗</span> <span>Copy Direct Form Link</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
 </div>

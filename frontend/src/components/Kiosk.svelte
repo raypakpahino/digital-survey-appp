@@ -1,222 +1,200 @@
 <script>
-  export let surveyTitle = '';
+  import { onMount, onDestroy } from 'svelte';
+  import { fade, fly, scale } from 'svelte/transition';
+  
+  export let surveyTitle = "Feedback Terminal";
   export let questions = [];
   export let onSubmitResponse = (answers) => {};
 
   let currentQuestionIndex = 0;
-  let kioskAnswers = {};
-  let kioskSubmitted = false;
-  let countdown = 3; 
-  let intervalId;
+  let answersAccumulator = [];
+  let selectedValue = "";
+  let isSubmitted = false;
+  
+  // Interactive Star Hover Tracking
+  let hoveredStarIndex = 0;
+  let autoResetTimer;
+  let countdownSeconds = 4;
 
-  // Star Rating Interaction State
-  let hoveredStarIndex = 0; 
+  $: currentQuestion = questions[currentQuestionIndex] || null;
 
-  function handleAnswer(questionText, answerValue) {
-    kioskAnswers[questionText] = answerValue;
-    hoveredStarIndex = 0; // Reset star view state for the next question
-    
+  const satisfactionScale = [
+    { label: "ANGRY", emoji: "🤬", color: "hover:bg-rose-500/20 hover:border-rose-500 text-rose-400 bg-rose-950/20 border-rose-900/40" },
+    { label: "SAD", emoji: "😞", color: "hover:bg-orange-500/20 hover:border-orange-500 text-orange-400 bg-orange-950/20 border-orange-900/40" },
+    { label: "NEUTRAL", emoji: "😐", color: "hover:bg-amber-500/20 hover:border-amber-500 text-amber-400 bg-amber-950/20 border-amber-900/40" },
+    { label: "HAPPY", emoji: "😊", color: "hover:bg-emerald-500/20 hover:border-emerald-500 text-emerald-400 bg-emerald-950/20 border-emerald-900/40" },
+    { label: "DELIGHTED", emoji: "🤩", color: "hover:bg-cyan-500/20 hover:border-cyan-500 text-cyan-400 bg-cyan-950/20 border-cyan-900/40" }
+  ];
+
+  function handleSelectOption(value) {
+    selectedValue = value;
+    setTimeout(() => {
+      advanceStep();
+    }, 250);
+  }
+
+  function advanceStep() {
+    if (!currentQuestion) return;
+
+    answersAccumulator = [
+      ...answersAccumulator,
+      { questionText: currentQuestion.questionText, value: selectedValue || "Skipped" }
+    ];
+
+    selectedValue = "";
+    hoveredStarIndex = 0;
+
     if (currentQuestionIndex < questions.length - 1) {
-      currentQuestionIndex++;
+      currentQuestionIndex += 1;
     } else {
-      triggerSurveyCompletion();
+      isSubmitted = true;
+      onSubmitResponse(answersAccumulator);
+      startAutoResetLoop();
     }
   }
 
-  function triggerSurveyCompletion() {
-    const formattedAnswers = questions.map(q => ({
-      questionText: q.questionText,
-      value: kioskAnswers[q.questionText] || 'Skipped'
-    }));
-    
-    onSubmitResponse(formattedAnswers);
-    kioskSubmitted = true;
-    countdown = 3; 
-
-    intervalId = setInterval(() => {
-      countdown--;
-      if (countdown <= 0) {
-        clearInterval(intervalId);
-        resetKioskTerminal();
+  function startAutoResetLoop() {
+    countdownSeconds = 4;
+    clearInterval(autoResetTimer);
+    autoResetTimer = setInterval(() => {
+      countdownSeconds -= 1;
+      if (countdownSeconds <= 0) {
+        clearInterval(autoResetTimer);
+        resetTerminal();
       }
     }, 1000);
   }
 
-  function resetKioskTerminal() {
-    clearInterval(intervalId);
+  function resetTerminal() {
+    clearInterval(autoResetTimer);
     currentQuestionIndex = 0;
-    kioskAnswers = {};
-    kioskSubmitted = false;
+    answersAccumulator = [];
+    selectedValue = "";
     hoveredStarIndex = 0;
+    isSubmitted = false;
   }
+
+  onDestroy(() => {
+    clearInterval(autoResetTimer);
+  });
 </script>
 
-<div class="w-full max-w-3xl mx-auto pt-4 animate-fade">
-  {#if questions.length === 0}
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center shadow-xl">
-      <div class="text-slate-500 text-4xl mb-3">📝</div>
-      <p class="text-slate-300 font-medium text-base">No active fields deployed.</p>
-      <p class="text-slate-500 text-xs mt-1">Populate the questionnaire structure inside the Form Designer framework first.</p>
+<div class="w-full min-h-screen bg-slate-950 flex flex-col justify-between items-center p-6 md:p-12 text-slate-100 font-sans selection:bg-cyan-500/30">
+  
+  <header class="w-full max-w-4xl flex items-center justify-between border-b border-slate-800/60 pb-6 shrink-0">
+    <div class="flex items-center space-x-3">
+      <div class="h-2.5 w-2.5 rounded-full bg-cyan-500 animate-pulse"></div>
+      <span class="text-xs font-bold font-mono tracking-widest text-slate-400 uppercase">{surveyTitle}</span>
     </div>
-  {:else}
-    <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl transition-all duration-300">
-      
-      <!-- Top Status Banner -->
-      <div class="bg-slate-900 px-6 py-4.5 border-b border-slate-800 flex items-center justify-between">
-        <div class="flex items-center space-x-2">
-          <span class="h-2 w-2 rounded-full bg-cyan-500 animate-pulse"></span>
-          <span class="text-xs font-bold tracking-widest text-slate-400 uppercase">Terminal Mode</span>
-        </div>
-        <span class="text-xs font-bold bg-slate-950 px-3 py-1.5 rounded-xl text-cyan-400 border border-slate-800/80">
-          Field {currentQuestionIndex + 1} of {questions.length}
-        </span>
+    {#if !isSubmitted && questions.length > 0}
+      <div class="bg-slate-900 px-3 py-1.5 rounded-full border border-slate-800 text-[11px] font-bold text-cyan-400 font-mono tracking-wide">
+        QUESTION {currentQuestionIndex + 1} OF {questions.length}
+      </div>
+    {/if}
+  </header>
+
+  <main class="w-full max-w-4xl flex-1 flex flex-col justify-center my-8">
+    {#if isSubmitted}
+      <!-- THANK YOU SCREEN WITH ACTIVE AUTO-REFRESH ENGINE -->
+      <div in:scale={{ duration: 400, start: 0.95 }} class="text-center space-y-6 py-12">
+        <div class="text-6xl md:text-7xl animate-bounce">🎉</div>
+        <h2 class="text-3xl md:text-5xl font-black tracking-tight bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent">
+          Thank You!
+        </h2>
+        <p class="text-sm md:text-base text-slate-400 max-w-md mx-auto leading-relaxed">
+          Your responses have been securely logged. This terminal screen will automatically cycle back to the beginning in 
+          <span class="text-cyan-400 font-mono font-bold text-lg px-1">{countdownSeconds}s</span>...
+        </p>
+        <button 
+          on:click={resetTerminal}
+          class="mt-4 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 px-6 py-3 rounded-2xl text-xs font-bold transition-all active:scale-95 shadow-xl">
+          Restart Now ➔
+        </button>
       </div>
 
-      <!-- ACTIVE SURVEY SCREEN -->
-      {#if !kioskSubmitted}
-        <div class="p-12 space-y-12 text-center min-h-[380px] flex flex-col justify-between">
-          
-          <div class="space-y-2">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-widest block">{surveyTitle}</span>
-            <h2 class="text-3xl font-extrabold tracking-tight text-white leading-tight px-4 mt-2">
-              {questions[currentQuestionIndex].questionText}
-            </h2>
-          </div>
+    {:else if !currentQuestion}
+      <div in:fade class="text-center text-slate-500 py-12 text-sm max-w-md mx-auto">
+        ⚠️ No interactive questionnaire structure loaded inside this instance layout.
+      </div>
 
-          <div class="w-full">
-            
-            <!-- 1. UPGRADED 5-SMILEY MATRIX WITH LABELS -->
-            {#if questions[currentQuestionIndex].type === 'smiley'}
-              <div class="space-y-6">
-                <div class="flex items-center justify-center space-x-3 sm:space-x-4 md:space-x-6">
-                  
-                  <!-- ANGRY -->
-                  <div class="flex flex-col items-center space-y-2.5 group">
-                    <button on:click={() => handleAnswer(questions[currentQuestionIndex].questionText, '🤬 Angry')} class="text-5xl md:text-6xl transform active:scale-95 hover:bg-slate-800/80 transition-all p-4 bg-slate-950 rounded-full border border-slate-800 hover:border-red-500/60 hover:shadow-lg hover:shadow-red-500/10 shadow-md duration-150" type="button">
-                      🤬
-                    </button>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 group-hover:text-red-400/80 transition-colors">Angry</span>
-                  </div>
-
-                  <!-- DISSATISFIED -->
-                  <div class="flex flex-col items-center space-y-2.5 group">
-                    <button on:click={() => handleAnswer(questions[currentQuestionIndex].questionText, '😞 Dissatisfied')} class="text-5xl md:text-6xl transform active:scale-95 hover:bg-slate-800/80 transition-all p-4 bg-slate-950 rounded-full border border-slate-800 hover:border-orange-400/60 hover:shadow-lg hover:shadow-orange-400/10 shadow-md duration-150" type="button">
-                      😞
-                    </button>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 group-hover:text-orange-400/80 transition-colors">Sad</span>
-                  </div>
-
-                  <!-- NEUTRAL -->
-                  <div class="flex flex-col items-center space-y-2.5 group">
-                    <button on:click={() => handleAnswer(questions[currentQuestionIndex].questionText, '😐 Neutral')} class="text-5xl md:text-6xl transform active:scale-95 hover:bg-slate-800/80 transition-all p-4 bg-slate-950 rounded-full border border-slate-800 hover:border-amber-400/60 hover:shadow-lg hover:shadow-amber-400/10 shadow-md duration-150" type="button">
-                      😐
-                    </button>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 group-hover:text-amber-400/80 transition-colors">Neutral</span>
-                  </div>
-
-                  <!-- SATISFIED -->
-                  <div class="flex flex-col items-center space-y-2.5 group">
-                    <button on:click={() => handleAnswer(questions[currentQuestionIndex].questionText, '😊 Satisfied')} class="text-5xl md:text-6xl transform active:scale-95 hover:bg-slate-800/80 transition-all p-4 bg-slate-950 rounded-full border border-slate-800 hover:border-lime-400/60 hover:shadow-lg hover:shadow-lime-400/10 shadow-md duration-150" type="button">
-                      😊
-                    </button>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 group-hover:text-lime-400/80 transition-colors">Happy</span>
-                  </div>
-
-                  <!-- DELIGHTED -->
-                  <div class="flex flex-col items-center space-y-2.5 group">
-                    <button on:click={() => handleAnswer(questions[currentQuestionIndex].questionText, '🤩 Delighted')} class="text-5xl md:text-6xl transform active:scale-95 hover:bg-slate-800/80 transition-all p-4 bg-slate-950 rounded-full border border-slate-800 hover:border-emerald-500/60 hover:shadow-lg hover:shadow-emerald-500/10 shadow-md duration-150" type="button">
-                      🤩
-                    </button>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 group-hover:text-emerald-400/80 transition-colors">Delighted</span>
-                  </div>
-
-                </div>
-              </div>
-            {/if}
-
-            <!-- 2. TRADITIONAL 5-STAR RATING WITH HOVER STATE -->
-            {#if questions[currentQuestionIndex].type === 'stars'}
-              <div class="space-y-4">
-                <div class="flex items-center justify-center space-x-4 py-4" on:mouseleave={() => hoveredStarIndex = 0}>
-                  {#each [1, 2, 3, 4, 5] as starValue}
-                    <button 
-                      on:mouseenter={() => hoveredStarIndex = starValue}
-                      on:click={() => handleAnswer(questions[currentQuestionIndex].questionText, `${starValue} Stars`)}
-                      class="text-6xl transform transition-all duration-100 focus:outline-none active:scale-75 hover:scale-110"
-                      type="button"
-                    >
-                      <svg 
-                        class="h-16 w-16 transition-colors duration-100 {starValue <= hoveredStarIndex ? 'text-amber-400 fill-amber-400' : 'text-slate-700 fill-slate-800'}" 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-                      </svg>
-                    </button>
-                  {/each}
-                </div>
-                <div class="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  {#if hoveredStarIndex > 0}
-                    Rating: <span class="text-amber-400 font-bold">{hoveredStarIndex} / 5</span>
-                  {:else}
-                    Select a rating
-                  {/if}
-                </div>
-              </div>
-            {/if}
-
-            <!-- 3. MULTIPLE CHOICE RADIO LAYOUT -->
-            {#if questions[currentQuestionIndex].type === 'multiple-choice'}
-              <div class="flex flex-col space-y-2.5 max-w-md mx-auto">
-                {#each questions[currentQuestionIndex].options as choiceSelection}
-                  <button on:click={() => handleAnswer(questions[currentQuestionIndex].questionText, choiceSelection)} class="w-full text-center bg-slate-950 border border-slate-800 hover:bg-slate-800/60 hover:border-cyan-500/40 text-sm font-bold py-4 rounded-2xl transition-all duration-150 text-slate-300 shadow-sm active:scale-[0.99]">
-                    {choiceSelection}
-                  </button>
-                {/each}
-              </div>
-            {/if}
-
-            <!-- 4. SHORT ANSWER FIELD -->
-            {#if questions[currentQuestionIndex].type === 'text'}
-              <div class="space-y-4 max-w-xl mx-auto">
-                <textarea id="kiosk-text-area" rows="4" placeholder="Tap here to share your detailed comments..." class="w-full bg-slate-950 border border-slate-800 text-white placeholder-slate-600 rounded-2xl p-4 text-base focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"></textarea>
-                <button on:click={() => {
-                  const comments = document.getElementById('kiosk-text-area').value;
-                  handleAnswer(questions[currentQuestionIndex].questionText, comments || 'No Comments Logged');
-                }} class="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-4 rounded-2xl font-bold text-base shadow-lg shadow-cyan-600/10 active:scale-[0.99] transition-all duration-150">
-                  Submit Feedback
-                </button>
-              </div>
-            {/if}
-
-          </div>
-
-          <div class="text-[10px] text-slate-600 tracking-wider font-semibold">
-            SECURE CLIENT TERMINAL
-          </div>
-
-        </div>
-      {:else}
+    {:else}
+      <div key={currentQuestionIndex} in:fly={{ y: 20, duration: 400 }} class="space-y-10 md:space-y-12">
         
-        <!-- AUTOMATED RESET WINDOW -->
-        <div class="p-16 text-center space-y-6 min-h-[380px] flex flex-col justify-center items-center animate-fade">
-          <div class="h-20 w-20 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full flex items-center justify-center text-4xl font-bold shadow-inner">
-            ✓
-          </div>
-          <div class="space-y-2">
-            <h2 class="text-3xl font-extrabold text-white tracking-tight">Response Submitted</h2>
-            <p class="text-slate-400 text-sm max-w-xs mx-auto">Thank you for your feedback! Your data package has been compiled and secured.</p>
-          </div>
-          
-          <div class="pt-4">
-            <div class="inline-flex items-center space-x-2 bg-slate-950 px-4 py-2 rounded-full border border-slate-800/80">
-              <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Cycling in</span>
-              <span class="text-xs font-extrabold text-cyan-400 font-mono w-4">{countdown}s</span>
-            </div>
-          </div>
+        <div class="text-center space-y-2">
+          <span class="text-[10px] font-bold text-slate-500 tracking-widest uppercase font-mono block">Feedback Request</span>
+          <h1 class="text-2xl md:text-5xl font-black tracking-tight text-white leading-tight max-w-3xl mx-auto px-2">
+            {currentQuestion.questionText}
+          </h1>
         </div>
 
-      {/if}
-    </div>
-  {/if}
+        <div class="w-full">
+          {#if currentQuestion.type === 'smiley'}
+            <div class="grid grid-cols-5 gap-3 md:gap-6 max-w-3xl mx-auto px-2">
+              {#each satisfactionScale as option}
+                <button 
+                  on:click={() => handleSelectOption(`${option.emoji} ${option.label}`)}
+                  class="flex flex-col items-center justify-center p-3 py-5 md:p-6 rounded-3xl border transition-all duration-200 group active:scale-95 backdrop-blur-sm shadow-lg {option.color}">
+                  <span class="text-4xl md:text-6xl transform group-hover:scale-110 transition-transform duration-200 select-none filter drop-shadow-md">
+                    {option.emoji}
+                  </span>
+                  <span class="hidden md:block mt-4 text-[10px] font-black tracking-widest uppercase font-mono opacity-60 group-hover:opacity-100">
+                    {option.label}
+                  </span>
+                </button>
+              {/each}
+            </div>
+
+          {:else if currentQuestion.type === 'stars'}
+            <!-- FLUID INTERACTIVE 5-STAR RATING SYSTEM -->
+            <div 
+              class="flex items-center justify-center space-x-2 md:space-x-4 max-w-xl mx-auto"
+              on:mouseleave={() => hoveredStarIndex = 0}
+            >
+              {#each [1, 2, 3, 4, 5] as starValue}
+                <button 
+                  type="button"
+                  on:mouseenter={() => hoveredStarIndex = starValue}
+                  on:click={() => handleSelectOption(`${starValue} Stars`)}
+                  class="text-5xl md:text-7xl transform hover:scale-125 active:scale-95 transition-all duration-150 outline-none select-none filter drop-shadow-md focus:outline-none"
+                  style="color: {starValue <= (hoveredStarIndex || 0) ? '#fbbf24' : '#334155'}"
+                >
+                  {starValue <= (hoveredStarIndex || 0) ? '★' : '☆'}
+                </button>
+              {/each}
+            </div>
+
+          {:else}
+            <div class="max-w-xl mx-auto space-y-4 px-2">
+              <input 
+                type="text" 
+                bind:value={selectedValue}
+                placeholder="Type your response summary profile here..."
+                class="w-full bg-slate-900 border border-slate-800 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 text-white placeholder-slate-600 rounded-2xl p-4 text-sm md:text-base outline-none transition-all shadow-inner"
+              />
+              <button 
+                on:click={advanceStep}
+                class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3.5 px-6 text-sm rounded-2xl transition-all shadow-lg active:scale-[0.98]">
+                Submit Field Input ➔
+              </button>
+            </div>
+          {/if}
+        </div>
+
+      </div>
+    {/if}
+  </main>
+
+  <footer class="w-full max-w-4xl border-t border-slate-800/40 pt-6 flex flex-col md:flex-row items-center justify-between text-[10px] text-slate-600 uppercase font-mono tracking-widest font-semibold gap-3 shrink-0">
+    <span>🔒 Secure Enterprise Client Terminal</span>
+    {#if !isSubmitted && questions.length > 0}
+      <div class="w-full md:w-48 h-1 bg-slate-900 rounded-full overflow-hidden border border-slate-800/60">
+        <div 
+          class="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-300 rounded-full" 
+          style="width: {((currentQuestionIndex + 1) / questions.length) * 100}%">
+        </div>
+      </div>
+    {/if}
+    <span>System v2.4.0</span>
+  </footer>
+
 </div>

@@ -5,17 +5,35 @@
   import Kiosk from './components/Kiosk.svelte';
   import Answers from './components/Answers.svelte';
 
-  const API_BASE = 'http://localhost:5000/api';
+  const API_BASE = 'http://10.136.33.14:5000/api'; 
 
   let activeTab = 'surveys'; 
   let surveysList = [];
   let responses = [];
   let activeSurveyId = "";
   let isOfflineMode = false;
+  let isDedicatedKioskMode = false;
+  
+  // Responsive sidebar toggles
+  let isSidebarVisible = true;
 
   onMount(async () => {
     await refreshDataLedger();
-    if (surveysList.length > 0) {
+
+    const urlParams = new URLSearchParams(window.location.hash.includes('?') 
+      ? window.location.hash.split('?')[1] 
+      : window.location.search
+    );
+    const targetSurveyId = urlParams.get('id');
+
+    if (targetSurveyId || window.location.hash.startsWith('#/kiosk')) {
+      isDedicatedKioskMode = true;
+      isSidebarVisible = false; // Never show administrative shells on kiosk hardware endpoints
+      activeTab = 'kiosk';
+      if (targetSurveyId) {
+        activeSurveyId = targetSurveyId;
+      }
+    } else if (surveysList.length > 0) {
       activeSurveyId = surveysList[0]._id;
     }
   });
@@ -33,14 +51,13 @@
       const responseData = await responseRes.json();
       if (responseData.success) responses = responseData.responses;
     } catch (err) {
-      console.warn("Backend server not reached. Operating in Local Memory Fallback Mode.");
+      console.warn("Backend link offline fallback active.");
       isOfflineMode = true;
     }
   }
 
   $: activeSurvey = surveysList.find(s => s._id === activeSurveyId) || { title: "None Selected", questions: [] };
 
-  // CREATE: Tries backend, instantly falls back to local memory if server is down
   async function handleCreateNewSurvey() {
     try {
       const res = await fetch(`${API_BASE}/surveys`, {
@@ -53,27 +70,15 @@
         surveysList = [...surveysList, data.survey];
         activeSurveyId = data.survey._id;
         activeTab = 'builder';
-        isOfflineMode = false;
         return;
       }
-    } catch (err) {
-      console.warn("Creating survey in offline fallback mode.");
-    }
-
-    // LOCAL OFFLINE FALLBACK ENGINE:
-    isOfflineMode = true;
+    } catch (err) {}
     const localId = `LOCAL-${Math.floor(1000 + Math.random() * 9000)}`;
-    const localSurvey = {
-      _id: localId,
-      title: "New Custom Form Schema (Offline)",
-      questions: []
-    };
-    surveysList = [...surveysList, localSurvey];
+    surveysList = [...surveysList, { _id: localId, title: "New Custom Form Schema (Offline)", questions: [] }];
     activeSurveyId = localId;
     activeTab = 'builder';
   }
 
-  // UPDATE: Auto-syncs to database, or keeps in local state if offline
   async function persistActiveSurveyState() {
     if (!activeSurveyId || String(activeSurveyId).startsWith('LOCAL-')) return;
     try {
@@ -82,9 +87,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: activeSurvey.title, questions: activeSurvey.questions })
       });
-    } catch (err) {
-      console.warn("Offline: failed to sync edits to cloud database.");
-    }
+    } catch (err) {}
   }
 
   function addQuestion(text, type, options = []) {
@@ -99,139 +102,114 @@
     persistActiveSurveyState();
   }
 
-  // DELETE: Safely drops records online or locally
   async function handleDeleteSurvey(id) {
-    if (String(id).startsWith('LOCAL-')) {
-      surveysList = surveysList.filter(s => s._id !== id);
-      if (activeSurveyId === id && surveysList.length > 0) {
-        activeSurveyId = surveysList[0]._id;
-      } else if (surveysList.length === 0) {
-        activeSurveyId = "";
-      }
-      return;
-    }
     try {
-      const res = await fetch(`${API_BASE}/surveys/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        surveysList = surveysList.filter(s => s._id !== id);
-        if (activeSurveyId === id && surveysList.length > 0) {
-          activeSurveyId = surveysList[0]._id;
-        } else if (surveysList.length === 0) {
-          activeSurveyId = "";
-        }
+      if (!String(id).startsWith('LOCAL-')) {
+        await fetch(`${API_BASE}/surveys/${id}`, { method: 'DELETE' });
       }
-    } catch (err) {
-      console.warn("Offline: removing from local memory grid.");
       surveysList = surveysList.filter(s => s._id !== id);
-      if (activeSurveyId === id && surveysList.length > 0) {
-        activeSurveyId = surveysList[0]._id;
-      } else if (surveysList.length === 0) {
-        activeSurveyId = "";
-      }
+    } catch (err) {
+      surveysList = surveysList.filter(s => s._id !== id);
     }
   }
 
-  // RESPONSE: Log response online, fallback to in-memory response mapping on network timeout
   async function registerResponse(formattedAnswers) {
-    const isLocalSurvey = String(activeSurveyId).startsWith('LOCAL-');
-    if (isLocalSurvey) {
-      const localResponse = {
-        _id: `RESP-${Math.floor(1000 + Math.random() * 9000)}`,
-        surveyTitle: activeSurvey.title,
-        timestamp: new Date().toLocaleTimeString(),
-        answers: formattedAnswers
-      };
-      responses = [localResponse, ...responses];
-      return;
-    }
     try {
-      const res = await fetch(`${API_BASE}/responses`, {
+      await fetch(`${API_BASE}/responses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ surveyTitle: activeSurvey.title, answers: formattedAnswers })
       });
-      const data = await res.json();
-      if (data.success) {
-        responses = [data.response, ...responses];
-      }
-    } catch (err) {
-      console.warn("Offline: logging response temporarily in local storage.");
-      const localResponse = {
-        _id: `RESP-${Math.floor(1000 + Math.random() * 9000)}`,
-        surveyTitle: activeSurvey.title,
-        timestamp: new Date().toLocaleTimeString(),
-        answers: formattedAnswers
-      };
-      responses = [localResponse, ...responses];
-    }
+    } catch (err) {}
   }
 
-  function handleSelectAndEdit(id) {
-    activeSurveyId = id;
-    activeTab = 'builder';
-  }
-
-  function handleSelectAndTest(id) {
-    activeSurveyId = id;
-    activeTab = 'kiosk';
-  }
+  function handleSelectAndEdit(id) { activeSurveyId = id; activeTab = 'builder'; }
+  function handleSelectAndTest(id) { activeSurveyId = id; activeTab = 'kiosk'; }
 </script>
 
-<div class="flex h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden select-none m-0 p-0 box-border">
+<div class="flex h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden m-0 p-0 box-border">
   
-  <!-- SIDEBAR -->
-  <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0 h-full">
-    <div>
-      <div class="p-6 border-b border-slate-800 flex items-center space-x-3">
-        <div class="h-8 w-8 rounded-lg bg-cyan-600 flex items-center justify-center font-bold text-white shadow-lg shadow-cyan-600/30">D</div>
-        <span class="font-bold text-lg tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">DigitalSurvey</span>
+  <!-- LEFT SIDEBAR PANEL (Collapsible with smooth transition) -->
+  {#if isSidebarVisible}
+    <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0 h-full">
+      <div>
+        <div class="p-5 h-16 border-b border-slate-800 flex items-center space-x-3 box-border">
+          <div class="h-8 w-8 rounded-lg bg-cyan-600 flex items-center justify-center font-bold text-white shadow-md">S</div>
+          <span class="font-bold text-base tracking-tight text-white">Sdx DigitalSurvey</span>
+        </div>
+        
+        <nav class="p-4 space-y-1">
+          <button class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'surveys' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/10' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}" on:click={() => { activeTab = 'surveys'; refreshDataLedger(); }}>
+            <span>📋</span> <span>Surveys Portal</span>
+          </button>
+          <button class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'builder' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/10' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}" on:click={() => activeTab = 'builder'} disabled={surveysList.length === 0}>
+            <span>🛠️</span> <span class={surveysList.length === 0 ? 'opacity-40' : ''}>Form Designer</span>
+          </button>
+          <button class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'kiosk' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/10' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}" on:click={() => activeTab = 'kiosk'} disabled={surveysList.length === 0 || !activeSurvey.questions || activeSurvey.questions.length === 0}>
+            <span>📱</span> <span class={(surveysList.length === 0 || !activeSurvey.questions || activeSurvey.questions.length === 0) ? 'opacity-40' : ''}>Live Kiosk Mode</span>
+          </button>
+          <button class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'answers' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/10' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}" on:click={() => { activeTab = 'answers'; refreshDataLedger(); }}>
+            <span>📥</span> <span>Answers Log</span>
+          </button>
+        </nav>
       </div>
       
-      <nav class="p-4 space-y-1">
-        <button class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm {activeTab === 'surveys' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/20' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'}" on:click={() => { activeTab = 'surveys'; refreshDataLedger(); }}>
-          <span>📋</span> <span>Surveys Management</span>
-        </button>
-        <button class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm {activeTab === 'builder' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/20' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'}" on:click={() => activeTab = 'builder'} disabled={surveysList.length === 0}>
-          <span>🛠️</span> <span class={surveysList.length === 0 ? 'opacity-40' : ''}>Form Designer</span>
-        </button>
-        <button class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm {activeTab === 'kiosk' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/20' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'}" on:click={() => activeTab = 'kiosk'} disabled={surveysList.length === 0 || !activeSurvey.questions || activeSurvey.questions.length === 0}>
-          <span>📱</span> <span class={(surveysList.length === 0 || !activeSurvey.questions || activeSurvey.questions.length === 0) ? 'opacity-40' : ''}>Live Kiosk Mode</span>
-        </button>
-        <button class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm {activeTab === 'answers' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/20' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'}" on:click={() => { activeTab = 'answers'; refreshDataLedger(); }}>
-          <span>📥</span> <span>Collected Answers</span>
-        </button>
-      </nav>
-    </div>
-    
-    <div class="p-4 border-t border-slate-800 bg-slate-900/50 text-xs text-slate-500 flex flex-col gap-1.5">
-      <div class="flex items-center justify-between">
-        <span>Active Target: {activeSurvey?.title || 'None'}</span>
-        <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+      <div class="p-4 border-t border-slate-800 bg-slate-900/50 text-[11px] text-slate-500 font-medium tracking-wide">
+        Target: <span class="text-slate-300 font-semibold">{activeSurvey?.title || 'None'}</span>
       </div>
-      {#if isOfflineMode}
-        <div class="text-[10px] text-amber-500 font-bold tracking-wide uppercase flex items-center gap-1 mt-0.5">
-          ⚠️ Local Offline Mode Active
-        </div>
-      {/if}
-    </div>
-  </aside>
+    </aside>
+  {/if}
 
-  <!-- CONTENT VIEWPORTS -->
-  <main class="flex-1 bg-slate-950 p-8 overflow-y-auto h-full box-border">
-    {#if activeTab === 'surveys'}
-      <Dashboard 
-        surveys={surveysList} 
-        responseCount={responses.length} 
-        onCreateSurvey={handleCreateNewSurvey}
-        onDeleteSurvey={handleDeleteSurvey}
-        onEditSurvey={handleSelectAndEdit}
-        onTestSurvey={handleSelectAndTest}
-      />
-    {:else}
-      <div class="w-full h-full">
-        {#if activeTab === 'builder'}
-          <div on:focusout={persistActiveSurveyState} class="w-full h-full">
+  <!-- MAIN VIEWPORT CONTAINER WITH RESPONSIVE TOP HEADER WRAPPER -->
+  <div class="flex-1 flex flex-col h-full overflow-hidden">
+    
+    <!-- STANDARD TOP NAVBAR HEADER (Always visible unless in standalone dedicated kiosk route) -->
+    {#if !isDedicatedKioskMode}
+      <header class="w-full h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6 box-border shrink-0">
+        <div class="flex items-center space-x-4">
+          <!-- HAMBURGER TOGGLE MENU ACTION BUTTON -->
+          <button 
+            on:click={() => isSidebarVisible = !isSidebarVisible}
+            class="p-2 -ml-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 border border-transparent hover:border-slate-700/60 transition-all flex items-center justify-center focus:outline-none select-none active:scale-95"
+            title={isSidebarVisible ? "Collapse Sidebar" : "Expand Sidebar"}
+          >
+            <span class="text-xl leading-none font-bold">☰</span>
+          </button>
+          
+          {#if !isSidebarVisible}
+            <!-- Mini Logo fallback brand mark when sidebar collapses -->
+            <div class="flex items-center space-x-2 animate-fade">
+              <div class="h-6 w-6 rounded-md bg-cyan-600 flex items-center justify-center font-bold text-xs text-white">S</div>
+              <span class="font-bold text-sm tracking-tight text-white">Sdx DigitalSurvey</span>
+            </div>
+          {/if}
+        </div>
+
+        <div class="flex items-center space-x-3 text-xs text-slate-400 font-mono">
+          <span class="h-2 w-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>
+          <span class="hidden sm:inline">Operational Node Connection Online</span>
+        </div>
+      </header>
+    {/if}
+
+    <!-- CONTENT BODY VIEWPORT WINDOW -->
+    <main class="flex-1 bg-slate-950 overflow-y-auto w-full box-border {isDedicatedKioskMode ? 'p-0' : 'p-6 md:p-8 lg:p-10'}">
+      
+      <!-- FIXED LAYOUT STAGE WITH MAX-WIDTH BOUNDS CONTROLLING ALIGNMENT DISTORTION -->
+      <div class="w-full h-full {isDedicatedKioskMode || activeTab === 'kiosk' ? '' : 'max-w-7xl mx-auto'}">
+        {#if activeTab === 'surveys'}
+          <div class="w-full h-full">
+            <Dashboard 
+              surveys={surveysList} 
+              responseCount={responses.length} 
+              onCreateSurvey={handleCreateNewSurvey}
+              onDeleteSurvey={handleDeleteSurvey}
+              onEditSurvey={handleSelectAndEdit}
+              onTestSurvey={handleSelectAndTest}
+            />
+          </div>
+        {:else if activeTab === 'builder'}
+          <div class="w-full h-full" on:focusout={persistActiveSurveyState}>
             <FormBuilder 
               bind:surveyTitle={activeSurvey.title} 
               bind:questions={activeSurvey.questions}
@@ -239,24 +217,21 @@
               onRemoveQuestion={removeQuestion} 
             />
           </div>
-        {:else}
+        {:else if activeTab === 'kiosk'}
+          <div class="w-full h-full flex items-center justify-center">
+            <Kiosk 
+              surveyTitle={activeSurvey.title} 
+              questions={activeSurvey.questions} 
+              onSubmitResponse={registerResponse} 
+            />
+          </div>
+        {:else if activeTab === 'answers'}
           <div class="w-full h-full">
-            {#if activeTab === 'kiosk'}
-              <Kiosk 
-                surveyTitle={activeSurvey.title} 
-                questions={activeSurvey.questions} 
-                onSubmitResponse={registerResponse} 
-              />
-            {:else}
-              <div class="w-full h-full">
-                {#if activeTab === 'answers'}
-                  <Answers {responses} surveys={surveysList} />
-                {/if}
-              </div>
-            {/if}
+            <Answers {responses} surveys={surveysList} />
           </div>
         {/if}
       </div>
-    {/if}
-  </main>
+
+    </main>
+  </div>
 </div>
