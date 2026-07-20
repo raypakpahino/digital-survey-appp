@@ -1,8 +1,13 @@
 <script>
   export let surveyTitle = '';
   export let questions = [];
+  export let surveys = [];
+  export let activeSurveyId = '';
   export let onAddQuestion = (text, type, options) => {};
   export let onRemoveQuestion = (index) => {};
+  export let onSaveSurvey = () => {};
+  export let onSelectSurvey = (id) => {};
+  export let onCreateNewSurvey = () => {};
 
   const availableComponents = [
     { type: 'smiley', icon: '😊', label: 'Smiley Matrix', desc: 'CSAT smiley faces' },
@@ -35,9 +40,13 @@
     questions[qIndex].options = questions[qIndex].options.filter((_, i) => i !== optIndex);
     questions = questions;
   }
+
+  function triggerExplicitSave() {
+    onSaveSurvey();
+    alert("💾 Form schema states committed and deployed successfully!");
+  }
 </script>
 
-<!-- Outer layout wrapper fixed to utilize maximum viewport window bounds without causing page spill -->
 <div class="w-full h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-8 animate-fade overflow-hidden box-border">
   
   <!-- LEFT SIDEBAR: COMPONENT TOOLBOX TRAY -->
@@ -64,18 +73,50 @@
     </div>
 
     <div class="pt-6 border-t border-slate-800/80 mt-6 hidden lg:block">
-      <div class="bg-cyan-950/10 border border-cyan-900/20 p-4 rounded-xl text-center shadow-inner">
-        <span class="text-[10px] font-bold text-cyan-400 tracking-widest uppercase block">Interactive Canvas</span>
-        <p class="text-[11px] text-slate-400 mt-1 leading-normal">Changes carry directly into the Kiosk Terminal module view link.</p>
+      <div class="bg-slate-950 border border-slate-800/40 p-4 rounded-xl text-center shadow-inner">
+        <span class="text-[10px] font-bold text-slate-500 tracking-widest uppercase block">Interactive Canvas</span>
+        <p class="text-[11px] text-slate-500 mt-1 leading-normal">Requires manual verification commitment before loading onto terminals.</p>
       </div>
     </div>
   </div>
 
-  <!-- RIGHT: THE DESIGN CANVAS WORKSPACE (Now perfectly relative sizing to viewport height) -->
+  <!-- RIGHT: THE DESIGN CANVAS WORKSPACE -->
   <div class="flex-1 bg-slate-900 border border-slate-800/80 rounded-2xl p-8 flex flex-col shadow-xl h-full overflow-hidden box-border">
     
-    <!-- Title Section -->
-    <div class="space-y-3 shrink-0">
+    <!-- TOP CONTROL BAR: Target Form Selection & New Creation -->
+    <div class="bg-slate-950 border border-slate-800/80 rounded-xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shrink-0 shadow-inner">
+      <div class="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <label for="survey-selector" class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">
+          Target Schema:
+        </label>
+        <select 
+          id="survey-selector"
+          value={activeSurveyId}
+          on:change={(e) => onSelectSurvey(e.target.value)}
+          class="bg-slate-900 border border-slate-800 text-cyan-400 font-bold text-xs rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyan-500 transition-all w-full sm:w-auto flex-1 cursor-pointer"
+        >
+          {#if surveys.length === 0}
+            <option value="" disabled>No surveys available</option>
+          {:else}
+            {#each surveys as survey}
+              <option value={survey._id}>
+                {survey.title || "Untitled Form"} ({survey.questions?.length || 0} fields)
+              </option>
+            {/each}
+          {/if}
+        </select>
+      </div>
+
+      <button 
+        on:click={onCreateNewSurvey}
+        class="bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 font-bold text-xs px-4 py-2.5 rounded-xl transition-all shrink-0 flex items-center justify-center space-x-1.5 active:scale-[0.98]"
+      >
+        <span>+</span> <span>Create New Form</span>
+      </button>
+    </div>
+
+    <!-- Title Input Section -->
+    <div class="space-y-3 shrink-0 mt-6">
       <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block" for="form-heading">Form Name Header</label>
       <input 
         id="form-heading" 
@@ -95,7 +136,7 @@
     </div>
     
     <!-- DYNAMIC SCROLLABLE FIELD CANVA CONTAINER -->
-    <div class="flex-1 overflow-y-auto mt-6 pr-2 custom-scrollbar box-border pb-8">
+    <div class="flex-1 overflow-y-auto mt-6 pr-2 custom-scrollbar box-border pb-4">
       {#if questions.length === 0}
         <div class="border-2 border-dashed border-slate-800 rounded-2xl p-16 text-center text-slate-400 text-sm leading-relaxed mt-2">
           Canvas is completely empty. Click components from the left toolbox bar to assemble your form configuration layout.
@@ -158,8 +199,19 @@
         </div>
       {/if}
     </div>
-  </div>
 
+    <!-- FIXED CANVA FOOTER ACTIONS TRAY PANEL -->
+    <div class="pt-4 border-t border-slate-800/60 flex items-center justify-end shrink-0 bg-slate-900">
+      <button 
+        on:click={triggerExplicitSave} 
+        disabled={questions.length === 0 || !surveyTitle.trim()}
+        class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs py-3.5 px-6 rounded-xl transition-all shadow-md shadow-cyan-600/10 flex items-center space-x-2 active:scale-[0.98] disabled:opacity-25 disabled:cursor-not-allowed"
+      >
+        <span>💾</span> <span>Save & Deploy Schema</span>
+      </button>
+    </div>
+
+  </div>
 </div>
 
 <style>

@@ -6,12 +6,18 @@
   export let onEditSurvey = (id) => {};
   export let onTestSurvey = (id) => {};
 
-  // Update this to match your current laptop network IP
-  const LAN_IP = "10.136.33.14"; 
-  const FRONTEND_PORT = "5173";
-
   let activeShareSurvey = null;
   let showShareModal = false;
+
+  // Your laptop's active local Wi-Fi IP address
+  const LAN_IP = "10.136.33.44";
+  const FRONTEND_PORT = "5173";
+
+  // GUARANTEED NETWORK LINK:
+  // Always uses 10.136.33.44 so links and QR codes work on phones, tablets, and laptops
+  function getKioskLink(surveyId) {
+    return `http://${LAN_IP}:${FRONTEND_PORT}/#/kiosk?id=${surveyId}`;
+  }
 
   function openShareHub(survey) {
     activeShareSurvey = survey;
@@ -24,9 +30,9 @@
   }
 
   function copyKioskLink(surveyId) {
-    const directLink = `http://${LAN_IP}:${FRONTEND_PORT}/#/kiosk?id=${surveyId}`;
+    const directLink = getKioskLink(surveyId);
     navigator.clipboard.writeText(directLink);
-    alert("🚀 Direct Kiosk Link copied to clipboard!");
+    alert("🚀 Network-accessible Kiosk Link copied to clipboard!");
   }
 </script>
 
@@ -49,6 +55,7 @@
       </div>
       <div class="text-3xl bg-slate-950 h-14 w-14 rounded-xl flex items-center justify-center border border-slate-800 shadow-inner">📋</div>
     </div>
+    
     <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-6 shadow-md flex items-center justify-between">
       <div>
         <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Aggregated Responses Collected</h4>
@@ -83,7 +90,7 @@
                 <span class="text-[10px] uppercase font-bold text-slate-500 tracking-widest font-mono">Active</span>
               </div>
               <h3 class="text-lg font-bold text-white tracking-tight truncate border-l-2 border-cyan-500 pr-8 pl-3">
-                {survey.title}
+                {survey.title || "Untitled Form"}
               </h3>
               <p class="text-xs text-slate-400 pt-1"> Contains <span class="text-cyan-400 font-semibold">{survey.questions?.length || 0} layout fields</span>.</p>
             </div>
@@ -93,12 +100,12 @@
                 <button on:click={() => onEditSurvey(survey._id)} class="w-full text-center bg-slate-950 hover:bg-slate-800 text-slate-200 font-bold py-2.5 px-4 text-xs rounded-xl border border-slate-800 transition-all">
                   🛠️ Open Designer
                 </button>
-                <button on:click={() => onTestSurvey(survey._id)} disabled={!survey.questions || survey.questions.length === 0} class="w-full text-center bg-cyan-950/40 hover:bg-cyan-950/80 text-cyan-400 font-bold py-2.5 px-4 text-xs rounded-xl border border-cyan-950/80 transition-all disabled:opacity-20">
+                <button on:click={() => onTestSurvey(survey._id)} class="w-full text-center bg-cyan-950/40 hover:bg-cyan-950/80 text-cyan-400 font-bold py-2.5 px-4 text-xs rounded-xl border border-cyan-950/80 transition-all">
                   📱 Test Kiosk
                 </button>
               </div>
               
-              <button on:click={() => openShareHub(survey)} disabled={!survey.questions || survey.questions.length === 0} class="w-full bg-slate-950 text-emerald-400 font-bold py-2 px-4 text-xs rounded-xl border border-slate-800 hover:border-emerald-500/30 hover:bg-emerald-950/10 transition-all flex items-center justify-center space-x-2 disabled:opacity-20">
+              <button on:click={() => openShareHub(survey)} class="w-full bg-slate-950 text-emerald-400 font-bold py-2 px-4 text-xs rounded-xl border border-slate-800 hover:border-emerald-500/30 hover:bg-emerald-950/10 transition-all flex items-center justify-center space-x-2">
                 <span>⚡</span> <span>Deploy & Share Form</span>
               </button>
             </div>
@@ -110,6 +117,7 @@
 
   <!-- SHARE HUB OVERLAY MODAL -->
   {#if showShareModal && activeShareSurvey}
+    {@const dynamicKioskUrl = getKioskLink(activeShareSurvey._id)}
     <div class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade">
       <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-6 text-center space-y-6 shadow-2xl relative">
         
@@ -124,7 +132,7 @@
 
         <div class="bg-white p-4 rounded-2xl inline-block shadow-inner mx-auto border-4 border-slate-950/20">
           <img 
-            src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={encodeURIComponent(`http://${LAN_IP}:${FRONTEND_PORT}/#/kiosk?id=${activeShareSurvey._id}`)}&color=0f172a" 
+            src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={encodeURIComponent(dynamicKioskUrl)}&color=0f172a" 
             alt="Survey Kiosk Link QR Code" 
             class="h-44 w-44 block"
           />
