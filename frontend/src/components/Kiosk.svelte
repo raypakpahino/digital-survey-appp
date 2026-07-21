@@ -1,6 +1,6 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
-  import { fade, fly, scale } from 'svelte/transition';
+  import { onDestroy } from 'svelte';
+  import { fly, scale } from 'svelte/transition';
   
   export let surveyTitle = "Feedback Terminal";
   export let questions = [];
@@ -12,14 +12,22 @@
   let currentQuestionIndex = 0;
   let answersAccumulator = [];
   let selectedValue = "";
+  let selectedMultipleValues = [];
   let isSubmitted = false;
+  let validationError = "";
   
-  // Interactive Star Hover Tracking
   let hoveredStarIndex = 0;
   let autoResetTimer;
   let countdownSeconds = 4;
 
   $: currentQuestion = questions[currentQuestionIndex] || null;
+
+  // Clear selections whenever question changes
+  $: if (currentQuestionIndex !== undefined) {
+    selectedValue = "";
+    selectedMultipleValues = [];
+    validationError = "";
+  }
 
   const satisfactionScale = [
     { label: "ANGRY", emoji: "🤬", color: "hover:bg-rose-500/20 hover:border-rose-500 text-rose-400 bg-rose-950/20 border-rose-900/40" },
@@ -30,22 +38,48 @@
   ];
 
   function handleSelectOption(value) {
+    validationError = "";
     selectedValue = value;
     setTimeout(() => {
       advanceStep();
     }, 250);
   }
 
+  function toggleMultipleOption(option) {
+    validationError = "";
+    if (selectedMultipleValues.includes(option)) {
+      selectedMultipleValues = selectedMultipleValues.filter(o => o !== option);
+    } else {
+      selectedMultipleValues = [...selectedMultipleValues, option];
+    }
+  }
+
   function advanceStep() {
     if (!currentQuestion) return;
 
+    let finalValue = selectedValue;
+
+    // Handle multiple choice toggle value collation
+    if (getNormalizedType(currentQuestion.type) === 'multiple-choice' && currentQuestion.allowMultiple) {
+      finalValue = selectedMultipleValues.join(", ");
+    }
+
+    // Enforce Required field validation
+    const isBlank = !finalValue || (typeof finalValue === 'string' && finalValue.trim() === "");
+    if (currentQuestion.isRequired && isBlank) {
+      validationError = "This question is required. Please provide an answer before continuing.";
+      return;
+    }
+
     answersAccumulator = [
       ...answersAccumulator,
-      { questionText: currentQuestion.questionText, value: selectedValue || "Skipped" }
+      { questionText: currentQuestion.questionText, value: finalValue || "Skipped" }
     ];
 
     selectedValue = "";
+    selectedMultipleValues = [];
     hoveredStarIndex = 0;
+    validationError = "";
 
     if (currentQuestionIndex < questions.length - 1) {
       currentQuestionIndex += 1;
@@ -73,11 +107,12 @@
     currentQuestionIndex = 0;
     answersAccumulator = [];
     selectedValue = "";
+    selectedMultipleValues = [];
     hoveredStarIndex = 0;
+    validationError = "";
     isSubmitted = false;
   }
 
-  // Robust type checks across uppercase/lowercase variations
   function getNormalizedType(qType) {
     if (!qType) return '';
     return String(qType).toLowerCase().replace(/_/g, '-');
@@ -88,18 +123,18 @@
   });
 </script>
 
-<div class="w-full min-h-screen bg-slate-950 flex flex-col justify-between items-center p-6 md:p-12 text-slate-100 font-sans selection:bg-cyan-500/30">
+<div class="w-full h-full flex flex-col justify-between items-center p-4 sm:p-6 md:p-10 text-slate-100 font-sans box-border overflow-y-auto custom-scrollbar">
   
   <!-- HEADER -->
-  <header class="w-full max-w-4xl flex items-center justify-between border-b border-slate-800/60 pb-6 shrink-0">
+  <header class="w-full max-w-5xl flex items-center justify-between border-b border-slate-800/80 pb-4 sm:pb-5 shrink-0">
     <div class="flex items-center space-x-3">
-      <div class="h-2.5 w-2.5 rounded-full bg-cyan-500 animate-pulse"></div>
-      <span class="text-xs font-bold font-mono tracking-widest text-slate-400 uppercase">{surveyTitle || "Feedback Terminal"}</span>
+      <div class="h-3 w-3 rounded-full bg-cyan-400 animate-pulse shadow-lg shadow-cyan-500/50"></div>
+      <span class="text-xs sm:text-sm font-black font-mono tracking-widest text-slate-300 uppercase">{surveyTitle || "Feedback Terminal"}</span>
     </div>
 
     <div class="flex items-center space-x-3">
       {#if activeSurveyId && !isSubmitted && questions.length > 0}
-        <div class="bg-slate-900 px-3 py-1.5 rounded-full border border-slate-800 text-[11px] font-bold text-cyan-400 font-mono tracking-wide">
+        <div class="bg-slate-900 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border border-slate-800 text-[11px] sm:text-xs font-bold text-cyan-400 font-mono tracking-wide">
           QUESTION {currentQuestionIndex + 1} OF {questions.length}
         </div>
         <button
@@ -107,8 +142,7 @@
             resetTerminal();
             onSelectSurvey("");
           }}
-          class="text-[10px] font-bold text-slate-400 hover:text-cyan-400 bg-slate-900 hover:bg-slate-800 border border-slate-800 px-3 py-1.5 rounded-full transition-all shrink-0"
-          title="Switch active form"
+          class="text-xs font-bold text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full transition-all shrink-0 active:scale-95 shadow-md"
         >
           🔄 Change Form
         </button>
@@ -117,89 +151,109 @@
   </header>
 
   <!-- MAIN BODY -->
-  <main class="w-full max-w-4xl flex-1 flex flex-col justify-center my-8">
-    <!-- FORM SELECTION SCREEN (WHEN NO ACTIVE SURVEY IS SELECTED) -->
+  <main class="w-full max-w-5xl flex-1 flex flex-col justify-center my-4 sm:my-8">
     {#if !activeSurveyId || !surveyTitle || questions.length === 0}
-      <div in:scale={{ duration: 300, start: 0.98 }} class="max-w-xl mx-auto w-full bg-slate-900/80 border border-slate-800 rounded-3xl p-8 space-y-6 shadow-2xl backdrop-blur-md">
-        <div class="text-center space-y-2 border-b border-slate-800 pb-4">
-          <div class="h-12 w-12 rounded-2xl bg-cyan-600/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center font-bold text-xl mx-auto mb-2 shadow-lg">
+      <div in:scale={{ duration: 300, start: 0.96 }} class="w-full max-w-3xl mx-auto bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-10 md:p-12 space-y-6 sm:space-y-8 shadow-2xl backdrop-blur-xl">
+        <div class="text-center space-y-3 border-b border-slate-800/80 pb-6">
+          <div class="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-cyan-600/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center font-bold text-2xl sm:text-3xl mx-auto mb-2 shadow-xl shadow-cyan-500/10">
             📱
           </div>
-          <h1 class="text-2xl font-black tracking-tight text-white">Select Survey Form</h1>
-          <p class="text-xs text-slate-400">Choose an active form sequence below to launch Live Kiosk Terminal Mode.</p>
+          <h1 class="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white">Select Survey Form</h1>
+          <p class="text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
+            Choose an active form sequence below to launch Live Kiosk Terminal Mode on this device.
+          </p>
         </div>
 
         {#if surveys.length === 0}
-          <div class="border-2 border-dashed border-slate-800 rounded-2xl p-8 text-center text-xs text-slate-500">
+          <div class="border-2 border-dashed border-slate-800 rounded-2xl p-8 sm:p-12 text-center text-xs sm:text-sm text-slate-500">
             No active forms available in system storage. Please create a form first in the Form Designer.
           </div>
         {:else}
-          <div class="space-y-3 max-h-80 overflow-y-auto pr-1">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[28rem] overflow-y-auto custom-scrollbar pr-1">
             {#each surveys.filter(s => !s.isDraft && !String(s._id).startsWith("DRAFT-")) as survey}
               <button
                 on:click={() => {
                   resetTerminal();
                   onSelectSurvey(survey._id);
                 }}
-                class="w-full text-left bg-slate-950/80 hover:bg-cyan-950/40 border border-slate-800/80 hover:border-cyan-500/60 rounded-2xl p-4 transition-all duration-200 flex items-center justify-between group active:scale-[0.99] shadow-md"
+                class="text-left bg-slate-950/80 hover:bg-slate-950 border border-slate-800 hover:border-cyan-500/60 rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between group active:scale-[0.98] shadow-lg hover:shadow-cyan-500/10 min-h-[7.5rem] space-y-4"
               >
-                <div class="space-y-1 truncate pr-3">
-                  <h3 class="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors truncate">
+                <div class="space-y-1">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/60 border border-cyan-800/40 px-2 py-0.5 rounded-md">
+                      Active Form
+                    </span>
+                    <span class="text-xs font-mono text-slate-500 font-bold">
+                      {survey.questions?.length || 0} Fields
+                    </span>
+                  </div>
+                  <h3 class="text-base sm:text-lg font-bold text-white group-hover:text-cyan-300 transition-colors truncate pt-1">
                     {survey.title || "Untitled Form"}
                   </h3>
-                  <span class="text-[10px] font-mono text-slate-500 uppercase block">
-                    {survey.questions?.length || 0} Fields Configured
+                </div>
+
+                <div class="flex items-center justify-between pt-2 border-t border-slate-900">
+                  <span class="text-xs text-slate-400 font-medium group-hover:text-slate-200 transition-colors">Tap to start terminal</span>
+                  <span class="text-xs font-bold bg-cyan-600 group-hover:bg-cyan-500 text-white px-3.5 py-1.5 rounded-xl shadow-md transition-all">
+                    Launch →
                   </span>
                 </div>
-                <span class="text-xs font-bold bg-cyan-600 text-white px-3.5 py-2 rounded-xl shadow-md group-hover:bg-cyan-500 shrink-0">
-                  Launch →
-                </span>
               </button>
             {/each}
           </div>
         {/if}
       </div>
 
-    <!-- THANK YOU SCREEN -->
     {:else if isSubmitted}
-      <div in:scale={{ duration: 400, start: 0.95 }} class="text-center space-y-6 py-12">
-        <div class="text-6xl md:text-7xl animate-bounce">🎉</div>
-        <h2 class="text-3xl md:text-5xl font-black tracking-tight bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent">
+      <div in:scale={{ duration: 400, start: 0.95 }} class="text-center space-y-6 py-8 sm:py-12">
+        <div class="text-6xl sm:text-7xl md:text-8xl animate-bounce">🎉</div>
+        <h2 class="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent">
           Thank You!
         </h2>
-        <p class="text-sm md:text-base text-slate-400 max-w-md mx-auto leading-relaxed">
-          Your responses have been securely logged. This terminal screen will automatically cycle back to the beginning in 
-          <span class="text-cyan-400 font-mono font-bold text-lg px-1">{countdownSeconds}s</span>...
+        <p class="text-sm sm:text-base md:text-lg text-slate-400 max-w-md mx-auto leading-relaxed">
+          Your responses have been securely logged. Resetting in 
+          <span class="text-cyan-400 font-mono font-bold text-lg sm:text-xl px-1">{countdownSeconds}s</span>...
         </p>
         <button 
           on:click={resetTerminal}
-          class="mt-4 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 px-6 py-3 rounded-2xl text-xs font-bold transition-all active:scale-95 shadow-xl">
+          class="mt-4 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 px-6 py-3 sm:px-8 sm:py-3.5 rounded-2xl text-xs font-bold transition-all active:scale-95 shadow-xl">
           Restart Now ➔
         </button>
       </div>
 
-    <!-- ACTIVE QUESTION WORKSPACE -->
     {:else}
-      <div key={currentQuestionIndex} in:fly={{ y: 20, duration: 400 }} class="space-y-10 md:space-y-12">
+      <div key={currentQuestionIndex} in:fly={{ y: 20, duration: 400 }} class="space-y-8 sm:space-y-10 md:space-y-12">
         
-        <div class="text-center space-y-2">
-          <span class="text-[10px] font-bold text-slate-500 tracking-widest uppercase font-mono block">Feedback Request</span>
-          <h1 class="text-2xl md:text-5xl font-black tracking-tight text-white leading-tight max-w-3xl mx-auto px-2">
+        <div class="text-center space-y-2 sm:space-y-3">
+          <div class="flex items-center justify-center space-x-2">
+            <span class="text-[11px] sm:text-xs font-bold text-slate-500 tracking-widest uppercase font-mono">Feedback Request</span>
+            {#if currentQuestion.isRequired}
+              <span class="text-rose-400 font-bold text-xs bg-rose-950/80 border border-rose-800 px-2 py-0.5 rounded-md">* Required Field</span>
+            {/if}
+          </div>
+
+          <h1 class="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight text-white leading-tight max-w-3xl mx-auto px-2">
             {currentQuestion.questionText}
           </h1>
+
+          {#if validationError}
+            <div class="text-xs sm:text-sm font-bold text-rose-300 bg-rose-950/80 border border-rose-800 px-4 py-2 rounded-xl inline-block mt-2 animate-pulse">
+              ⚠️ {validationError}
+            </div>
+          {/if}
         </div>
 
         <div class="w-full">
           {#if getNormalizedType(currentQuestion.type) === 'smiley'}
-            <div class="grid grid-cols-5 gap-3 md:gap-6 max-w-3xl mx-auto px-2">
+            <div class="grid grid-cols-5 gap-2 sm:gap-4 md:gap-6 max-w-3xl mx-auto px-1 sm:px-2">
               {#each satisfactionScale as option}
                 <button 
                   on:click={() => handleSelectOption(`${option.emoji} ${option.label}`)}
-                  class="flex flex-col items-center justify-center p-3 py-5 md:p-6 rounded-3xl border transition-all duration-200 group active:scale-95 backdrop-blur-sm shadow-lg {option.color}">
-                  <span class="text-4xl md:text-6xl transform group-hover:scale-110 transition-transform duration-200 select-none filter drop-shadow-md">
+                  class="flex flex-col items-center justify-center p-3 py-5 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl border transition-all duration-200 group active:scale-95 backdrop-blur-sm shadow-xl {option.color}">
+                  <span class="text-4xl sm:text-6xl md:text-7xl transform group-hover:scale-110 transition-transform duration-200 select-none filter drop-shadow-md">
                     {option.emoji}
                   </span>
-                  <span class="hidden md:block mt-4 text-[10px] font-black tracking-widest uppercase font-mono opacity-60 group-hover:opacity-100">
+                  <span class="hidden sm:block mt-3 md:mt-5 text-[10px] sm:text-xs font-black tracking-widest uppercase font-mono opacity-70 group-hover:opacity-100">
                     {option.label}
                   </span>
                 </button>
@@ -208,7 +262,7 @@
 
           {:else if getNormalizedType(currentQuestion.type) === 'stars'}
             <div 
-              class="flex items-center justify-center space-x-2 md:space-x-4 max-w-xl mx-auto"
+              class="flex items-center justify-center space-x-2 sm:space-x-4 md:space-x-6 max-w-xl mx-auto"
               on:mouseleave={() => hoveredStarIndex = 0}
             >
               {#each [1, 2, 3, 4, 5] as starValue}
@@ -216,7 +270,7 @@
                   type="button"
                   on:mouseenter={() => hoveredStarIndex = starValue}
                   on:click={() => handleSelectOption(`${starValue} Stars`)}
-                  class="text-5xl md:text-7xl transform hover:scale-125 active:scale-95 transition-all duration-150 outline-none select-none filter drop-shadow-md focus:outline-none"
+                  class="text-5xl sm:text-7xl md:text-8xl transform hover:scale-125 active:scale-95 transition-all duration-150 outline-none select-none filter drop-shadow-md focus:outline-none"
                   style="color: {starValue <= (hoveredStarIndex || 0) ? '#fbbf24' : '#334155'}"
                 >
                   {starValue <= (hoveredStarIndex || 0) ? '★' : '☆'}
@@ -225,39 +279,77 @@
             </div>
 
           {:else if getNormalizedType(currentQuestion.type) === 'multiple-choice'}
-            <div class="grid grid-cols-1 gap-4 max-w-xl mx-auto px-2">
-              {#if currentQuestion.options && currentQuestion.options.length > 0}
-                {#each currentQuestion.options as option}
-                  <button 
-                    on:click={() => handleSelectOption(option)}
-                    class="w-full text-left bg-slate-900 border border-slate-800 hover:border-cyan-500/50 hover:bg-slate-800/80 text-slate-100 font-semibold p-5 rounded-2xl transition-all shadow-md active:scale-[0.99] flex items-center justify-between group"
-                  >
-                    <span class="text-base md:text-lg group-hover:text-cyan-400 transition-colors">{option}</span>
-                    <span class="text-slate-600 group-hover:text-cyan-400 font-bold transition-colors">➔</span>
-                  </button>
-                {/each}
-              {:else}
-                <div class="text-center text-slate-500 text-sm py-4">
-                  No choice options configured for this field.
-                </div>
+            <div class="max-w-2xl mx-auto space-y-4 px-2">
+              
+              <!-- OPTIONS GRID -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                {#if currentQuestion.options && currentQuestion.options.length > 0}
+                  {#each currentQuestion.options as option}
+                    {@const imgUrl = currentQuestion.enableOptionImages && currentQuestion.optionImages ? currentQuestion.optionImages[option] : ''}
+                    {@const isSelected = selectedMultipleValues.includes(option)}
+                    
+                    <button 
+                      on:click={() => {
+                        if (currentQuestion.allowMultiple) {
+                          toggleMultipleOption(option);
+                        } else {
+                          handleSelectOption(option);
+                        }
+                      }}
+                      class="w-full text-left bg-slate-900 border rounded-2xl p-4 transition-all shadow-md active:scale-[0.99] flex flex-col justify-between group {currentQuestion.allowMultiple && isSelected ? 'border-cyan-500 bg-cyan-950/20 text-cyan-300' : 'border-slate-800 hover:border-slate-700 text-slate-100'}"
+                    >
+                      <!-- Display Option Image if available and enabled -->
+                      {#if imgUrl}
+                        <div class="w-full h-32 mb-3 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center">
+                          <img src={imgUrl} alt={option} class="w-full h-full object-cover" />
+                        </div>
+                      {/if}
+
+                      <div class="flex items-center justify-between w-full">
+                        <span class="text-base sm:text-lg font-bold group-hover:text-cyan-300 transition-colors">{option}</span>
+                        {#if currentQuestion.allowMultiple}
+                          <!-- MULTIPLE CHOICE CHECKBOX INDICATOR -->
+                          <div class="w-6 h-6 rounded-lg border flex items-center justify-center transition-all {isSelected ? 'bg-cyan-600 border-cyan-500 text-white font-bold' : 'border-slate-700 bg-slate-950'}">
+                            {#if isSelected}✓{/if}
+                          </div>
+                        {:else}
+                          <span class="text-slate-600 group-hover:text-cyan-400 font-extrabold text-base transition-colors">➔</span>
+                        {/if}
+                      </div>
+                    </button>
+                  {/each}
+                {/if}
+              </div>
+
+              <!-- CONFIRM / NEXT BUTTON FOR MULTIPLE SELECTION MODE -->
+              {#if currentQuestion.allowMultiple}
+                <button
+                  on:click={advanceStep}
+                  class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-4 px-6 text-sm sm:text-base rounded-2xl transition-all shadow-lg active:scale-[0.98] mt-4 flex items-center justify-center space-x-2"
+                >
+                  <span>Confirm & Continue</span>
+                  <span>➔</span>
+                </button>
               {/if}
+
             </div>
 
           {:else}
-            <!-- SHORT ANSWER OPEN TEXT AREA -->
-            <div class="max-w-xl mx-auto space-y-4 px-2">
+            <!-- SHORT ANSWER TEXT AREA WITH REQUIRED VALIDATION -->
+            <form on:submit|preventDefault={advanceStep} class="max-w-xl mx-auto space-y-3 sm:space-y-4 px-2">
               <input 
                 type="text" 
                 bind:value={selectedValue}
-                placeholder="Type your response summary profile here..."
-                class="w-full bg-slate-900 border border-slate-800 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 text-white placeholder-slate-600 rounded-2xl p-4 text-sm md:text-base outline-none transition-all shadow-inner"
+                on:input={() => (validationError = "")}
+                placeholder={currentQuestion.isRequired ? "Type your response here (Required)..." : "Type your response here..."}
+                class="w-full bg-slate-900 border text-white placeholder-slate-600 rounded-2xl p-4 sm:p-5 text-sm sm:text-base md:text-lg outline-none transition-all shadow-inner {validationError ? 'border-rose-500 focus:border-rose-400' : 'border-slate-800 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20'}"
               />
               <button 
-                on:click={advanceStep}
-                class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3.5 px-6 text-sm rounded-2xl transition-all shadow-lg active:scale-[0.98]">
+                type="submit"
+                class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3.5 sm:py-4 px-6 text-xs sm:text-sm md:text-base rounded-2xl transition-all shadow-lg active:scale-[0.98]">
                 Submit Field Input ➔
               </button>
-            </div>
+            </form>
           {/if}
         </div>
 
@@ -266,10 +358,10 @@
   </main>
 
   <!-- FOOTER -->
-  <footer class="w-full max-w-4xl border-t border-slate-800/40 pt-6 flex flex-col md:flex-row items-center justify-between text-[10px] text-slate-600 uppercase font-mono tracking-widest font-semibold gap-3 shrink-0">
+  <footer class="w-full max-w-5xl border-t border-slate-800/80 pt-4 sm:pt-5 flex flex-col md:flex-row items-center justify-between text-[11px] sm:text-xs text-slate-500 font-mono tracking-wider font-semibold gap-3 shrink-0">
     <span>🔒 Secure Enterprise Client Terminal</span>
     {#if activeSurveyId && !isSubmitted && questions.length > 0}
-      <div class="w-full md:w-48 h-1 bg-slate-900 rounded-full overflow-hidden border border-slate-800/60">
+      <div class="w-full md:w-56 h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
         <div 
           class="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-300 rounded-full" 
           style="width: {((currentQuestionIndex + 1) / questions.length) * 100}%">
@@ -280,3 +372,9 @@
   </footer>
 
 </div>
+
+<style>
+  .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+</style>

@@ -24,7 +24,6 @@ app.use('/api', surveyRoutes);
 mongoose.connect(MONGO_URI)
   .then(() => {
     console.log("Connected to MongoDB successfully.");
-    // Listening on '0.0.0.0' allows incoming Wi-Fi network requests from mobile devices
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`Express API Server executing smoothly on http://localhost:${PORT}`);
     });

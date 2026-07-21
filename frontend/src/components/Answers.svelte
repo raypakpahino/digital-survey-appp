@@ -33,8 +33,16 @@
 
     if (startDate || endDate) {
       const responseTime = new Date(r.timestamp).getTime();
-      if (startDate && responseTime < new Date(`${startDate}T00:00:00`).getTime()) return false;
-      if (endDate && responseTime > new Date(`${endDate}T23:59:59`).getTime()) return false;
+      
+      if (startDate) {
+        const startBoundary = new Date(`${startDate}T00:00:00`).getTime();
+        if (responseTime < startBoundary) return false;
+      }
+      
+      if (endDate) {
+        const endBoundary = new Date(`${endDate}T23:59:59.999`).getTime();
+        if (responseTime > endBoundary) return false;
+      }
     }
 
     return true;
@@ -44,18 +52,29 @@
     activePreset = presetKey;
     const now = new Date();
 
+    // Use local year, month, date to match HTML <input type="date"> YYYY-MM-DD format
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+
     if (presetKey === 'TODAY') {
-      const todayStr = now.toISOString().split('T')[0];
       startDate = todayStr;
       endDate = todayStr;
     } else if (presetKey === '7DAYS') {
-      const past7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      startDate = past7Days.toISOString().split('T')[0];
-      endDate = "";
+      const past7 = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const pYear = past7.getFullYear();
+      const pMonth = String(past7.getMonth() + 1).padStart(2, '0');
+      const pDay = String(past7.getDate()).padStart(2, '0');
+      startDate = `${pYear}-${pMonth}-${pDay}`;
+      endDate = todayStr;
     } else if (presetKey === '30DAYS') {
-      const past30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      startDate = past30Days.toISOString().split('T')[0];
-      endDate = "";
+      const past30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const pYear = past30.getFullYear();
+      const pMonth = String(past30.getMonth() + 1).padStart(2, '0');
+      const pDay = String(past30.getDate()).padStart(2, '0');
+      startDate = `${pYear}-${pMonth}-${pDay}`;
+      endDate = todayStr;
     } else {
       startDate = "";
       endDate = "";
@@ -103,48 +122,150 @@
     if (!selectedSurveyObj || filteredResponses.length === 0) return;
 
     let targetQuestions = specificQuestion ? [specificQuestion] : displayedQuestions;
+    let titleText = selectedSurveyObj.title || "Form Matrix";
+
+    // Value Normalizer: Maps smileys and stars directly to clean numbers 1-5
+    function formatValueForExcel(rawVal, qType) {
+      if (!rawVal || rawVal === "N/A" || rawVal === "Skipped") return "N/A";
+
+      const valStr = String(rawVal).toUpperCase();
+      const normType = String(qType || '').toUpperCase().replace(/_/g, '-');
+
+      // 1. SMILEY MAPPING (1 = Worst, 5 = Best)
+      if (normType.includes('SMILEY') || valStr.includes('DELIGHTED') || valStr.includes('HAPPY') || valStr.includes('ANGRY')) {
+        if (valStr.includes('ANGRY')) return "1";
+        if (valStr.includes('SAD')) return "2";
+        if (valStr.includes('NEUTRAL')) return "3";
+        if (valStr.includes('HAPPY') || valStr.includes('SATISFIED')) return "4";
+        if (valStr.includes('DELIGHTED')) return "5";
+      }
+
+      // 2. STARS MAPPING (Extract digits: "5 Stars" -> "5")
+      if (normType.includes('STARS') || valStr.includes('STARS') || valStr.includes('STAR')) {
+        const match = valStr.match(/\d+/);
+        if (match) return match[0];
+      }
+
+      // 3. FALLBACK: Clean non-ASCII / symbols for general text answers
+      return rawVal
+        .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+        .replace(/[^\x20-\x7E]/g, '')
+        .trim() || rawVal;
+    }
+
+    // 1. Prepare Headers
     let headers = ["Record ID", "Submission Timestamp"];
     targetQuestions.forEach((q) => headers.push(q.questionText));
 
-    let rows = filteredResponses.map((r) => {
-      let rowData = [r._id || "N/A", new Date(r.timestamp).toLocaleString()];
+    // 2. Prepare Formatted Rows
+    let rowsHtml = filteredResponses.map((r, index) => {
+      let recId = r._id ? r._id.slice(-8) : `LOG-${index + 1}`;
+      let timestamp = new Date(r.timestamp).toLocaleString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+
+      let rowCells = [
+        `<td style="font-family: 'Consolas', monospace; font-weight: bold; color: #0284c7; text-align: center; padding: 10px 14px;">${recId}</td>`,
+        `<td style="white-space: nowrap; color: #475569; text-align: center; padding: 10px 14px;">${timestamp}</td>`
+      ];
+
       targetQuestions.forEach((q) => {
         let answerObj = r.answers.find((ans) => ans.questionText === q.questionText);
-        rowData.push(answerObj ? answerObj.value : "N/A");
+        let rawVal = answerObj ? answerObj.value : "N/A";
+        let formattedVal = formatValueForExcel(rawVal, q.type);
+
+        let isNumeric = /^[1-5]$/.test(formattedVal);
+        let alignStyle = isNumeric ? "text-align: center; font-weight: bold; color: #0f172a;" : "text-align: left; color: #334155;";
+
+        rowCells.push(`<td style="padding: 10px 16px; ${alignStyle}">${formattedVal}</td>`);
       });
-      return rowData;
-    });
 
-    let csvContent =
-      "data:text/csv;charset=utf-8," +
-      [
-        headers.join(","),
-        ...rows.map((e) => e.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(",")),
-      ].join("\n");
+      let bgColor = index % 2 === 0 ? "#ffffff" : "#f8fafc";
+      return `<tr style="background-color: ${bgColor};">${rowCells.join('')}</tr>`;
+    }).join('');
 
+    let headerCells = headers.map(h => 
+      `<th style="background-color: #0f172a; color: #ffffff; font-weight: bold; font-size: 11pt; padding: 12px 18px; text-align: center; border: 1px solid #1e293b; white-space: nowrap;">${h}</th>`
+    ).join('');
+
+    // 3. Build Structured HTML Spreadsheet with Form Title Top Header
+    let excelHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
+        <!--[if gte mso 9]>
+        <xml>
+          <x:ExcelWorkbook>
+            <x:ExcelWorksheets>
+              <x:ExcelWorksheet>
+                <x:Name>${titleText.slice(0, 30)}</x:Name>
+                <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+              </x:ExcelWorksheet>
+            </x:ExcelWorksheets>
+          </x:ExcelWorkbook>
+        </xml>
+        <![endif]-->
+        <style>
+          table { border-collapse: collapse; width: 100%; font-family: 'Segoe UI', Arial, sans-serif; font-size: 10pt; }
+          td { border: 1px solid #cbd5e1; vertical-align: middle; }
+        </style>
+      </head>
+      <body>
+        <h2 style="font-family: 'Segoe UI', Arial, sans-serif; color: #0284c7; font-weight: bold; font-size: 16pt; margin-bottom: 2px;">${titleText} — Response Matrix</h2>
+        <p style="font-family: 'Segoe UI', Arial, sans-serif; color: #64748b; font-size: 9pt; margin-top: 0; margin-bottom: 12px;">Generated Report Timestamp: ${new Date().toLocaleString()}</p>
+        <table>
+          <thead>
+            <tr>${headerCells}</tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+
+    // 4. Download Spreadsheet File
     const fileName = specificQuestion 
-      ? `${specificQuestion.questionText.replace(/\s+/g, "_")}_Filtered_Field.csv`
-      : `${selectedSurveyObj.title.replace(/\s+/g, "_")}_Full_Matrix.csv`;
+      ? `${titleText.replace(/[^\w\s]/gi, '').replace(/\s+/g, "_")}_${specificQuestion.questionText.replace(/[^\w\s]/gi, '').replace(/\s+/g, "_")}_Field_Report.xls`
+      : `${titleText.replace(/[^\w\s]/gi, '').replace(/\s+/g, "_")}_Response_Matrix.xls`;
 
-    const encodedUri = encodeURI(csvContent);
+    const blob = new Blob([excelHtml], { type: "application/vnd.ms-excel;charset=utf-8;" });
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute("href", url);
     link.setAttribute("download", fileName);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 
-  function getQuestionAnalytics(question) {
-    const total = filteredResponses.length;
-    if (total === 0) return { counts: {}, total: 0, breakdowns: [], conicGradient: "conic-gradient(#1e293b 0% 100%)", rawAnswersList: [] };
+  // Pass sourceDataset explicitly so Svelte tracks changes on filteredResponses
+  function getQuestionAnalytics(question, sourceDataset) {
+    const validEntries = sourceDataset.filter((r) => {
+      const ans = r.answers?.find((a) => a.questionText === question.questionText);
+      return ans && ans.value !== undefined && ans.value !== "" && ans.value !== "No Response";
+    });
+
+    const total = validEntries.length;
+
+    if (total === 0) {
+      return { counts: {}, total: 0, breakdowns: [], conicGradient: "conic-gradient(#1e293b 0% 100%)", rawAnswersList: [] };
+    }
 
     const counts = {};
     const rawAnswersList = [];
 
-    filteredResponses.forEach((r) => {
+    validEntries.forEach((r) => {
       const ans = r.answers.find((a) => a.questionText === question.questionText);
-      const val = ans ? ans.value : "No Response";
+      const val = ans ? ans.value : "Skipped";
       counts[val] = (counts[val] || 0) + 1;
       rawAnswersList.push({
         id: r._id,
@@ -190,37 +311,42 @@
   }
 </script>
 
-<div class="w-full h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-6 animate-fade overflow-hidden box-border">
+<div class="w-full h-auto xl:h-[calc(100vh-5rem)] flex flex-col xl:flex-row gap-6 animate-fade overflow-y-auto xl:overflow-hidden box-border p-1">
   
-  <!-- LEFT COLUMN -->
-  <div class="w-full lg:w-72 bg-slate-900 border border-slate-800/80 rounded-2xl p-5 shrink-0 flex flex-col gap-4 h-full box-border shadow-xl">
-    <div>
-      <h3 class="text-xs font-bold text-white uppercase tracking-wider">Select Target Form</h3>
-      <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">
-        Choose an active form sequence to analyze metrics and export targeted logs.
-      </p>
+  <!-- LEFT/TOP RESPONSIVE CONTROL PANEL -->
+  <div class="w-full xl:w-72 bg-slate-900 border border-slate-800/80 rounded-2xl p-5 shrink-0 flex flex-col md:flex-row xl:flex-col gap-4 box-border shadow-xl">
+    
+    <!-- TARGET FORM SELECTOR -->
+    <div class="flex-1 space-y-3">
+      <div>
+        <h3 class="text-xs font-bold text-white uppercase tracking-wider">Select Target Form</h3>
+        <p class="text-[11px] text-slate-400 mt-1 leading-relaxed hidden sm:block xl:block">
+          Choose an active form sequence to analyze metrics and export targeted logs.
+        </p>
+      </div>
+
+      <div class="flex flex-row xl:flex-col gap-2 overflow-x-auto xl:overflow-y-auto custom-scrollbar max-h-36 xl:max-h-64 pb-1 xl:pb-0">
+        {#each surveys as survey}
+          <button
+            on:click={() => {
+              selectedFilterSurveyId = survey._id;
+              clearFilters();
+            }}
+            class="min-w-[140px] sm:min-w-[180px] xl:w-full text-left border px-3.5 py-2.5 xl:py-3 rounded-xl transition-all duration-150 flex flex-col gap-0.5 active:scale-[0.98] group shrink-0 {selectedFilterSurveyId === survey._id ? 'bg-cyan-600/10 border-cyan-500 text-white shadow-md' : 'bg-slate-950/40 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200'}"
+          >
+            <span class="text-xs font-bold transition-colors truncate {selectedFilterSurveyId === survey._id ? 'text-cyan-400' : 'text-slate-300 group-hover:text-cyan-400'}">
+              {survey.title}
+            </span>
+            <span class="text-[10px] text-slate-500 font-medium uppercase font-mono tracking-wider">
+              {responses.filter((r) => r.surveyTitle === survey.title).length} Logs
+            </span>
+          </button>
+        {/each}
+      </div>
     </div>
 
-    <div class="flex-1 flex flex-col gap-2 overflow-y-auto custom-scrollbar max-h-40 lg:max-h-none">
-      {#each surveys as survey}
-        <button
-          on:click={() => {
-            selectedFilterSurveyId = survey._id;
-            clearFilters();
-          }}
-          class="w-full text-left border px-4 py-3 rounded-xl transition-all duration-150 flex flex-col gap-1 active:scale-[0.98] group {selectedFilterSurveyId === survey._id ? 'bg-cyan-600/10 border-cyan-500 text-white shadow-md' : 'bg-slate-950/40 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200'}"
-        >
-          <span class="text-xs font-bold transition-colors truncate {selectedFilterSurveyId === survey._id ? 'text-cyan-400' : 'text-slate-300 group-hover:text-cyan-400'}">
-            {survey.title}
-          </span>
-          <span class="text-[10px] text-slate-500 font-medium uppercase font-mono tracking-wider">
-            {responses.filter((r) => r.surveyTitle === survey.title).length} Logs
-          </span>
-        </button>
-      {/each}
-    </div>
-
-    <div class="pt-4 border-t border-slate-800/80 space-y-3 shrink-0">
+    <!-- DATE FILTERS PANEL -->
+    <div class="flex-1 pt-3 md:pt-0 xl:pt-4 border-t md:border-t-0 xl:border-t md:border-l xl:border-l-0 md:pl-4 xl:pl-0 border-slate-800/80 space-y-3 shrink-0">
       <div class="flex items-center justify-between">
         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Date Filters</span>
         {#if startDate || endDate || activePreset !== 'ALL'}
@@ -236,25 +362,25 @@
         <div class="grid grid-cols-4 gap-1">
           <button
             on:click={() => applyDatePreset('ALL')}
-            class="py-1 px-1.5 rounded-md text-[10px] font-bold transition-all border {activePreset === 'ALL' ? 'bg-cyan-600 border-cyan-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}"
+            class="py-1.5 px-1 rounded-lg text-[10px] font-bold transition-all border {activePreset === 'ALL' ? 'bg-cyan-600 border-cyan-500 text-white shadow-sm' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}"
           >
             All
           </button>
           <button
             on:click={() => applyDatePreset('TODAY')}
-            class="py-1 px-1.5 rounded-md text-[10px] font-bold transition-all border {activePreset === 'TODAY' ? 'bg-cyan-600 border-cyan-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}"
+            class="py-1.5 px-1 rounded-lg text-[10px] font-bold transition-all border {activePreset === 'TODAY' ? 'bg-cyan-600 border-cyan-500 text-white shadow-sm' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}"
           >
             Today
           </button>
           <button
             on:click={() => applyDatePreset('7DAYS')}
-            class="py-1 px-1.5 rounded-md text-[10px] font-bold transition-all border {activePreset === '7DAYS' ? 'bg-cyan-600 border-cyan-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}"
+            class="py-1.5 px-1 rounded-lg text-[10px] font-bold transition-all border {activePreset === '7DAYS' ? 'bg-cyan-600 border-cyan-500 text-white shadow-sm' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}"
           >
             7 Days
           </button>
           <button
             on:click={() => applyDatePreset('30DAYS')}
-            class="py-1 px-1.5 rounded-md text-[10px] font-bold transition-all border {activePreset === '30DAYS' ? 'bg-cyan-600 border-cyan-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}"
+            class="py-1.5 px-1 rounded-lg text-[10px] font-bold transition-all border {activePreset === '30DAYS' ? 'bg-cyan-600 border-cyan-500 text-white shadow-sm' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}"
           >
             30 Days
           </button>
@@ -262,7 +388,7 @@
       </div>
 
       <!-- DATE ONLY INPUTS -->
-      <div class="space-y-2 pt-1">
+      <div class="grid grid-cols-2 md:grid-cols-1 xl:grid-cols-1 gap-2 pt-1">
         <div class="space-y-1">
           <label for="start-date" class="text-[10px] text-slate-500 font-bold uppercase">From Date</label>
           <input
@@ -270,7 +396,7 @@
             type="date"
             bind:value={startDate}
             on:change={() => (activePreset = 'CUSTOM')}
-            class="w-full bg-slate-950 border border-slate-800 text-xs text-slate-200 px-3 py-2 rounded-lg focus:outline-none focus:border-cyan-500 cursor-pointer"
+            class="w-full bg-slate-950 border border-slate-800 text-xs text-slate-200 px-2.5 py-1.5 rounded-lg focus:outline-none focus:border-cyan-500 cursor-pointer"
           />
         </div>
         <div class="space-y-1">
@@ -280,23 +406,23 @@
             type="date"
             bind:value={endDate}
             on:change={() => (activePreset = 'CUSTOM')}
-            class="w-full bg-slate-950 border border-slate-800 text-xs text-slate-200 px-3 py-2 rounded-lg focus:outline-none focus:border-cyan-500 cursor-pointer"
+            class="w-full bg-slate-950 border border-slate-800 text-xs text-slate-200 px-2.5 py-1.5 rounded-lg focus:outline-none focus:border-cyan-500 cursor-pointer"
           />
         </div>
       </div>
     </div>
   </div>
 
-  <!-- RIGHT COLUMN -->
-  <div class="flex-1 bg-slate-900 border border-slate-800/80 rounded-2xl p-6 flex flex-col h-full overflow-hidden box-border shadow-xl">
+  <!-- RIGHT MAIN ANALYTICS WORKSPACE -->
+  <div class="flex-1 bg-slate-900 border border-slate-800/80 rounded-2xl p-4 sm:p-6 flex flex-col h-full overflow-hidden box-border shadow-xl">
     
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800/40 pb-4 shrink-0 gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800/40 pb-4 shrink-0 gap-3">
       <div>
-        <h2 class="text-lg font-bold text-white tracking-tight border-l-2 border-cyan-500 pl-3">
+        <h2 class="text-base sm:text-lg font-bold text-white tracking-tight border-l-2 border-cyan-500 pl-3">
           {selectedSurveyObj ? selectedSurveyObj.title : 'No Layout Selected'}
         </h2>
         <p class="text-xs text-slate-400 mt-0.5">
-          Showing <span class="text-cyan-400 font-bold">{filteredResponses.length}</span> matching submission records. Click any question card to open full-screen focus view.
+          Showing <span class="text-cyan-400 font-bold">{filteredResponses.length}</span> matching submission records. Click any question card to enlarge.
         </p>
       </div>
 
@@ -321,7 +447,7 @@
           disabled={filteredResponses.length === 0}
           class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2 px-3 rounded-xl transition-all active:scale-[0.98] shadow-md shadow-emerald-600/10 flex items-center space-x-1 disabled:opacity-20 disabled:cursor-not-allowed"
         >
-          <span>📥</span> <span>Export CSV</span>
+          <span>📥</span> <span class="hidden sm:inline">Export CSV</span>
         </button>
 
         <button
@@ -335,54 +461,54 @@
       </div>
     </div>
 
-    <!-- MAIN GRID -->
-    <div class="flex-1 overflow-y-auto mt-6 custom-scrollbar pr-1 box-border">
+    <!-- MAIN GRID CARDS -->
+    <div class="flex-1 overflow-y-auto mt-4 sm:mt-6 custom-scrollbar pr-1 box-border">
       {#if !selectedSurveyObj || filteredResponses.length === 0}
-        <div class="border-2 border-dashed border-slate-800 rounded-2xl p-16 text-center text-slate-500 text-xs">
+        <div class="border-2 border-dashed border-slate-800 rounded-2xl p-12 text-center text-slate-500 text-xs">
           No submission records match your active search filter parameters.
         </div>
 
       {:else if activeViewMode === "analytics"}
-        <div class="grid grid-cols-1 {displayedQuestions.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' : 'md:grid-cols-2'} gap-6 pb-6">
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 pb-6">
           {#each displayedQuestions as question}
-            {@const stats = getQuestionAnalytics(question)}
+            {@const stats = getQuestionAnalytics(question, filteredResponses)}
             {@const isPieEligible = isPieChartType(question.type)}
             
             <div 
               on:click={() => openQuestionModal(question)}
-              class="bg-slate-950/60 hover:bg-slate-950/90 border border-slate-800 hover:border-cyan-500/50 rounded-2xl p-5 space-y-4 shadow-sm cursor-pointer transition-all duration-300 hover:shadow-cyan-500/10 hover:-translate-y-0.5 group"
+              class="bg-slate-950/60 hover:bg-slate-950/90 border border-slate-800 hover:border-cyan-500/50 rounded-2xl p-4 sm:p-5 space-y-4 shadow-sm cursor-pointer transition-all duration-300 hover:shadow-cyan-500/10 hover:-translate-y-0.5 group"
             >
               <div class="flex items-start justify-between gap-3 border-b border-slate-800/60 pb-3">
                 <div class="space-y-1">
                   <span class="text-[10px] font-bold text-cyan-400 group-hover:text-cyan-300 uppercase font-mono tracking-wider flex items-center space-x-1.5">
                     <span>Field #{selectedSurveyObj.questions.findIndex(q => q.questionText === question.questionText) + 1} • {question.type}</span>
-                    <span class="text-slate-500 text-[10px]">🔍 Click to enlarge</span>
+                    <span class="text-slate-500 text-[10px] hidden sm:inline">🔍 Click to enlarge</span>
                   </span>
-                  <h4 class="text-sm font-bold text-white group-hover:text-cyan-100 transition-colors">{question.questionText}</h4>
+                  <h4 class="text-xs sm:text-sm font-bold text-white group-hover:text-cyan-100 transition-colors">{question.questionText}</h4>
                 </div>
-                <span class="text-xs font-bold bg-slate-900 px-2.5 py-1 rounded-md text-slate-400 border border-slate-800 shrink-0">
-                  {stats.total} entries
+                <span class="text-[11px] sm:text-xs font-bold bg-slate-900 px-2.5 py-1 rounded-md text-slate-400 border border-slate-800 shrink-0">
+                  {stats.total} {stats.total === 1 ? 'entry' : 'entries'}
                 </span>
               </div>
 
               {#if isPieEligible}
-                <div class="flex flex-col sm:flex-row items-center gap-6 pt-2">
+                <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 pt-1">
                   <div class="relative shrink-0 flex items-center justify-center">
                     <div
-                      class="w-36 h-36 rounded-full shadow-lg transition-all duration-300 border-2 border-slate-800/60"
+                      class="w-32 h-32 sm:w-36 sm:h-36 rounded-full shadow-lg transition-all duration-300 border-2 border-slate-800/60"
                       style="background: {stats.conicGradient};"
                     ></div>
-                    <div class="absolute w-16 h-16 bg-slate-950 rounded-full border border-slate-800 flex items-center justify-center">
+                    <div class="absolute w-14 h-14 sm:w-16 sm:h-16 bg-slate-950 rounded-full border border-slate-800 flex items-center justify-center">
                       <span class="text-[10px] font-mono font-bold text-slate-400">{stats.total} Logs</span>
                     </div>
                   </div>
 
-                  <div class="flex-1 space-y-2 w-full">
+                  <div class="flex-1 space-y-1.5 w-full">
                     {#each stats.breakdowns as item}
                       <div class="flex items-center justify-between text-xs bg-slate-900/80 border border-slate-800/60 px-3 py-1.5 rounded-lg">
                         <div class="flex items-center space-x-2 truncate pr-2">
                           <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: {item.color};"></span>
-                          <span class="text-slate-200 font-medium truncate">{item.label}</span>
+                          <span class="text-slate-200 font-medium truncate text-[11px] sm:text-xs">{item.label}</span>
                         </div>
                         <span class="font-mono text-cyan-400 font-bold text-[11px] shrink-0">
                           {item.percentage}% <span class="text-slate-500 text-[10px]">({item.count})</span>
@@ -393,14 +519,14 @@
                 </div>
 
               {:else}
-                <div class="space-y-3">
+                <div class="space-y-2.5">
                   {#each stats.breakdowns as item}
-                    <div class="space-y-1.5">
+                    <div class="space-y-1">
                       <div class="flex items-center justify-between text-xs">
-                        <span class="text-slate-300 font-semibold truncate max-w-[220px]">{item.label}</span>
-                        <span class="font-mono text-cyan-400 font-bold">{item.percentage}% <span class="text-slate-500 text-[10px]">({item.count})</span></span>
+                        <span class="text-slate-300 font-semibold truncate max-w-[180px] sm:max-w-[220px]">{item.label}</span>
+                        <span class="font-mono text-cyan-400 font-bold text-[11px]">{item.percentage}% <span class="text-slate-500 text-[10px]">({item.count})</span></span>
                       </div>
-                      <div class="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800/80">
+                      <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800/80">
                         <div
                           class="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500"
                           style="width: {item.percentage}%"
@@ -420,11 +546,11 @@
           <table class="w-full border-collapse text-left text-xs text-slate-300 whitespace-nowrap min-w-full">
             <thead class="bg-slate-900 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 sticky top-0 z-10 shadow-sm">
               <tr>
-                <th class="p-4 pl-5 border-r border-slate-800/60 w-12 text-center">Action</th>
-                <th class="p-4 border-r border-slate-800/60 w-24">ID Token</th>
-                <th class="p-4 border-r border-slate-800/60 w-44">Date & Time</th>
+                <th class="p-3.5 pl-4 border-r border-slate-800/60 w-12 text-center">Action</th>
+                <th class="p-3.5 border-r border-slate-800/60 w-24">ID Token</th>
+                <th class="p-3.5 border-r border-slate-800/60 w-44">Date & Time</th>
                 {#each displayedQuestions as question}
-                  <th class="p-4 border-r border-slate-800/60 max-w-xs truncate">{question.questionText}</th>
+                  <th class="p-3.5 border-r border-slate-800/60 max-w-xs truncate">{question.questionText}</th>
                 {/each}
               </tr>
             </thead>
@@ -440,15 +566,15 @@
                       🗑️
                     </button>
                   </td>
-                  <td class="p-4 font-mono text-cyan-400 font-semibold border-r border-slate-800/40 bg-slate-950/10 truncate max-w-[100px]">
+                  <td class="p-3.5 font-mono text-cyan-400 font-semibold border-r border-slate-800/40 bg-slate-950/10 truncate max-w-[100px]">
                     {response._id ? response._id.slice(-6) : 'Log'}
                   </td>
-                  <td class="p-4 text-slate-400 border-r border-slate-800/40 font-mono text-[11px]">
+                  <td class="p-3.5 text-slate-400 border-r border-slate-800/40 font-mono text-[11px]">
                     {new Date(response.timestamp).toLocaleString()}
                   </td>
                   {#each displayedQuestions as question}
                     {@const answerVal = response.answers.find((a) => a.questionText === question.questionText)?.value || 'N/A'}
-                    <td class="p-4 border-r border-slate-800/40 text-slate-200">
+                    <td class="p-3.5 border-r border-slate-800/40 text-slate-200">
                       <span class="text-slate-300 bg-slate-950/80 border border-slate-800 px-2.5 py-1 rounded-lg">
                         {answerVal}
                       </span>
@@ -465,42 +591,42 @@
   </div>
 </div>
 
-<!-- FULLSCREEN EXPANDED FOCUS MODE WITH FILTERING & LARGE VISUALS -->
+<!-- RESPONSIVE FULLSCREEN FOCUS MODE -->
 {#if focusedQuestion}
-  {@const modalStats = getQuestionAnalytics(focusedQuestion)}
+  {@const modalStats = getQuestionAnalytics(focusedQuestion, filteredResponses)}
   {@const isPie = isPieChartType(focusedQuestion.type)}
 
-  <div class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl p-6 md:p-10 flex flex-col justify-between animate-fullscreen-expand overflow-hidden box-border">
+  <div class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl p-4 sm:p-6 md:p-10 flex flex-col justify-between animate-fullscreen-expand overflow-y-auto custom-scrollbar box-border">
     
-    <!-- TOP BAR WITH TITLE & CLOSE BUTTON -->
-    <div class="flex items-start justify-between border-b border-slate-800 pb-6 shrink-0 gap-4">
-      <div class="space-y-2">
-        <div class="flex items-center space-x-3">
-          <span class="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest bg-cyan-950/80 border border-cyan-800/60 px-3 py-1 rounded-lg">
+    <!-- TOP BAR -->
+    <div class="flex items-start justify-between border-b border-slate-800 pb-4 sm:pb-6 shrink-0 gap-4">
+      <div class="space-y-1.5">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest bg-cyan-950/80 border border-cyan-800/60 px-2.5 py-0.5 rounded-lg">
             {focusedQuestion.type} Focused Inspection
           </span>
           <span class="text-xs font-bold text-slate-500">
             Field #{selectedSurveyObj.questions.findIndex(q => q.questionText === focusedQuestion.questionText) + 1}
           </span>
         </div>
-        <h1 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-tight">{focusedQuestion.questionText}</h1>
+        <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-tight">{focusedQuestion.questionText}</h1>
       </div>
 
       <button 
         on:click={closeQuestionModal} 
-        class="text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-700/80 h-11 w-11 rounded-2xl flex items-center justify-center text-sm font-bold transition-all shadow-xl hover:scale-105 active:scale-95 shrink-0"
+        class="text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-700/80 h-10 w-10 sm:h-11 sm:w-11 rounded-2xl flex items-center justify-center text-sm font-bold transition-all shadow-xl hover:scale-105 active:scale-95 shrink-0"
         title="Exit Focus View"
       >
         ✕
       </button>
     </div>
 
-    <!-- MIDDLE WORKSPACE: FILTER BAR & ENLARGED CHART -->
-    <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-8 my-6 overflow-hidden box-border">
+    <!-- MAIN FOCUS WORKSPACE -->
+    <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 my-4 sm:my-6 overflow-hidden box-border">
       
-      <!-- LEFT: FOCUSED FILTER BAR & STATS -->
-      <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 shrink-0 shadow-2xl">
-        <div class="space-y-5">
+      <!-- LEFT: FILTER CONTROL PANEL -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-6 flex flex-col justify-between space-y-6 shrink-0 shadow-2xl">
+        <div class="space-y-4">
           <div class="flex items-center justify-between border-b border-slate-800 pb-3">
             <h3 class="text-xs font-bold text-white uppercase tracking-wider">Field Filter Parameters</h3>
             {#if startDate || endDate || activePreset !== 'ALL'}
@@ -510,8 +636,7 @@
             {/if}
           </div>
 
-          <!-- QUICK DATE PRESETS INSIDE FOCUS MODE -->
-          <div class="space-y-2">
+          <div class="space-y-1.5">
             <span class="text-[11px] font-bold text-slate-400 uppercase">Quick Date Ranges</span>
             <div class="grid grid-cols-4 gap-1.5">
               <button
@@ -541,8 +666,7 @@
             </div>
           </div>
 
-          <!-- DATE PICKERS INSIDE FOCUS MODE -->
-          <div class="space-y-3 pt-2">
+          <div class="grid grid-cols-2 lg:grid-cols-1 gap-3 pt-1">
             <div class="space-y-1">
               <label for="focus-start-date" class="text-[11px] font-bold text-slate-400 uppercase block">From Date</label>
               <input
@@ -550,7 +674,7 @@
                 type="date"
                 bind:value={startDate}
                 on:change={() => (activePreset = 'CUSTOM')}
-                class="w-full bg-slate-950 border border-slate-800 text-xs text-slate-200 px-3 py-2.5 rounded-xl focus:outline-none focus:border-cyan-500 cursor-pointer"
+                class="w-full bg-slate-950 border border-slate-800 text-xs text-slate-200 px-3 py-2 rounded-xl focus:outline-none focus:border-cyan-500 cursor-pointer"
               />
             </div>
             <div class="space-y-1">
@@ -560,7 +684,7 @@
                 type="date"
                 bind:value={endDate}
                 on:change={() => (activePreset = 'CUSTOM')}
-                class="w-full bg-slate-950 border border-slate-800 text-xs text-slate-200 px-3 py-2.5 rounded-lg focus:outline-none focus:border-cyan-500 cursor-pointer"
+                class="w-full bg-slate-950 border border-slate-800 text-xs text-slate-200 px-3 py-2 rounded-xl focus:outline-none focus:border-cyan-500 cursor-pointer"
               />
             </div>
           </div>
@@ -568,36 +692,35 @@
 
         <div class="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl space-y-1">
           <span class="text-[10px] uppercase font-mono font-bold text-slate-500">Filtered Entry Count</span>
-          <p class="text-2xl font-mono font-bold text-cyan-400">{modalStats.total} Submissions</p>
+          <p class="text-xl sm:text-2xl font-mono font-bold text-cyan-400">{modalStats.total} Submissions</p>
         </div>
       </div>
 
-      <!-- RIGHT: ENLARGED CHART & DETAILED BREAKDOWNS -->
-      <div class="lg:col-span-2 bg-slate-900/90 border border-slate-800 rounded-3xl p-6 lg:p-8 flex flex-col justify-between overflow-hidden shadow-2xl">
+      <!-- RIGHT: ENLARGED CHART -->
+      <div class="lg:col-span-2 bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-8 flex flex-col justify-between overflow-hidden shadow-2xl">
         
         {#if isPie}
-          <!-- ENLARGED PIE CHART & LEGEND -->
-          <div class="flex-1 flex flex-col md:flex-row items-center justify-center gap-8 lg:gap-12 overflow-hidden">
+          <div class="flex-1 flex flex-col md:flex-row items-center justify-center gap-6 lg:gap-12 overflow-hidden">
             <div class="relative shrink-0 flex items-center justify-center">
               <div
-                class="w-56 h-56 lg:w-64 lg:h-64 rounded-full shadow-2xl transition-all duration-500 border-4 border-slate-800/80"
+                class="w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 rounded-full shadow-2xl transition-all duration-500 border-4 border-slate-800/80"
                 style="background: {modalStats.conicGradient};"
               ></div>
-              <div class="absolute w-28 h-28 lg:w-32 lg:h-32 bg-slate-950 rounded-full border-2 border-slate-800 flex flex-col items-center justify-center shadow-inner">
-                <span class="text-xl lg:text-2xl font-bold text-cyan-400 font-mono">{modalStats.total}</span>
-                <span class="text-[10px] font-mono text-slate-500 uppercase font-bold">Total Logs</span>
+              <div class="absolute w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 bg-slate-950 rounded-full border-2 border-slate-800 flex flex-col items-center justify-center shadow-inner">
+                <span class="text-lg sm:text-xl lg:text-2xl font-bold text-cyan-400 font-mono">{modalStats.total}</span>
+                <span class="text-[9px] sm:text-[10px] font-mono text-slate-500 uppercase font-bold">Total Logs</span>
               </div>
             </div>
 
-            <div class="flex-1 w-full space-y-3 max-h-72 overflow-y-auto custom-scrollbar pr-2">
+            <div class="flex-1 w-full space-y-2.5 max-h-64 sm:max-h-72 overflow-y-auto custom-scrollbar pr-2">
               {#each modalStats.breakdowns as item}
-                <div class="flex items-center justify-between text-sm bg-slate-950/80 border border-slate-800/80 px-4 py-3 rounded-2xl shadow-sm">
+                <div class="flex items-center justify-between text-xs sm:text-sm bg-slate-950/80 border border-slate-800/80 px-3.5 py-2.5 rounded-2xl shadow-sm">
                   <div class="flex items-center space-x-3 truncate pr-2">
-                    <span class="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm" style="background-color: {item.color};"></span>
+                    <span class="w-3 h-3 rounded-full shrink-0 shadow-sm" style="background-color: {item.color};"></span>
                     <span class="text-slate-100 font-bold truncate">{item.label}</span>
                   </div>
-                  <span class="font-mono text-cyan-400 font-extrabold text-sm shrink-0">
-                    {item.percentage}% <span class="text-slate-500 text-xs font-semibold">({item.count})</span>
+                  <span class="font-mono text-cyan-400 font-extrabold text-xs sm:text-sm shrink-0">
+                    {item.percentage}% <span class="text-slate-500 text-[11px] font-semibold">({item.count})</span>
                   </span>
                 </div>
               {/each}
@@ -605,15 +728,14 @@
           </div>
 
         {:else}
-          <!-- ENLARGED PROGRESS BARS FOR TEXT QUESTIONS -->
-          <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4 justify-center flex flex-col">
+          <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3 justify-center flex flex-col">
             {#each modalStats.breakdowns as item}
-              <div class="space-y-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                <div class="flex items-center justify-between text-sm">
-                  <span class="text-slate-100 font-bold truncate max-w-md">{item.label}</span>
-                  <span class="font-mono text-cyan-400 font-bold text-sm">{item.percentage}% <span class="text-slate-500 text-xs">({item.count})</span></span>
+              <div class="space-y-1.5 bg-slate-950/60 p-3.5 sm:p-4 rounded-2xl border border-slate-800">
+                <div class="flex items-center justify-between text-xs sm:text-sm">
+                  <span class="text-slate-100 font-bold truncate max-w-xs sm:max-w-md">{item.label}</span>
+                  <span class="font-mono text-cyan-400 font-bold text-xs sm:text-sm">{item.percentage}% <span class="text-slate-500 text-[11px]">({item.count})</span></span>
                 </div>
-                <div class="w-full h-4 bg-slate-900 rounded-full overflow-hidden border border-slate-800/80 p-0.5">
+                <div class="w-full h-3.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800/80 p-0.5">
                   <div
                     class="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 rounded-full transition-all duration-700 shadow-sm"
                     style="width: {item.percentage}%"
@@ -631,16 +753,16 @@
     <div class="pt-4 border-t border-slate-800 flex items-center justify-between shrink-0 gap-4">
       <button
         on:click={closeQuestionModal}
-        class="px-5 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700/80 transition-all shadow-md active:scale-95"
+        class="px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700/80 transition-all shadow-md active:scale-95"
       >
-        ← Return to Matrix Overview
+        ← Return
       </button>
 
       <button
         on:click={() => exportToExcel(focusedQuestion)}
-        class="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition-all active:scale-95 flex items-center space-x-2"
+        class="px-5 sm:px-6 py-2.5 sm:py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition-all active:scale-95 flex items-center space-x-2"
       >
-        <span>📥</span> <span>Export Focused Field CSV</span>
+        <span>📥</span> <span>Export Field CSV</span>
       </button>
     </div>
 

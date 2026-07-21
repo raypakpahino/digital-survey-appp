@@ -5,7 +5,6 @@
   import Kiosk from "./components/Kiosk.svelte";
   import Answers from "./components/Answers.svelte";
 
-  // Relative API route forwarded by Vite proxy to localhost:5000
   const API_BASE = "/api";
 
   let activeTab = "surveys";
@@ -21,6 +20,21 @@
     if (!isDedicatedKioskMode) {
       window.location.hash = `/${tab}`;
     }
+  }
+
+  function normalizeSurvey(s) {
+    if (!s) return s;
+    return {
+      ...s,
+      questions: (s.questions || []).map((q) => ({
+        ...q,
+        isRequired: Boolean(q.isRequired),
+        allowMultiple: Boolean(q.allowMultiple),
+        enableOptionImages: Boolean(q.enableOptionImages),
+        options: q.options || [],
+        optionImages: q.optionImages || {}
+      }))
+    };
   }
 
   onMount(async () => {
@@ -56,7 +70,7 @@
       const surveyRes = await fetch(`${API_BASE}/surveys`);
       const surveyData = await surveyRes.json();
       if (surveyData.success) {
-        surveysList = surveyData.surveys;
+        surveysList = (surveyData.surveys || []).map(normalizeSurvey);
         isOfflineMode = false;
       }
 
@@ -110,10 +124,11 @@
         });
         const data = await res.json();
         if (data.success && data.survey) {
+          const normalized = normalizeSurvey(data.survey);
           surveysList = surveysList.map((s) =>
-            s._id === activeSurveyId ? data.survey : s
+            s._id === activeSurveyId ? normalized : s
           );
-          activeSurveyId = data.survey._id;
+          activeSurveyId = normalized._id;
         }
       } catch (err) {
         console.error("Error creating survey in database:", err);
@@ -122,7 +137,7 @@
     }
 
     try {
-      await fetch(`${API_BASE}/surveys/${activeSurveyId}`, {
+      const res = await fetch(`${API_BASE}/surveys/${activeSurveyId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -130,7 +145,13 @@
           questions: activeSurvey.questions,
         }),
       });
-      await refreshDataLedger();
+      const data = await res.json();
+      if (data.success && data.survey) {
+        const normalized = normalizeSurvey(data.survey);
+        surveysList = surveysList.map((s) => (s._id === activeSurveyId ? normalized : s));
+      } else {
+        await refreshDataLedger();
+      }
     } catch (err) {
       console.error("Error updating survey in database:", err);
     }
@@ -140,7 +161,15 @@
     if (!activeSurvey) return;
     activeSurvey.questions = [
       ...activeSurvey.questions,
-      { type, questionText: text, isRequired: false, options },
+      { 
+        type, 
+        questionText: text, 
+        isRequired: false, 
+        allowMultiple: false, 
+        enableOptionImages: false, 
+        options,
+        optionImages: {}
+      },
     ];
     surveysList = surveysList;
   }
