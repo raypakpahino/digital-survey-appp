@@ -88,6 +88,15 @@
     }
   }
 
+  function handlePasteQuestionImage(event, question) {
+    event.stopPropagation();
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    if (pastedText) {
+      question.questionImage = pastedText;
+      questions = questions;
+    }
+  }
+
   function triggerExplicitSave() {
     onSaveSurvey();
     alert("💾 Form schema states committed and deployed successfully!");
@@ -254,7 +263,7 @@
             >
               <!-- Card Header -->
               <div class="flex items-start justify-between gap-4">
-                <div class="flex-1 space-y-2">
+                <div class="flex-1 space-y-3">
                   <div class="flex items-center space-x-2.5">
                     <span
                       class="bg-slate-900 text-slate-300 h-6 w-6 rounded-lg text-xs font-mono border border-slate-800 flex items-center justify-center font-bold shadow-inner"
@@ -276,6 +285,18 @@
                     bind:value={question.questionText}
                     class="w-full bg-transparent border-b border-transparent text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-0 focus:border-slate-700 py-1 text-base font-semibold transition-all"
                   />
+
+                  <!-- UNIVERSAL QUESTION HEADER IMAGE URL (FOR ALL QUESTION TYPES) -->
+                  <div class="flex items-center space-x-2 pt-1" on:click|stopPropagation>
+                    <span class="text-[11px] font-mono font-bold text-cyan-400 shrink-0">🖼️ Question Header Image:</span>
+                    <input
+                      type="text"
+                      bind:value={question.questionImage}
+                      on:paste={(e) => handlePasteQuestionImage(e, question)}
+                      placeholder="https://example.com/header-image.jpg (Optional)"
+                      class="flex-1 bg-slate-900 border border-slate-800 text-[11px] text-slate-200 px-3 py-1.5 rounded-lg focus:outline-none focus:border-cyan-500 font-mono"
+                    />
+                  </div>
                 </div>
 
                 <button
@@ -312,10 +333,10 @@
                           >
                         </div>
 
-                        <!-- Fixed Image URL Input with Paste & StopPropagation Support -->
+                        <!-- Option Image URL Field -->
                         {#if question.enableOptionImages}
                           <div class="flex items-center space-x-2 pl-2 pt-1" on:click|stopPropagation>
-                            <span class="text-[10px] font-mono text-cyan-400 shrink-0">🖼️ Image URL:</span>
+                            <span class="text-[10px] font-mono text-cyan-400 shrink-0">🖼️ Option Image URL:</span>
                             <input
                               type="text"
                               value={question.optionImages && question.optionImages[option] ? question.optionImages[option] : ""}

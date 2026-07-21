@@ -222,7 +222,7 @@
       </div>
 
     {:else}
-      <div key={currentQuestionIndex} in:fly={{ y: 20, duration: 400 }} class="space-y-8 sm:space-y-10 md:space-y-12">
+      <div key={currentQuestionIndex} in:fly={{ y: 20, duration: 400 }} class="space-y-6 sm:space-y-8">
         
         <div class="text-center space-y-2 sm:space-y-3">
           <div class="flex items-center justify-center space-x-2">
@@ -231,6 +231,13 @@
               <span class="text-rose-400 font-bold text-xs bg-rose-950/80 border border-rose-800 px-2 py-0.5 rounded-md">* Required Field</span>
             {/if}
           </div>
+
+          <!-- UNIVERSAL QUESTION HEADER IMAGE DISPLAY -->
+          {#if currentQuestion.questionImage}
+            <div class="max-w-xl mx-auto h-48 sm:h-64 rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 shadow-2xl mb-4">
+              <img src={currentQuestion.questionImage} alt={currentQuestion.questionText} class="w-full h-full object-cover" />
+            </div>
+          {/if}
 
           <h1 class="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight text-white leading-tight max-w-3xl mx-auto px-2">
             {currentQuestion.questionText}
@@ -280,8 +287,6 @@
 
           {:else if getNormalizedType(currentQuestion.type) === 'multiple-choice'}
             <div class="max-w-2xl mx-auto space-y-4 px-2">
-              
-              <!-- OPTIONS GRID -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {#if currentQuestion.options && currentQuestion.options.length > 0}
                   {#each currentQuestion.options as option}
@@ -298,7 +303,6 @@
                       }}
                       class="w-full text-left bg-slate-900 border rounded-2xl p-4 transition-all shadow-md active:scale-[0.99] flex flex-col justify-between group {currentQuestion.allowMultiple && isSelected ? 'border-cyan-500 bg-cyan-950/20 text-cyan-300' : 'border-slate-800 hover:border-slate-700 text-slate-100'}"
                     >
-                      <!-- Display Option Image if available and enabled -->
                       {#if imgUrl}
                         <div class="w-full h-32 mb-3 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center">
                           <img src={imgUrl} alt={option} class="w-full h-full object-cover" />
@@ -308,7 +312,6 @@
                       <div class="flex items-center justify-between w-full">
                         <span class="text-base sm:text-lg font-bold group-hover:text-cyan-300 transition-colors">{option}</span>
                         {#if currentQuestion.allowMultiple}
-                          <!-- MULTIPLE CHOICE CHECKBOX INDICATOR -->
                           <div class="w-6 h-6 rounded-lg border flex items-center justify-center transition-all {isSelected ? 'bg-cyan-600 border-cyan-500 text-white font-bold' : 'border-slate-700 bg-slate-950'}">
                             {#if isSelected}✓{/if}
                           </div>
@@ -321,7 +324,6 @@
                 {/if}
               </div>
 
-              <!-- CONFIRM / NEXT BUTTON FOR MULTIPLE SELECTION MODE -->
               {#if currentQuestion.allowMultiple}
                 <button
                   on:click={advanceStep}
@@ -331,11 +333,10 @@
                   <span>➔</span>
                 </button>
               {/if}
-
             </div>
 
           {:else}
-            <!-- SHORT ANSWER TEXT AREA WITH REQUIRED VALIDATION -->
+            <!-- SHORT ANSWER TEXT AREA -->
             <form on:submit|preventDefault={advanceStep} class="max-w-xl mx-auto space-y-3 sm:space-y-4 px-2">
               <input 
                 type="text" 
