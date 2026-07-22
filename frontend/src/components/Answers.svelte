@@ -24,12 +24,19 @@
     '#f43f5e'  // rose-500
   ];
 
-  $: selectedSurveyObj = surveys.find((s) => s._id === selectedFilterSurveyId);
+  function cleanString(str) {
+    return String(str || '').trim().toLowerCase();
+  }
+
+  $: selectedSurveyObj = surveys.find((s) => s._id === selectedFilterSurveyId) || surveys[0] || null;
 
   $: displayedQuestions = selectedSurveyObj ? selectedSurveyObj.questions : [];
 
   $: filteredResponses = responses.filter((r) => {
-    if (r.surveyTitle !== (selectedSurveyObj?.title || "")) return false;
+    if (!selectedSurveyObj) return false;
+    
+    // Case & whitespace insensitive title comparison
+    if (cleanString(r.surveyTitle) !== cleanString(selectedSurveyObj.title)) return false;
 
     if (startDate || endDate) {
       const responseTime = new Date(r.timestamp).getTime();
@@ -52,7 +59,6 @@
     activePreset = presetKey;
     const now = new Date();
 
-    // Use local year, month, date to match HTML <input type="date"> YYYY-MM-DD format
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
@@ -104,7 +110,7 @@
     if (!confirm(`Are you sure you want to permanently delete ALL submission logs for "${selectedSurveyObj.title}"?`)) return;
 
     const targetTitle = selectedSurveyObj.title;
-    responses = responses.filter((r) => r.surveyTitle !== targetTitle);
+    responses = responses.filter((r) => cleanString(r.surveyTitle) !== cleanString(targetTitle));
 
     try {
       await fetch(`${API_BASE}/responses/clear-by-title`, {
@@ -124,14 +130,12 @@
     let targetQuestions = specificQuestion ? [specificQuestion] : displayedQuestions;
     let titleText = selectedSurveyObj.title || "Form Matrix";
 
-    // Value Normalizer: Maps smileys and stars directly to clean numbers 1-5
     function formatValueForExcel(rawVal, qType) {
       if (!rawVal || rawVal === "N/A" || rawVal === "Skipped") return "N/A";
 
       const valStr = String(rawVal).toUpperCase();
       const normType = String(qType || '').toUpperCase().replace(/_/g, '-');
 
-      // 1. SMILEY MAPPING (1 = Worst, 5 = Best)
       if (normType.includes('SMILEY') || valStr.includes('DELIGHTED') || valStr.includes('HAPPY') || valStr.includes('ANGRY')) {
         if (valStr.includes('ANGRY')) return "1";
         if (valStr.includes('SAD')) return "2";
@@ -140,24 +144,20 @@
         if (valStr.includes('DELIGHTED')) return "5";
       }
 
-      // 2. STARS MAPPING (Extract digits: "5 Stars" -> "5")
       if (normType.includes('STARS') || valStr.includes('STARS') || valStr.includes('STAR')) {
         const match = valStr.match(/\d+/);
         if (match) return match[0];
       }
 
-      // 3. FALLBACK: Clean non-ASCII / symbols for general text answers
       return rawVal
         .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
         .replace(/[^\x20-\x7E]/g, '')
         .trim() || rawVal;
     }
 
-    // 1. Prepare Headers
     let headers = ["Record ID", "Submission Timestamp"];
     targetQuestions.forEach((q) => headers.push(q.questionText));
 
-    // 2. Prepare Formatted Rows
     let rowsHtml = filteredResponses.map((r, index) => {
       let recId = r._id ? r._id.slice(-8) : `LOG-${index + 1}`;
       let timestamp = new Date(r.timestamp).toLocaleString('en-US', {
@@ -175,7 +175,7 @@
       ];
 
       targetQuestions.forEach((q) => {
-        let answerObj = r.answers.find((ans) => ans.questionText === q.questionText);
+        let answerObj = (r.answers || []).find((ans) => cleanString(ans.questionText) === cleanString(q.questionText));
         let rawVal = answerObj ? answerObj.value : "N/A";
         let formattedVal = formatValueForExcel(rawVal, q.type);
 
@@ -193,7 +193,6 @@
       `<th style="background-color: #0f172a; color: #ffffff; font-weight: bold; font-size: 11pt; padding: 12px 18px; text-align: center; border: 1px solid #1e293b; white-space: nowrap;">${h}</th>`
     ).join('');
 
-    // 3. Build Structured HTML Spreadsheet with Form Title Top Header
     let excelHtml = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
@@ -230,7 +229,6 @@
       </html>
     `;
 
-    // 4. Download Spreadsheet File
     const fileName = specificQuestion 
       ? `${titleText.replace(/[^\w\s]/gi, '').replace(/\s+/g, "_")}_${specificQuestion.questionText.replace(/[^\w\s]/gi, '').replace(/\s+/g, "_")}_Field_Report.xls`
       : `${titleText.replace(/[^\w\s]/gi, '').replace(/\s+/g, "_")}_Response_Matrix.xls`;
@@ -247,10 +245,9 @@
     URL.revokeObjectURL(url);
   }
 
-  // Pass sourceDataset explicitly so Svelte tracks changes on filteredResponses
   function getQuestionAnalytics(question, sourceDataset) {
     const validEntries = sourceDataset.filter((r) => {
-      const ans = r.answers?.find((a) => a.questionText === question.questionText);
+      const ans = (r.answers || []).find((a) => cleanString(a.questionText) === cleanString(question.questionText));
       return ans && ans.value !== undefined && ans.value !== "" && ans.value !== "No Response";
     });
 
@@ -264,7 +261,7 @@
     const rawAnswersList = [];
 
     validEntries.forEach((r) => {
-      const ans = r.answers.find((a) => a.questionText === question.questionText);
+      const ans = (r.answers || []).find((a) => cleanString(a.questionText) === cleanString(question.questionText));
       const val = ans ? ans.value : "Skipped";
       counts[val] = (counts[val] || 0) + 1;
       rawAnswersList.push({
@@ -338,7 +335,7 @@
               {survey.title}
             </span>
             <span class="text-[10px] text-slate-500 font-medium uppercase font-mono tracking-wider">
-              {responses.filter((r) => r.surveyTitle === survey.title).length} Logs
+              {responses.filter((r) => cleanString(r.surveyTitle) === cleanString(survey.title)).length} Logs
             </span>
           </button>
         {/each}
@@ -481,7 +478,7 @@
               <div class="flex items-start justify-between gap-3 border-b border-slate-800/60 pb-3">
                 <div class="space-y-1">
                   <span class="text-[10px] font-bold text-cyan-400 group-hover:text-cyan-300 uppercase font-mono tracking-wider flex items-center space-x-1.5">
-                    <span>Field #{selectedSurveyObj.questions.findIndex(q => q.questionText === question.questionText) + 1} • {question.type}</span>
+                    <span>Field #{selectedSurveyObj.questions.findIndex(q => cleanString(q.questionText) === cleanString(question.questionText)) + 1} • {question.type}</span>
                     <span class="text-slate-500 text-[10px] hidden sm:inline">🔍 Click to enlarge</span>
                   </span>
                   <h4 class="text-xs sm:text-sm font-bold text-white group-hover:text-cyan-100 transition-colors">{question.questionText}</h4>
@@ -573,7 +570,7 @@
                     {new Date(response.timestamp).toLocaleString()}
                   </td>
                   {#each displayedQuestions as question}
-                    {@const answerVal = response.answers.find((a) => a.questionText === question.questionText)?.value || 'N/A'}
+                    {@const answerVal = (response.answers || []).find((a) => cleanString(a.questionText) === cleanString(question.questionText))?.value || 'N/A'}
                     <td class="p-3.5 border-r border-slate-800/40 text-slate-200">
                       <span class="text-slate-300 bg-slate-950/80 border border-slate-800 px-2.5 py-1 rounded-lg">
                         {answerVal}
@@ -606,7 +603,7 @@
             {focusedQuestion.type} Focused Inspection
           </span>
           <span class="text-xs font-bold text-slate-500">
-            Field #{selectedSurveyObj.questions.findIndex(q => q.questionText === focusedQuestion.questionText) + 1}
+            Field #{selectedSurveyObj.questions.findIndex(q => cleanString(q.questionText) === cleanString(focusedQuestion.questionText)) + 1}
           </span>
         </div>
         <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-tight">{focusedQuestion.questionText}</h1>

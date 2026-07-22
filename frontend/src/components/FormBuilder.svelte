@@ -3,11 +3,20 @@
   export let questions = [];
   export let surveys = [];
   export let activeSurveyId = "";
-  export let onAddQuestion = (text, type, options) => {};
-  export let onRemoveQuestion = (index) => {};
-  export let onSaveSurvey = () => {};
+  export let onSaveSurvey = (title, qs) => {};
   export let onSelectSurvey = (id) => {};
   export let onCreateNewSurvey = () => {};
+
+  // Local Draft State (prevents Kiosk and App from reacting until Save is clicked)
+  let localTitle = "";
+  let localQuestions = [];
+
+  // Re-sync the local working copy when the parent changes the active survey
+  $: {
+    let dummy = activeSurveyId; // Tells Svelte to re-run this block on ID change
+    localTitle = surveyTitle || "";
+    localQuestions = JSON.parse(JSON.stringify(questions || []));
+  }
 
   const availableComponents = [
     {
@@ -50,26 +59,40 @@
     }
     if (type === "text") defaultText = "Do you have any additional comments?";
 
-    onAddQuestion(defaultText, type, defaultOptions);
+    localQuestions = [
+      ...localQuestions,
+      { 
+        type, 
+        questionText: defaultText, 
+        questionImage: "",
+        isRequired: false, 
+        allowMultiple: false, 
+        enableOptionImages: false, 
+        options: defaultOptions,
+        optionImages: {}
+      }
+    ];
   }
 
   function addOption(qIndex) {
-    questions[qIndex].options = [
-      ...questions[qIndex].options,
-      `Option ${questions[qIndex].options.length + 1}`,
+    localQuestions[qIndex].options = [
+      ...localQuestions[qIndex].options,
+      `Option ${localQuestions[qIndex].options.length + 1}`,
     ];
-    questions = questions;
+  }
+
+  function removeQuestion(index) {
+    localQuestions = localQuestions.filter((_, i) => i !== index);
   }
 
   function removeOption(qIndex, optIndex) {
-    const optionName = questions[qIndex].options[optIndex];
-    questions[qIndex].options = questions[qIndex].options.filter(
+    const optionName = localQuestions[qIndex].options[optIndex];
+    localQuestions[qIndex].options = localQuestions[qIndex].options.filter(
       (_, i) => i !== optIndex,
     );
-    if (questions[qIndex].optionImages && questions[qIndex].optionImages[optionName]) {
-      delete questions[qIndex].optionImages[optionName];
+    if (localQuestions[qIndex].optionImages && localQuestions[qIndex].optionImages[optionName]) {
+      delete localQuestions[qIndex].optionImages[optionName];
     }
-    questions = questions;
   }
 
   function updateOptionImageUrl(question, optionKey, urlValue) {
@@ -77,7 +100,7 @@
       question.optionImages = {};
     }
     question.optionImages[optionKey] = urlValue;
-    questions = questions;
+    localQuestions = localQuestions;
   }
 
   function handlePasteImageUrl(event, question, optionKey) {
@@ -93,12 +116,13 @@
     const pastedText = (event.clipboardData || window.clipboardData).getData('text');
     if (pastedText) {
       question.questionImage = pastedText;
-      questions = questions;
+      localQuestions = localQuestions;
     }
   }
 
   function triggerExplicitSave() {
-    onSaveSurvey();
+    // Send local edits back to App.svelte explicitly
+    onSaveSurvey(localTitle, localQuestions);
     alert("💾 Form schema states committed and deployed successfully!");
   }
 
@@ -219,7 +243,7 @@
       <input
         id="form-heading"
         type="text"
-        bind:value={surveyTitle}
+        bind:value={localTitle}
         class="w-full bg-slate-950 border border-slate-800 rounded-xl px-5 py-3.5 text-base text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all font-semibold shadow-inner"
         placeholder="Enter survey identity..."
       />
@@ -238,7 +262,7 @@
       </h3>
       <span
         class="text-xs font-bold bg-slate-950 px-2.5 py-1 rounded-md text-cyan-400 border border-slate-800"
-        >{questions.length} Items</span
+        >{localQuestions.length} Items</span
       >
     </div>
 
@@ -246,7 +270,7 @@
     <div
       class="flex-1 overflow-y-auto mt-6 pr-2 custom-scrollbar box-border pb-4"
     >
-      {#if questions.length === 0}
+      {#if localQuestions.length === 0}
         <div
           class="border-2 border-dashed border-slate-800 rounded-2xl p-16 text-center text-slate-400 text-sm leading-relaxed mt-2"
         >
@@ -255,7 +279,7 @@
         </div>
       {:else}
         <div class="flex flex-col gap-6">
-          {#each questions as question, index}
+          {#each localQuestions as question, index}
             {@const normType = getNormalizedType(question.type)}
 
             <div
@@ -300,7 +324,7 @@
                 </div>
 
                 <button
-                  on:click={() => onRemoveQuestion(index)}
+                  on:click={() => removeQuestion(index)}
                   class="text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1.5 rounded-xl transition-all shrink-0 shadow-sm"
                 >
                   Delete
@@ -424,7 +448,7 @@
     >
       <button
         on:click={triggerExplicitSave}
-        disabled={questions.length === 0 || !surveyTitle.trim()}
+        disabled={localQuestions.length === 0 || !localTitle.trim()}
         class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs py-3.5 px-6 rounded-xl transition-all shadow-md shadow-cyan-600/10 flex items-center space-x-2 active:scale-[0.98] disabled:opacity-25 disabled:cursor-not-allowed"
       >
         <span>💾</span> <span>Save & Deploy Schema</span>

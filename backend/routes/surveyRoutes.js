@@ -1,79 +1,129 @@
 import express from 'express';
-import Survey from '../models/Survey.js';
+import Survey from '../models/Survey.js'; 
+import Response from '../models/Response.js'; 
 
 const router = express.Router();
 
+// Helper to sanitize incoming survey question fields
+const sanitizeQuestions = (questions) => {
+  return (questions || []).map((q) => ({
+    _id: q._id,
+    type: String(q.type || 'smiley'),
+    questionText: String(q.questionText || ''),
+    questionImage: String(q.questionImage || ''),
+    isRequired: Boolean(q.isRequired),
+    allowMultiple: Boolean(q.allowMultiple),
+    enableOptionImages: Boolean(q.enableOptionImages),
+    options: Array.isArray(q.options) ? q.options : [],
+    optionImages: q.optionImages && typeof q.optionImages === 'object' ? q.optionImages : {}
+  }));
+};
+
+// ==========================================
+// SURVEY ROUTES
+// ==========================================
+
+// 1. GET ALL SURVEYS
 router.get('/surveys', async (req, res) => {
   try {
-    const surveys = await Survey.find().sort({ createdAt: -1 });
+    const surveys = await Survey.find({});
     res.json({ success: true, surveys });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
+// 2. CREATE A NEW SURVEY
 router.post('/surveys', async (req, res) => {
   try {
     const { title, questions } = req.body;
-    const cleanQuestions = (questions || []).map((q) => ({
-      type: q.type,
-      questionText: q.questionText,
-      questionImage: q.questionImage || '',
-      isRequired: Boolean(q.isRequired),
-      allowMultiple: Boolean(q.allowMultiple),
-      enableOptionImages: Boolean(q.enableOptionImages),
-      options: Array.isArray(q.options) ? q.options : [],
-      optionImages: q.optionImages || {}
-    }));
-
-    const newSurvey = new Survey({ title, questions: cleanQuestions });
-    const savedSurvey = await newSurvey.save();
-    res.status(201).json({ success: true, survey: savedSurvey });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    const cleanQuestions = sanitizeQuestions(questions);
+    const newSurvey = await Survey.create({ title, questions: cleanQuestions });
+    res.status(201).json({ success: true, survey: newSurvey });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
+// 3. UPDATE AN EXISTING SURVEY
 router.put('/surveys/:id', async (req, res) => {
   try {
-    const { id } = req.params;
     const { title, questions } = req.body;
-
-    const cleanQuestions = (questions || []).map((q) => ({
-      _id: q._id,
-      type: String(q.type || 'smiley'),
-      questionText: String(q.questionText || ''),
-      questionImage: String(q.questionImage || ''),
-      isRequired: Boolean(q.isRequired),
-      allowMultiple: Boolean(q.allowMultiple),
-      enableOptionImages: Boolean(q.enableOptionImages),
-      options: Array.isArray(q.options) ? q.options : [],
-      optionImages: q.optionImages && typeof q.optionImages === 'object' ? q.optionImages : {}
-    }));
-
+    const cleanQuestions = sanitizeQuestions(questions);
     const updatedSurvey = await Survey.findByIdAndUpdate(
-      id,
-      { $set: { title: title || 'Untitled Form', questions: cleanQuestions } },
+      req.params.id, 
+      { title, questions: cleanQuestions }, 
       { new: true, runValidators: false, strict: false }
     );
-
-    if (!updatedSurvey) {
-      return res.status(404).json({ success: false, message: 'Survey schema not found' });
-    }
-
     res.json({ success: true, survey: updatedSurvey });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
+// 4. DELETE A SURVEY AND ALL ITS ASSOCIATED SUBMISSIONS
 router.delete('/surveys/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    await Survey.findByIdAndDelete(id);
-    res.json({ success: true, message: 'Survey deleted successfully' });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    const surveyToDelete = await Survey.findById(req.params.id);
+    if (surveyToDelete) {
+      await Response.deleteMany({ surveyTitle: surveyToDelete.title });
+      await Survey.findByIdAndDelete(req.params.id);
+    }
+    res.json({ success: true, message: 'Survey and linked responses deleted successfully.' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==========================================
+// RESPONSE ROUTES (REQUIRED FOR ANSWERS LOG)
+// ==========================================
+
+// 5. POST A NEW KIOSK RESPONSE
+router.post('/responses', async (req, res) => {
+  try {
+    const { surveyTitle, answers } = req.body;
+    const newResponse = await Response.create({
+      surveyTitle,
+      answers,
+      timestamp: new Date().toISOString()
+    });
+    res.status(201).json({ success: true, response: newResponse });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 6. GET ALL SUBMITTED RESPONSES
+router.get('/responses', async (req, res) => {
+  try {
+    const responses = await Response.find({}).sort({ createdAt: -1 });
+    res.json({ success: true, responses });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 7. POST ROUTE TO CLEAR ALL RESPONSES FOR A SPECIFIC FORM TITLE
+router.post('/responses/clear-by-title', async (req, res) => {
+  try {
+    const { title } = req.body;
+    if (!title) return res.status(400).json({ success: false, message: "Title parameter required." });
+    
+    const result = await Response.deleteMany({ surveyTitle: title });
+    res.json({ success: true, message: `Purged ${result.deletedCount} submissions for "${title}".`, count: result.deletedCount });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 8. DELETE A SINGLE SPECIFIC RESPONSE BY ID
+router.delete('/responses/:id', async (req, res) => {
+  try {
+    await Response.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Response record purged.' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

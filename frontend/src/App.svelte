@@ -28,6 +28,7 @@
       ...s,
       questions: (s.questions || []).map((q) => ({
         ...q,
+        questionImage: q.questionImage || '',
         isRequired: Boolean(q.isRequired),
         allowMultiple: Boolean(q.allowMultiple),
         enableOptionImages: Boolean(q.enableOptionImages),
@@ -68,6 +69,9 @@
   async function refreshDataLedger() {
     try {
       const surveyRes = await fetch(`${API_BASE}/surveys`);
+      if (!surveyRes.ok) {
+        throw new Error(`HTTP error! status: ${surveyRes.status}`);
+      }
       const surveyData = await surveyRes.json();
       if (surveyData.success) {
         surveysList = (surveyData.surveys || []).map(normalizeSurvey);
@@ -75,12 +79,14 @@
       }
 
       const responseRes = await fetch(`${API_BASE}/responses`);
-      const responseData = await responseRes.json();
-      if (responseData.success && responseData.responses) {
-        responses = responseData.responses;
+      if (responseRes.ok) {
+        const responseData = await responseRes.json();
+        if (responseData.success && responseData.responses) {
+          responses = responseData.responses;
+        }
       }
     } catch (err) {
-      console.warn("Backend link offline. Using cached local storage.");
+      console.warn("Backend API endpoint unreachable or DB offline:", err);
       isOfflineMode = true;
     }
   }
@@ -109,8 +115,12 @@
     switchTab("builder");
   }
 
-  async function persistActiveSurveyState() {
+  async function persistActiveSurveyState(updatedTitle, updatedQuestions) {
     if (!activeSurveyId) return;
+
+    // Apply FormBuilder draft changes to live state ONLY upon saving
+    activeSurvey.title = updatedTitle;
+    activeSurvey.questions = updatedQuestions;
 
     if (String(activeSurveyId).startsWith("DRAFT-") || activeSurvey.isDraft) {
       try {
@@ -155,31 +165,6 @@
     } catch (err) {
       console.error("Error updating survey in database:", err);
     }
-  }
-
-  function addQuestion(text, type, options = []) {
-    if (!activeSurvey) return;
-    activeSurvey.questions = [
-      ...activeSurvey.questions,
-      { 
-        type, 
-        questionText: text, 
-        isRequired: false, 
-        allowMultiple: false, 
-        enableOptionImages: false, 
-        options,
-        optionImages: {}
-      },
-    ];
-    surveysList = surveysList;
-  }
-
-  function removeQuestion(index) {
-    if (!activeSurvey) return;
-    activeSurvey.questions = activeSurvey.questions.filter(
-      (_, i) => i !== index
-    );
-    surveysList = surveysList;
   }
 
   async function handleDeleteSurvey(id) {
@@ -327,14 +312,12 @@
         {:else if activeTab === "builder"}
           <div class="w-full h-full">
             <FormBuilder
-              bind:surveyTitle={activeSurvey.title}
-              bind:questions={activeSurvey.questions}
+              surveyTitle={activeSurvey.title}
+              questions={activeSurvey.questions}
               surveys={surveysList}
               {activeSurveyId}
               onSelectSurvey={(id) => (activeSurveyId = id)}
               onCreateNewSurvey={handleCreateNewSurvey}
-              onAddQuestion={addQuestion}
-              onRemoveQuestion={removeQuestion}
               onSaveSurvey={persistActiveSurveyState}
             />
           </div>

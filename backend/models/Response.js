@@ -11,4 +11,6 @@ const ResponseSchema = new mongoose.Schema({
   answers: [AnswerSchema]
 }, { timestamps: true });
 
-export default mongoose.model('Response', ResponseSchema);
+const Response = mongoose.models.Response || mongoose.model('Response', ResponseSchema);
+
+export default Response;

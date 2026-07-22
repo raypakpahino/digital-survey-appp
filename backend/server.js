@@ -17,17 +17,37 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Health check endpoint for debugging
+app.get('/api/health', (req, res) => {
+  const dbState = mongoose.connection.readyState;
+  res.json({
+    status: 'online',
+    databaseConnected: dbState === 1,
+    dbStateCode: dbState // 1 = Connected, 0 = Disconnected
+  });
+});
+
 // Mount API routes
 app.use('/api', surveyRoutes);
 
-// Database Connection
-mongoose.connect(MONGO_URI)
-  .then(() => {
-    console.log("Connected to MongoDB successfully.");
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Express API Server executing smoothly on http://localhost:${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error("Database initialization failed:", err.message);
-  });
+// Database Connection with Auto-Retry
+const connectDB = async () => {
+  try {
+    await mongoose.connect(MONGO_URI);
+    console.log("✅ Connected to MongoDB successfully.");
+  } catch (err) {
+    console.error("❌ MongoDB Connection Error:", err.message);
+    console.log("🔄 Retrying MongoDB connection in 5 seconds...");
+    setTimeout(connectDB, 5000);
+  }
+};
+
+mongoose.connection.on('disconnected', () => {
+  console.warn("⚠️ MongoDB connection lost. Attempting to reconnect...");
+});
+
+// Start Express Server FIRST so Port 5000 is always online
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Express API Server executing smoothly on http://localhost:${PORT}`);
+  connectDB();
+});
