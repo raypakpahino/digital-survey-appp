@@ -9,14 +9,18 @@
   let activeShareSurvey = null;
   let showShareModal = false;
 
-  // Your laptop's active local Wi-Fi IP address
-  const LAN_IP = "10.136.33.44";
-  const FRONTEND_PORT = "5173";
-
-  // GUARANTEED NETWORK LINK:
-  // Always uses 10.136.33.44 so links and QR codes work on phones, tablets, and laptops
+  // DYNAMIC NETWORK LINK GENERATOR:
+  // Automatically detects your Wi-Fi IP so QR codes and links open on phones/tablets
   function getKioskLink(surveyId) {
-    return `http://${LAN_IP}:${FRONTEND_PORT}/#/kiosk?id=${surveyId}`;
+    let host = window.location.hostname;
+    
+    // If opened on laptop via 'localhost' or '127.0.0.1', replace with actual Wi-Fi IP
+    if (host === 'localhost' || host === '127.0.0.1') {
+      host = '10.136.33.33'; 
+    }
+    
+    const port = window.location.port ? `:${window.location.port}` : '';
+    return `http://${host}${port}/#/kiosk?id=${surveyId}`;
   }
 
   function openShareHub(survey) {
