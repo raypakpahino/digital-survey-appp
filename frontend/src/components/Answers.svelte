@@ -354,7 +354,7 @@
         </p>
       </div>
 
-      <div class="flex flex-row xl:flex-col gap-2 overflow-x-auto xl:overflow-y-auto custom-scrollbar max-h-36 xl:max-h-52 pb-1 xl:pb-0">
+      <div class="flex flex-row xl:flex-col gap-2 overflow-x-auto xl:overflow-y-auto custom-scrollbar max-h-32 xl:max-h-44 pb-1 xl:pb-0">
         {#each surveys as survey}
           <button
             on:click={() => {
@@ -374,7 +374,7 @@
       </div>
     </div>
 
-    <!-- TABLET DEVICE FILTERING SECTION -->
+    <!-- TABLET DEVICE FILTERING SECTION (STRUCTURED 2-COLUMN GRID) -->
     <div class="flex-1 pt-3 md:pt-0 xl:pt-3 border-t md:border-t-0 xl:border-t md:border-l xl:border-l-0 md:pl-4 xl:pl-0 border-slate-800/80 space-y-2 shrink-0">
       <div class="flex items-center justify-between">
         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tablet Site Filter</span>
@@ -385,18 +385,19 @@
         {/if}
       </div>
 
-      <div class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto custom-scrollbar pt-1">
+      <div class="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto custom-scrollbar pt-1 pr-0.5">
         {#if availableDevices.length === 0}
-          <span class="text-[10px] text-slate-500 font-mono">No device logs available</span>
+          <span class="text-[10px] text-slate-500 font-mono col-span-2">No device logs available</span>
         {:else}
           {#each availableDevices as devId}
             {@const isSelected = selectedDevices.includes(devId)}
             <button
               on:click={() => toggleDeviceFilter(devId)}
-              class="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all border flex items-center space-x-1 {isSelected ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300 shadow-sm' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}"
+              class="w-full px-2 py-1.5 rounded-xl text-[10px] font-mono font-bold transition-all border flex items-center justify-between shadow-sm active:scale-95 truncate {isSelected ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'}"
+              title={devId}
             >
-              <span>🏷️ {devId}</span>
-              {#if isSelected}<span>✓</span>{/if}
+              <span class="truncate pr-1">🏷️ {devId}</span>
+              {#if isSelected}<span class="shrink-0 text-emerald-400">✓</span>{/if}
             </button>
           {/each}
         {/if}
