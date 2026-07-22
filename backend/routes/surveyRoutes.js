@@ -79,12 +79,13 @@ router.delete('/surveys/:id', async (req, res) => {
 // RESPONSE ROUTES (REQUIRED FOR ANSWERS LOG)
 // ==========================================
 
-// 5. POST A NEW KIOSK RESPONSE
+// 5. POST A NEW KIOSK RESPONSE (WITH DEVICE ID)
 router.post('/responses', async (req, res) => {
   try {
-    const { surveyTitle, answers } = req.body;
+    const { surveyTitle, deviceId, answers } = req.body;
     const newResponse = await Response.create({
       surveyTitle,
+      deviceId: deviceId || 'Tablet-Unassigned',
       answers,
       timestamp: new Date().toISOString()
     });

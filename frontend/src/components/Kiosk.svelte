@@ -1,12 +1,12 @@
 <script>
-  import { onDestroy } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { fly, scale } from 'svelte/transition';
   
   export let surveyTitle = "Feedback Terminal";
   export let questions = [];
   export let surveys = [];
   export let activeSurveyId = "";
-  export let onSubmitResponse = (answers) => {};
+  export let onSubmitResponse = (answers, deviceId) => {};
   export let onSelectSurvey = (id) => {};
 
   let currentQuestionIndex = 0;
@@ -20,7 +20,37 @@
   let autoResetTimer;
   let countdownSeconds = 4;
 
+  // TABLET IDENTIFIER STATE
+  let deviceId = "Tablet-A";
+  let isEditingDeviceId = false;
+  let tempDeviceId = "";
+
   $: currentQuestion = questions[currentQuestionIndex] || null;
+
+  onMount(() => {
+    // 1. Read deviceId from URL params if present (e.g. ?deviceId=Tablet-B)
+    const urlParams = new URLSearchParams(window.location.hash.includes("?") ? window.location.hash.split("?")[1] : window.location.search);
+    const paramDeviceId = urlParams.get("deviceId");
+
+    if (paramDeviceId) {
+      deviceId = paramDeviceId;
+      localStorage.setItem("sdx_device_id", paramDeviceId);
+    } else {
+      // 2. Read from localStorage, fallback to Tablet-A
+      const savedDeviceId = localStorage.getItem("sdx_device_id");
+      if (savedDeviceId) {
+        deviceId = savedDeviceId;
+      }
+    }
+  });
+
+  function saveCustomDeviceId() {
+    if (tempDeviceId.trim()) {
+      deviceId = tempDeviceId.trim();
+      localStorage.setItem("sdx_device_id", deviceId);
+    }
+    isEditingDeviceId = false;
+  }
 
   // Clear selections whenever question changes
   $: if (currentQuestionIndex !== undefined) {
@@ -59,12 +89,10 @@
 
     let finalValue = selectedValue;
 
-    // Handle multiple choice toggle value collation
     if (getNormalizedType(currentQuestion.type) === 'multiple-choice' && currentQuestion.allowMultiple) {
       finalValue = selectedMultipleValues.join(", ");
     }
 
-    // Enforce Required field validation
     const isBlank = !finalValue || (typeof finalValue === 'string' && finalValue.trim() === "");
     if (currentQuestion.isRequired && isBlank) {
       validationError = "This question is required. Please provide an answer before continuing.";
@@ -85,7 +113,7 @@
       currentQuestionIndex += 1;
     } else {
       isSubmitted = true;
-      onSubmitResponse(answersAccumulator);
+      onSubmitResponse(answersAccumulator, deviceId);
       startAutoResetLoop();
     }
   }
@@ -126,15 +154,37 @@
 <div class="w-full h-full flex flex-col justify-between items-center p-4 sm:p-6 md:p-10 text-slate-100 font-sans box-border overflow-y-auto custom-scrollbar">
   
   <!-- HEADER -->
-  <header class="w-full max-w-5xl flex items-center justify-between border-b border-slate-800/80 pb-4 sm:pb-5 shrink-0">
-    <div class="flex items-center space-x-3">
-      <div class="h-3 w-3 rounded-full bg-cyan-400 animate-pulse shadow-lg shadow-cyan-500/50"></div>
-      <span class="text-xs sm:text-sm font-black font-mono tracking-widest text-slate-300 uppercase">{surveyTitle || "Feedback Terminal"}</span>
+  <header class="w-full max-w-5xl flex items-center justify-between border-b border-slate-800/80 pb-4 sm:pb-5 shrink-0 gap-2">
+    <div class="flex items-center space-x-3 truncate">
+      <div class="h-3 w-3 rounded-full bg-cyan-400 animate-pulse shadow-lg shadow-cyan-500/50 shrink-0"></div>
+      <span class="text-xs sm:text-sm font-black font-mono tracking-widest text-slate-300 uppercase truncate">{surveyTitle || "Feedback Terminal"}</span>
     </div>
 
-    <div class="flex items-center space-x-3">
+    <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
+      
+      <!-- DEVICE ID CONFIG BADGE -->
+      {#if isEditingDeviceId}
+        <div class="flex items-center space-x-1 bg-slate-900 border border-cyan-500 rounded-full px-2 py-1">
+          <input
+            type="text"
+            bind:value={tempDeviceId}
+            placeholder="Tablet-A"
+            class="bg-slate-950 border border-slate-800 text-xs text-white px-2 py-0.5 rounded-full font-mono focus:outline-none w-24"
+          />
+          <button on:click={saveCustomDeviceId} class="bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">Save</button>
+        </div>
+      {:else}
+        <button
+          on:click={() => { tempDeviceId = deviceId; isEditingDeviceId = true; }}
+          class="bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-800 px-3 py-1.5 rounded-full text-[11px] font-mono font-bold tracking-wider flex items-center space-x-1 shadow-sm active:scale-95"
+          title="Click to set this tablet's Site/Device Name"
+        >
+          <span>🏷️</span> <span>{deviceId}</span>
+        </button>
+      {/if}
+
       {#if activeSurveyId && !isSubmitted && questions.length > 0}
-        <div class="bg-slate-900 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border border-slate-800 text-[11px] sm:text-xs font-bold text-cyan-400 font-mono tracking-wide">
+        <div class="bg-slate-900 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border border-slate-800 text-[11px] sm:text-xs font-bold text-cyan-400 font-mono tracking-wide hidden sm:block">
           QUESTION {currentQuestionIndex + 1} OF {questions.length}
         </div>
         <button
@@ -160,7 +210,7 @@
           </div>
           <h1 class="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white">Select Survey Form</h1>
           <p class="text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
-            Choose an active form sequence below to launch Live Kiosk Terminal Mode on this device.
+            Choose an active form sequence below to launch Live Kiosk Terminal Mode on <span class="text-cyan-400 font-mono font-bold">{deviceId}</span>.
           </p>
         </div>
 

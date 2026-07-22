@@ -7,6 +7,7 @@ const AnswerSchema = new mongoose.Schema({
 
 const ResponseSchema = new mongoose.Schema({
   surveyTitle: { type: String, required: true },
+  deviceId: { type: String, default: 'Tablet-Unassigned' },
   timestamp: { type: String, required: true },
   answers: [AnswerSchema]
 }, { timestamps: true });

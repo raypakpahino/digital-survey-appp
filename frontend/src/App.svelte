@@ -182,13 +182,15 @@
     }
   }
 
-  async function registerResponse(formattedAnswers) {
+  // UPDATED: Now receives deviceId from Kiosk and registers it in MongoDB
+  async function registerResponse(formattedAnswers, deviceId) {
     try {
       const res = await fetch(`${API_BASE}/responses`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           surveyTitle: activeSurvey.title,
+          deviceId: deviceId || "Tablet-A",
           answers: formattedAnswers,
         }),
       });

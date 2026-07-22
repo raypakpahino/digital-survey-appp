@@ -10,6 +10,9 @@
   let startDate = "";
   let endDate = "";
   let activePreset = "ALL";
+  
+  // MULTI-TABLET FILTERING STATE
+  let selectedDevices = []; // Empty array = ALL tablets
 
   // Active question focus for full-screen expanded mode
   let focusedQuestion = null;
@@ -32,12 +35,26 @@
 
   $: displayedQuestions = selectedSurveyObj ? selectedSurveyObj.questions : [];
 
+  // Extract all unique device IDs present in response database for this survey
+  $: availableDevices = Array.from(new Set(
+    responses
+      .filter((r) => selectedSurveyObj && cleanString(r.surveyTitle) === cleanString(selectedSurveyObj.title))
+      .map((r) => r.deviceId || "Tablet-A")
+  )).sort();
+
   $: filteredResponses = responses.filter((r) => {
     if (!selectedSurveyObj) return false;
     
-    // Case & whitespace insensitive title comparison
+    // 1. Title match
     if (cleanString(r.surveyTitle) !== cleanString(selectedSurveyObj.title)) return false;
 
+    // 2. Multi-Tablet filter match (If array is empty, show all tablets)
+    if (selectedDevices.length > 0) {
+      const respDevice = r.deviceId || "Tablet-A";
+      if (!selectedDevices.includes(respDevice)) return false;
+    }
+
+    // 3. Date range match
     if (startDate || endDate) {
       const responseTime = new Date(r.timestamp).getTime();
       
@@ -54,6 +71,18 @@
 
     return true;
   });
+
+  function toggleDeviceFilter(devId) {
+    if (selectedDevices.includes(devId)) {
+      selectedDevices = selectedDevices.filter((d) => d !== devId);
+    } else {
+      selectedDevices = [...selectedDevices, devId];
+    }
+  }
+
+  function clearDeviceFilters() {
+    selectedDevices = [];
+  }
 
   function applyDatePreset(presetKey) {
     activePreset = presetKey;
@@ -91,6 +120,7 @@
     startDate = "";
     endDate = "";
     activePreset = "ALL";
+    selectedDevices = [];
   }
 
   async function deleteSingleResponse(responseId) {
@@ -155,11 +185,12 @@
         .trim() || rawVal;
     }
 
-    let headers = ["Record ID", "Submission Timestamp"];
+    let headers = ["Record ID", "Tablet Site ID", "Submission Timestamp"];
     targetQuestions.forEach((q) => headers.push(q.questionText));
 
     let rowsHtml = filteredResponses.map((r, index) => {
       let recId = r._id ? r._id.slice(-8) : `LOG-${index + 1}`;
+      let tabletId = r.deviceId || "Tablet-A";
       let timestamp = new Date(r.timestamp).toLocaleString('en-US', {
         year: 'numeric',
         month: '2-digit',
@@ -171,6 +202,7 @@
 
       let rowCells = [
         `<td style="font-family: 'Consolas', monospace; font-weight: bold; color: #0284c7; text-align: center; padding: 10px 14px;">${recId}</td>`,
+        `<td style="font-family: 'Consolas', monospace; font-weight: bold; color: #059669; text-align: center; padding: 10px 14px;">${tabletId}</td>`,
         `<td style="white-space: nowrap; color: #475569; text-align: center; padding: 10px 14px;">${timestamp}</td>`
       ];
 
@@ -322,7 +354,7 @@
         </p>
       </div>
 
-      <div class="flex flex-row xl:flex-col gap-2 overflow-x-auto xl:overflow-y-auto custom-scrollbar max-h-36 xl:max-h-64 pb-1 xl:pb-0">
+      <div class="flex flex-row xl:flex-col gap-2 overflow-x-auto xl:overflow-y-auto custom-scrollbar max-h-36 xl:max-h-52 pb-1 xl:pb-0">
         {#each surveys as survey}
           <button
             on:click={() => {
@@ -342,8 +374,37 @@
       </div>
     </div>
 
+    <!-- TABLET DEVICE FILTERING SECTION -->
+    <div class="flex-1 pt-3 md:pt-0 xl:pt-3 border-t md:border-t-0 xl:border-t md:border-l xl:border-l-0 md:pl-4 xl:pl-0 border-slate-800/80 space-y-2 shrink-0">
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tablet Site Filter</span>
+        {#if selectedDevices.length > 0}
+          <button on:click={clearDeviceFilters} class="text-[10px] font-bold text-rose-400 hover:underline">
+            All Tablets
+          </button>
+        {/if}
+      </div>
+
+      <div class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto custom-scrollbar pt-1">
+        {#if availableDevices.length === 0}
+          <span class="text-[10px] text-slate-500 font-mono">No device logs available</span>
+        {:else}
+          {#each availableDevices as devId}
+            {@const isSelected = selectedDevices.includes(devId)}
+            <button
+              on:click={() => toggleDeviceFilter(devId)}
+              class="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all border flex items-center space-x-1 {isSelected ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300 shadow-sm' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}"
+            >
+              <span>🏷️ {devId}</span>
+              {#if isSelected}<span>✓</span>{/if}
+            </button>
+          {/each}
+        {/if}
+      </div>
+    </div>
+
     <!-- DATE FILTERS PANEL -->
-    <div class="flex-1 pt-3 md:pt-0 xl:pt-4 border-t md:border-t-0 xl:border-t md:border-l xl:border-l-0 md:pl-4 xl:pl-0 border-slate-800/80 space-y-3 shrink-0">
+    <div class="flex-1 pt-3 md:pt-0 xl:pt-3 border-t md:border-t-0 xl:border-t border-slate-800/80 space-y-3 shrink-0">
       <div class="flex items-center justify-between">
         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Date Filters</span>
         {#if startDate || endDate || activePreset !== 'ALL'}
@@ -419,7 +480,10 @@
           {selectedSurveyObj ? selectedSurveyObj.title : 'No Layout Selected'}
         </h2>
         <p class="text-xs text-slate-400 mt-0.5">
-          Showing <span class="text-cyan-400 font-bold">{filteredResponses.length}</span> matching submission records. Click any question card to enlarge.
+          Showing <span class="text-cyan-400 font-bold">{filteredResponses.length}</span> matching submission records 
+          {#if selectedDevices.length > 0}
+            (Filtered by: <span class="text-emerald-400 font-mono font-bold">{selectedDevices.join(', ')}</span>)
+          {/if}.
         </p>
       </div>
 
@@ -545,6 +609,7 @@
               <tr>
                 <th class="p-3.5 pl-4 border-r border-slate-800/60 w-12 text-center">Action</th>
                 <th class="p-3.5 border-r border-slate-800/60 w-24">ID Token</th>
+                <th class="p-3.5 border-r border-slate-800/60 w-32">Tablet Site</th>
                 <th class="p-3.5 border-r border-slate-800/60 w-44">Date & Time</th>
                 {#each displayedQuestions as question}
                   <th class="p-3.5 border-r border-slate-800/60 max-w-xs truncate">{question.questionText}</th>
@@ -565,6 +630,11 @@
                   </td>
                   <td class="p-3.5 font-mono text-cyan-400 font-semibold border-r border-slate-800/40 bg-slate-950/10 truncate max-w-[100px]">
                     {response._id ? response._id.slice(-6) : 'Log'}
+                  </td>
+                  <td class="p-3.5 border-r border-slate-800/40">
+                    <span class="text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 font-mono font-bold px-2 py-0.5 rounded-md text-[10px]">
+                      🏷️ {response.deviceId || 'Tablet-A'}
+                    </span>
                   </td>
                   <td class="p-3.5 text-slate-400 border-r border-slate-800/40 font-mono text-[11px]">
                     {new Date(response.timestamp).toLocaleString()}

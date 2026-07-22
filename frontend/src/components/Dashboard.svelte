@@ -10,7 +10,7 @@
   let showShareModal = false;
 
   // DYNAMIC NETWORK LINK GENERATOR:
-  // Automatically detects your Wi-Fi IP so QR codes and links open on phones/tablets
+  // Automatically detects your Wi-Fi IP so QR codes and links open on phones/tablets 
   function getKioskLink(surveyId) {
     let host = window.location.hostname;
     
