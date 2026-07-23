@@ -8,6 +8,9 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/digitalsurvey';
 
+// Disable query buffering globally so operations fail immediately if not connected
+mongoose.set('bufferCommands', false);
+
 // Enable CORS for all incoming connections
 app.use(cors({
   origin: '*',
@@ -15,31 +18,40 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Increase payload limit to 50MB for base64 uploads
+// Payload limits
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Serverless-ready MongoDB Connection Manager
+// Serverless DB Manager
 let isConnected = false;
 const connectDB = async () => {
   if (isConnected && mongoose.connection.readyState === 1) {
     return;
   }
+  
+  if (!MONGO_URI || MONGO_URI.includes('127.0.0.1')) {
+    throw new Error("MONGO_URI is missing or pointing to localhost in production!");
+  }
+
   const db = await mongoose.connect(MONGO_URI, {
-    serverSelectionTimeoutMS: 5000 // Fast fail in 5s if URI/auth is bad
+    serverSelectionTimeoutMS: 5000 // Stop waiting after 5s
   });
+  
   isConnected = db.connections[0].readyState === 1;
   console.log("✅ Connected to MongoDB successfully.");
 };
 
-// Middleware: Guarantees DB connection before hitting any API route
+// Middleware: Require active DB connection before handling API routes
 app.use(async (req, res, next) => {
   try {
     await connectDB();
     next();
   } catch (err) {
-    console.error("❌ DB Connection Middleware Error:", err.message);
-    res.status(500).json({ success: false, error: `Database Connection Error: ${err.message}` });
+    console.error("❌ DB Middleware Error:", err.message);
+    return res.status(500).json({ 
+      success: false, 
+      error: `Database Connection Failed: ${err.message}` 
+    });
   }
 });
 
@@ -62,10 +74,10 @@ mongoose.connection.on('disconnected', () => {
   isConnected = false;
 });
 
-// Run local listener only in development
+// Local listener
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Express API Server executing smoothly on http://localhost:${PORT}`);
+    console.log(`🚀 Server running locally on http://localhost:${PORT}`);
   });
 }
 
