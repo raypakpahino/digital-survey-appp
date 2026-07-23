@@ -4,13 +4,14 @@ import Response from '../models/Response.js';
 
 const router = express.Router();
 
-// Helper to sanitize incoming survey question fields
+// Helper to sanitize incoming survey question fields safely
 const sanitizeQuestions = (questions) => {
-  return (questions || []).map((q) => ({
+  if (!Array.isArray(questions)) return [];
+  return questions.map((q) => ({
     _id: q._id,
-    type: String(q.type || 'smiley'),
-    questionText: String(q.questionText || ''),
-    questionImage: String(q.questionImage || ''),
+    type: q.type || 'smiley',
+    questionText: q.questionText || '',
+    questionImage: q.questionImage || '',
     isRequired: Boolean(q.isRequired),
     allowMultiple: Boolean(q.allowMultiple),
     enableOptionImages: Boolean(q.enableOptionImages),
