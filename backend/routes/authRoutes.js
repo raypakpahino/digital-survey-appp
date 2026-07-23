@@ -15,14 +15,14 @@ const ensureDefaultAccounts = async () => {
     await User.findOneAndUpdate(
       { username: 'admin' },
       { username: 'admin', password: defaultPasswordHash, role: 'admin' },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     );
 
     // Upsert Standard User Account
     await User.findOneAndUpdate(
       { username: 'user' },
       { username: 'user', password: defaultPasswordHash, role: 'user' },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     );
 
     // Clean up legacy email-formatted users if they exist
@@ -44,7 +44,7 @@ router.post('/login', async (req, res) => {
     // Always ensure database accounts are primed
     await ensureDefaultAccounts();
 
-    // Sanitize input: convert "user@ds.com" -> "user" and "admin@ds.com" -> "admin"
+    // Sanitize input
     let cleanUsername = String(username).trim().toLowerCase();
     if (cleanUsername.includes('@')) {
       cleanUsername = cleanUsername.split('@')[0];

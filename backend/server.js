@@ -15,38 +15,41 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// INCREASE PAYLOAD LIMIT TO 50MB FOR BASE64 PICTURE UPLOADS
+// Increase payload limit to 50MB for base64 uploads
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Database Connection Manager for Serverless & Local
+// Serverless-ready MongoDB Connection Manager
 let isConnected = false;
 const connectDB = async () => {
   if (isConnected && mongoose.connection.readyState === 1) {
     return;
   }
-  try {
-    await mongoose.connect(MONGO_URI);
-    isConnected = true;
-    console.log("✅ Connected to MongoDB successfully.");
-  } catch (err) {
-    console.error("❌ MongoDB Connection Error:", err.message);
-  }
+  const db = await mongoose.connect(MONGO_URI, {
+    serverSelectionTimeoutMS: 5000 // Fast fail in 5s if URI/auth is bad
+  });
+  isConnected = db.connections[0].readyState === 1;
+  console.log("✅ Connected to MongoDB successfully.");
 };
 
-// Middleware: Ensures MongoDB is connected BEFORE processing any API request
+// Middleware: Guarantees DB connection before hitting any API route
 app.use(async (req, res, next) => {
-  await connectDB();
-  next();
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error("❌ DB Connection Middleware Error:", err.message);
+    res.status(500).json({ success: false, error: `Database Connection Error: ${err.message}` });
+  }
 });
 
-// Health check endpoint for debugging
+// Health check endpoint
 app.get('/api/health', (req, res) => {
   const dbState = mongoose.connection.readyState;
   res.json({
     status: 'online',
     databaseConnected: dbState === 1,
-    dbStateCode: dbState // 1 = Connected, 0 = Disconnected
+    dbStateCode: dbState
   });
 });
 
@@ -55,11 +58,11 @@ app.use('/api', surveyRoutes);
 app.use('/api/auth', authRoutes);
 
 mongoose.connection.on('disconnected', () => {
-  console.warn("⚠️ MongoDB connection lost. Attempting to reconnect...");
+  console.warn("⚠️ MongoDB connection lost.");
   isConnected = false;
 });
 
-// Start Express Server locally on Port 5000
+// Run local listener only in development
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Express API Server executing smoothly on http://localhost:${PORT}`);
