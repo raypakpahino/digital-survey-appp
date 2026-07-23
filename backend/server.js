@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import surveyRoutes from './routes/surveyRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -14,8 +15,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// INCREASE PAYLOAD LIMIT TO 50MB FOR BASE64 PICTURE UPLOADS
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Health check endpoint for debugging
 app.get('/api/health', (req, res) => {
@@ -29,6 +31,7 @@ app.get('/api/health', (req, res) => {
 
 // Mount API routes
 app.use('/api', surveyRoutes);
+app.use('/api/auth', authRoutes);
 
 // Database Connection with Auto-Retry
 const connectDB = async () => {
@@ -46,8 +49,12 @@ mongoose.connection.on('disconnected', () => {
   console.warn("⚠️ MongoDB connection lost. Attempting to reconnect...");
 });
 
-// Start Express Server FIRST so Port 5000 is always online
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Express API Server executing smoothly on http://localhost:${PORT}`);
-  connectDB();
-});
+// Start Express Server FIRST so Port 5000 is always online when running locally
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Express API Server executing smoothly on http://localhost:${PORT}`);
+    connectDB();
+  });
+}
+
+export default app;

@@ -95,27 +95,41 @@
     }
   }
 
-  function updateOptionImageUrl(question, optionKey, urlValue) {
-    if (!question.optionImages) {
-      question.optionImages = {};
-    }
-    question.optionImages[optionKey] = urlValue;
+  // FILE UPLOAD HANDLER: Header Image
+  function handleQuestionImageUpload(event, question) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      question.questionImage = e.target.result;
+      localQuestions = localQuestions;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // FILE UPLOAD HANDLER: Option Image
+  function handleOptionImageUpload(event, question, optionKey) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (!question.optionImages) question.optionImages = {};
+      question.optionImages[optionKey] = e.target.result;
+      localQuestions = localQuestions;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeQuestionImage(question) {
+    question.questionImage = "";
     localQuestions = localQuestions;
   }
 
-  function handlePasteImageUrl(event, question, optionKey) {
-    event.stopPropagation();
-    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
-    if (pastedText) {
-      updateOptionImageUrl(question, optionKey, pastedText);
-    }
-  }
-
-  function handlePasteQuestionImage(event, question) {
-    event.stopPropagation();
-    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
-    if (pastedText) {
-      question.questionImage = pastedText;
+  function removeOptionImage(question, optionKey) {
+    if (question.optionImages && question.optionImages[optionKey]) {
+      delete question.optionImages[optionKey];
       localQuestions = localQuestions;
     }
   }
@@ -310,16 +324,33 @@
                     class="w-full bg-transparent border-b border-transparent text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-0 focus:border-slate-700 py-1 text-base font-semibold transition-all"
                   />
 
-                  <!-- UNIVERSAL QUESTION HEADER IMAGE URL (FOR ALL QUESTION TYPES) -->
-                  <div class="flex items-center space-x-2 pt-1" on:click|stopPropagation>
-                    <span class="text-[11px] font-mono font-bold text-cyan-400 shrink-0">🖼️ Question Header Image:</span>
-                    <input
-                      type="text"
-                      bind:value={question.questionImage}
-                      on:paste={(e) => handlePasteQuestionImage(e, question)}
-                      placeholder="https://example.com/header-image.jpg (Optional)"
-                      class="flex-1 bg-slate-900 border border-slate-800 text-[11px] text-slate-200 px-3 py-1.5 rounded-lg focus:outline-none focus:border-cyan-500 font-mono"
-                    />
+                  <!-- LOCAL DEVICE FILE UPLOADER: QUESTION HEADER IMAGE -->
+                  <div class="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 pt-2">
+                    <span class="text-[11px] font-mono font-bold text-cyan-400 shrink-0">🖼️ Header Image:</span>
+                    
+                    {#if question.questionImage}
+                      <div class="flex items-center space-x-3 bg-slate-900 border border-slate-800 p-2 rounded-xl">
+                        <img src={question.questionImage} alt="Header Preview" class="h-10 w-10 object-cover rounded-lg border border-slate-700" />
+                        <span class="text-[10px] font-mono text-emerald-400 font-bold">Image Attached</span>
+                        <button
+                          type="button"
+                          on:click={() => removeQuestionImage(question)}
+                          class="text-xs font-bold text-rose-400 hover:text-rose-300 bg-rose-950/40 border border-rose-900/60 px-2 py-1 rounded-lg transition-all"
+                        >
+                          ✕ Remove
+                        </button>
+                      </div>
+                    {:else}
+                      <label class="cursor-pointer bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 px-3 py-1.5 rounded-xl text-xs font-mono font-semibold flex items-center space-x-2 transition-all w-fit active:scale-95">
+                        <span>📁 Choose Picture File</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          on:change={(e) => handleQuestionImageUpload(e, question)}
+                          class="hidden"
+                        />
+                      </label>
+                    {/if}
                   </div>
                 </div>
 
@@ -357,18 +388,33 @@
                           >
                         </div>
 
-                        <!-- Option Image URL Field -->
+                        <!-- LOCAL DEVICE FILE UPLOADER: OPTION IMAGE -->
                         {#if question.enableOptionImages}
-                          <div class="flex items-center space-x-2 pl-2 pt-1" on:click|stopPropagation>
-                            <span class="text-[10px] font-mono text-cyan-400 shrink-0">🖼️ Option Image URL:</span>
-                            <input
-                              type="text"
-                              value={question.optionImages && question.optionImages[option] ? question.optionImages[option] : ""}
-                              on:input={(e) => updateOptionImageUrl(question, option, e.target.value)}
-                              on:paste={(e) => handlePasteImageUrl(e, question, option)}
-                              placeholder="https://images.unsplash.com/photo-..."
-                              class="flex-1 bg-slate-950 border border-slate-800 text-[11px] text-white px-3 py-1.5 rounded-lg focus:outline-none focus:border-cyan-500 font-mono"
-                            />
+                          <div class="flex items-center space-x-3 pl-2 pt-1">
+                            <span class="text-[10px] font-mono text-cyan-400 shrink-0">🖼️ Option Picture:</span>
+                            
+                            {#if question.optionImages && question.optionImages[option]}
+                              <div class="flex items-center space-x-2 bg-slate-950 border border-slate-800 p-1.5 rounded-lg">
+                                <img src={question.optionImages[option]} alt="Option Preview" class="h-7 w-7 object-cover rounded-md border border-slate-700" />
+                                <button
+                                  type="button"
+                                  on:click={() => removeOptionImage(question, option)}
+                                  class="text-[10px] font-bold text-rose-400 hover:underline"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            {:else}
+                              <label class="cursor-pointer bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold flex items-center space-x-1.5 transition-all w-fit active:scale-95">
+                                <span>📁 Browse File</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  on:change={(e) => handleOptionImageUpload(e, question, option)}
+                                  class="hidden"
+                                />
+                              </label>
+                            {/if}
                           </div>
                         {/if}
                       </div>

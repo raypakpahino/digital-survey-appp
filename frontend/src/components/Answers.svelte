@@ -1,11 +1,11 @@
 <script>
   export let responses = [];
   export let surveys = [];
+  export let activeSurveyId = "";
   export let onRefreshData = () => {};
 
   const API_BASE = "/api";
 
-  let selectedFilterSurveyId = surveys[0]?._id || "";
   let activeViewMode = "analytics";
   let startDate = "";
   let endDate = "";
@@ -16,6 +16,18 @@
 
   // Active question focus for full-screen expanded mode
   let focusedQuestion = null;
+
+  // NOTIFICATION PANEL STATE
+  let isNotificationOpen = false;
+  let expandedAlertIds = new Set(); // Tracks which alert cards have "Full Submission" expanded
+
+  // Derive the active survey object directly from activeSurveyId (or fallback to the first survey)
+  $: selectedSurveyObj = surveys.find((s) => s._id === activeSurveyId) || surveys[0] || null;
+
+  // Auto-sync activeSurveyId if it's missing or out of sync
+  $: if (surveys.length > 0 && (!activeSurveyId || !surveys.some(s => s._id === activeSurveyId))) {
+    activeSurveyId = surveys[0]._id;
+  }
 
   const SLICE_COLORS = [
     '#10b981', // emerald-500
@@ -30,8 +42,6 @@
   function cleanString(str) {
     return String(str || '').trim().toLowerCase();
   }
-
-  $: selectedSurveyObj = surveys.find((s) => s._id === selectedFilterSurveyId) || surveys[0] || null;
 
   $: displayedQuestions = selectedSurveyObj ? selectedSurveyObj.questions : [];
 
@@ -71,6 +81,52 @@
 
     return true;
   });
+
+  // ==========================================
+  // LOW-RATING DETECTION SYSTEM
+  // ==========================================
+  $: lowRatingAlerts = filteredResponses.filter((r) => {
+    return (r.answers || []).some((ans) => {
+      const val = String(ans.value || '').toUpperCase();
+      return (
+        val.includes('ANGRY') || 
+        val.includes('SAD') || 
+        val.includes('1 STARS') || 
+        val.includes('2 STARS') || 
+        val === '1 STAR' || 
+        val === '2 STARS'
+      );
+    });
+  }).map((r) => {
+    const badRatings = (r.answers || []).filter((ans) => {
+      const val = String(ans.value || '').toUpperCase();
+      return (
+        val.includes('ANGRY') || 
+        val.includes('SAD') || 
+        val.includes('1 STARS') || 
+        val.includes('2 STARS') || 
+        val === '1 STAR' || 
+        val === '2 STARS'
+      );
+    });
+
+    return {
+      responseId: r._id,
+      deviceId: r.deviceId || "Tablet-A",
+      timestamp: r.timestamp,
+      badRatings,
+      allAnswers: r.answers || []
+    };
+  });
+
+  function toggleExpandAlert(id) {
+    if (expandedAlertIds.has(id)) {
+      expandedAlertIds.delete(id);
+    } else {
+      expandedAlertIds.add(id);
+    }
+    expandedAlertIds = expandedAlertIds; // Trigger Svelte reactivity
+  }
 
   function toggleDeviceFilter(devId) {
     if (selectedDevices.includes(devId)) {
@@ -228,7 +284,7 @@
     let excelHtml = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
-        <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
+        <meta http-equiv="content-type" text/plain; charset=UTF-8"/>
         <!--[if gte mso 9]>
         <xml>
           <x:ExcelWorkbook>
@@ -340,7 +396,7 @@
   }
 </script>
 
-<div class="w-full h-auto xl:h-[calc(100vh-5rem)] flex flex-col xl:flex-row gap-6 animate-fade overflow-y-auto xl:overflow-hidden box-border p-1">
+<div class="w-full h-auto xl:h-[calc(100vh-5rem)] flex flex-col xl:flex-row gap-6 animate-fade overflow-y-auto xl:overflow-hidden box-border p-1 relative">
   
   <!-- LEFT/TOP RESPONSIVE CONTROL PANEL -->
   <div class="w-full xl:w-72 bg-slate-900 border border-slate-800/80 rounded-2xl p-5 shrink-0 flex flex-col md:flex-row xl:flex-col gap-4 box-border shadow-xl">
@@ -358,12 +414,12 @@
         {#each surveys as survey}
           <button
             on:click={() => {
-              selectedFilterSurveyId = survey._id;
+              activeSurveyId = survey._id;
               clearFilters();
             }}
-            class="min-w-[140px] sm:min-w-[180px] xl:w-full text-left border px-3.5 py-2.5 xl:py-3 rounded-xl transition-all duration-150 flex flex-col gap-0.5 active:scale-[0.98] group shrink-0 {selectedFilterSurveyId === survey._id ? 'bg-cyan-600/10 border-cyan-500 text-white shadow-md' : 'bg-slate-950/40 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200'}"
+            class="min-w-[140px] sm:min-w-[180px] xl:w-full text-left border px-3.5 py-2.5 xl:py-3 rounded-xl transition-all duration-150 flex flex-col gap-0.5 active:scale-[0.98] group shrink-0 {activeSurveyId === survey._id ? 'bg-cyan-600/10 border-cyan-500 text-white shadow-md' : 'bg-slate-950/40 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200'}"
           >
-            <span class="text-xs font-bold transition-colors truncate {selectedFilterSurveyId === survey._id ? 'text-cyan-400' : 'text-slate-300 group-hover:text-cyan-400'}">
+            <span class="text-xs font-bold transition-colors truncate {activeSurveyId === survey._id ? 'text-cyan-400' : 'text-slate-300 group-hover:text-cyan-400'}">
               {survey.title}
             </span>
             <span class="text-[10px] text-slate-500 font-medium uppercase font-mono tracking-wider">
@@ -374,7 +430,7 @@
       </div>
     </div>
 
-    <!-- TABLET DEVICE FILTERING SECTION (STRUCTURED 2-COLUMN GRID) -->
+    <!-- TABLET DEVICE FILTERING SECTION -->
     <div class="flex-1 pt-3 md:pt-0 xl:pt-3 border-t md:border-t-0 xl:border-t md:border-l xl:border-l-0 md:pl-4 xl:pl-0 border-slate-800/80 space-y-2 shrink-0">
       <div class="flex items-center justify-between">
         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tablet Site Filter</span>
@@ -489,6 +545,21 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
+        
+        <!-- LOW RATING NOTIFICATION BELL BUTTON -->
+        <button
+          on:click={() => (isNotificationOpen = !isNotificationOpen)}
+          class="relative bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/60 p-2.5 rounded-xl transition-all active:scale-95 flex items-center justify-center shadow-sm"
+          title="View Low Rating Notifications"
+        >
+          <span class="text-base">🔔</span>
+          {#if lowRatingAlerts.length > 0}
+            <span class="absolute -top-1.5 -right-1.5 bg-rose-600 text-white font-mono font-bold text-[10px] h-5 min-w-[1.25rem] px-1 rounded-full flex items-center justify-center animate-pulse border-2 border-slate-900 shadow-md">
+              {lowRatingAlerts.length}
+            </span>
+          {/if}
+        </button>
+
         <div class="bg-slate-950 p-1 border border-slate-800 rounded-xl flex items-center space-x-1">
           <button
             on:click={() => (activeViewMode = "analytics")}
@@ -658,6 +729,120 @@
 
   </div>
 </div>
+
+<!-- ENHANCED LOW RATING NOTIFICATION POPUP DRAWER (WIDER & HIGH-VOLUME SCALABLE) -->
+{#if isNotificationOpen}
+  <div class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex justify-end animate-fade">
+    <div class="w-full max-w-2xl bg-slate-900 border-l border-slate-800 h-full p-6 sm:p-8 flex flex-col justify-between shadow-2xl space-y-6 box-border overflow-y-auto custom-scrollbar">
+      
+      <!-- NOTIFICATION HEADER -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-5 shrink-0">
+        <div class="flex items-center space-x-3">
+          <div class="h-10 w-10 rounded-2xl bg-rose-600/20 border border-rose-500/40 flex items-center justify-center text-xl text-rose-400 shadow-md">
+            🚨
+          </div>
+          <div>
+            <h2 class="text-lg font-black text-white tracking-tight">Low Rating Incident Log</h2>
+            <p class="text-xs text-slate-400 mt-0.5">
+              Found <strong class="text-rose-400 font-mono">{lowRatingAlerts.length}</strong> flagged submissions for 
+              <strong class="text-cyan-400">{selectedSurveyObj?.title || 'Form'}</strong>
+            </p>
+          </div>
+        </div>
+
+        <button
+          on:click={() => (isNotificationOpen = false)}
+          class="text-slate-400 hover:text-white bg-slate-950 border border-slate-800 p-2.5 rounded-xl transition-all active:scale-95 shadow-inner"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- NOTIFICATION ALERT LIST (SPACIOUS & EXPANDABLE) -->
+      <div class="flex-1 overflow-y-auto space-y-4 custom-scrollbar pr-1">
+        {#if lowRatingAlerts.length === 0}
+          <div class="border-2 border-dashed border-slate-800 rounded-3xl p-12 text-center text-slate-500 text-xs sm:text-sm">
+            🎉 No below-average ratings recorded for this form!
+          </div>
+        {:else}
+          {#each lowRatingAlerts as alert}
+            {@const isExpanded = expandedAlertIds.has(alert.responseId)}
+
+            <div class="bg-slate-950 border border-rose-900/50 hover:border-rose-700/80 p-5 rounded-2xl space-y-4 shadow-lg transition-all">
+              
+              <!-- CARD TOP BAR -->
+              <div class="flex items-center justify-between border-b border-slate-900 pb-3">
+                <div class="flex items-center space-x-2">
+                  <span class="text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 font-mono font-bold px-2.5 py-1 rounded-lg text-xs">
+                    🏷️ {alert.deviceId}
+                  </span>
+                  <span class="text-[11px] font-mono text-slate-500">
+                    ID: {alert.responseId ? alert.responseId.slice(-6) : 'Log'}
+                  </span>
+                </div>
+                <span class="text-xs font-mono text-slate-400 font-semibold">
+                  {new Date(alert.timestamp).toLocaleString()}
+                </span>
+              </div>
+
+              <!-- FLAGGED LOW RATING SUMMARY -->
+              <div class="space-y-2">
+                <span class="text-[10px] font-bold text-rose-400 uppercase tracking-widest block font-mono">Flagged Issue:</span>
+                {#each alert.badRatings as bad}
+                  <div class="text-xs font-bold text-rose-200 bg-rose-950/60 border border-rose-800/60 px-3.5 py-2.5 rounded-xl flex items-center justify-between shadow-inner">
+                    <span class="truncate pr-2">{bad.questionText}</span>
+                    <span class="font-mono text-rose-300 font-black text-sm shrink-0 bg-rose-900/60 px-2 py-0.5 rounded-md border border-rose-700/50">{bad.value}</span>
+                  </div>
+                {/each}
+              </div>
+
+              <!-- FULL SUBMISSION DETAILS TOGGLE BUTTON -->
+              <div class="pt-1">
+                <button
+                  on:click={() => toggleExpandAlert(alert.responseId)}
+                  class="w-full bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-800 px-4 py-2.5 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-between active:scale-[0.99]"
+                >
+                  <span>{isExpanded ? "▼ Hide Full Submission" : "▶ Inspect Full Submission (All Answers)"}</span>
+                  <span class="text-[10px] text-cyan-400 font-mono">{alert.allAnswers.length} Fields</span>
+                </button>
+
+                <!-- EXPANDED FULL SUBMISSION INSPECTION SLOT -->
+                {#if isExpanded}
+                  <div class="mt-3 bg-slate-900/90 border border-slate-800 p-4 rounded-xl space-y-2.5 animate-fade">
+                    <span class="text-[10px] uppercase font-mono font-bold text-cyan-400 block border-b border-slate-800 pb-1.5">
+                      Complete User Submission Breakdown:
+                    </span>
+                    <div class="space-y-2">
+                      {#each alert.allAnswers as ans}
+                        {@const isBadVal = alert.badRatings.some(b => b.questionText === ans.questionText)}
+                        <div class="p-2.5 rounded-lg text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-1 {isBadVal ? 'bg-rose-950/40 border border-rose-900/40 text-rose-200' : 'bg-slate-950/80 border border-slate-800 text-slate-300'}">
+                          <span class="font-medium text-slate-300 truncate pr-2">{ans.questionText}:</span>
+                          <span class="font-bold font-mono {isBadVal ? 'text-rose-400' : 'text-cyan-300'}">{ans.value || 'N/A'}</span>
+                        </div>
+                      {/each}
+                    </div>
+                  </div>
+                {/if}
+              </div>
+
+            </div>
+          {/each}
+        {/if}
+      </div>
+
+      <!-- FOOTER -->
+      <div class="pt-4 border-t border-slate-800 text-center shrink-0">
+        <button
+          on:click={() => (isNotificationOpen = false)}
+          class="w-full bg-slate-950 hover:bg-slate-800 text-slate-300 font-bold text-xs py-3.5 rounded-xl border border-slate-800 transition-all active:scale-95 shadow-md"
+        >
+          Close Drawer
+        </button>
+      </div>
+
+    </div>
+  </div>
+{/if}
 
 <!-- RESPONSIVE FULLSCREEN FOCUS MODE -->
 {#if focusedQuestion}
