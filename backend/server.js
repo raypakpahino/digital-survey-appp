@@ -19,6 +19,27 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// Database Connection Manager for Serverless & Local
+let isConnected = false;
+const connectDB = async () => {
+  if (isConnected && mongoose.connection.readyState === 1) {
+    return;
+  }
+  try {
+    await mongoose.connect(MONGO_URI);
+    isConnected = true;
+    console.log("✅ Connected to MongoDB successfully.");
+  } catch (err) {
+    console.error("❌ MongoDB Connection Error:", err.message);
+  }
+};
+
+// Middleware: Ensures MongoDB is connected BEFORE processing any API request
+app.use(async (req, res, next) => {
+  await connectDB();
+  next();
+});
+
 // Health check endpoint for debugging
 app.get('/api/health', (req, res) => {
   const dbState = mongoose.connection.readyState;
@@ -33,27 +54,15 @@ app.get('/api/health', (req, res) => {
 app.use('/api', surveyRoutes);
 app.use('/api/auth', authRoutes);
 
-// Database Connection with Auto-Retry
-const connectDB = async () => {
-  try {
-    await mongoose.connect(MONGO_URI);
-    console.log("✅ Connected to MongoDB successfully.");
-  } catch (err) {
-    console.error("❌ MongoDB Connection Error:", err.message);
-    console.log("🔄 Retrying MongoDB connection in 5 seconds...");
-    setTimeout(connectDB, 5000);
-  }
-};
-
 mongoose.connection.on('disconnected', () => {
   console.warn("⚠️ MongoDB connection lost. Attempting to reconnect...");
+  isConnected = false;
 });
 
-// Start Express Server FIRST so Port 5000 is always online when running locally
+// Start Express Server locally on Port 5000
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Express API Server executing smoothly on http://localhost:${PORT}`);
-    connectDB();
   });
 }
 
