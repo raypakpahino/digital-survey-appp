@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Digital Survey Platform</title>
 
-    <!-- Tailwind CDN -->
+    <!-- Tailwind Play CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 
@@ -19,38 +19,9 @@
       *, *::before, *::after {
         box-sizing: border-box;
       }
-
-      /* COLOR VARIABLES FOR LIGHT AND DARK MODES */
-      :root {
-        /* LIGHT MODE (DOMINANT WHITE + DEEP NAVY ACCENTS) */
-        --bg-main: #f8fafc;        /* Main background */
-        --bg-card: #ffffff;        /* Cards & Container boxes */
-        --bg-inner: #f1f5f9;       /* Inner inputs / dark slots */
-        --bg-sidebar: #0b132b;    /* Navy Sidebar */
-        --border-color: #e2e8f0;   /* Borders */
-        --text-primary: #0f172a;   /* Primary Headings */
-        --text-secondary: #475569; /* Subtitles & labels */
-        --text-muted: #94a3b8;     /* Small specs */
-        --card-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
-      }
-
-      html.dark {
-        /* DARK MODE */
-        --bg-main: #020617;
-        --bg-card: #0f172a;
-        --bg-inner: #020617;
-        --bg-sidebar: #0f172a;
-        --border-color: #1e293b;
-        --text-primary: #f8fafc;
-        --text-secondary: #94a3b8;
-        --text-muted: #64748b;
-        --card-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
-      }
       
       html, body {
         font-family: 'Plus Jakarta Sans', sans-serif;
-        background-color: var(--bg-main) !important;
-        color: var(--text-primary) !important;
         margin: 0 !important;
         padding: 0 !important;
         width: 100vw !important;
@@ -58,7 +29,74 @@
         overflow: hidden !important;
         position: fixed;
         inset: 0;
-        transition: background-color 0.25s ease, color 0.25s ease;
+        transition: background-color 0.2s ease, color 0.2s ease;
+      }
+
+      /* -------------------------------------------------------------
+         GLOBAL LIGHT MODE AUTOMATIC OVERRIDES (When html lacks .dark)
+         ------------------------------------------------------------- */
+      html:not(.dark), 
+      html:not(.dark) body {
+        background-color: #f8fafc !important; /* Soft Light Canvas */
+        color: #0f172a !important;
+      }
+
+      /* Transform Dark Containers/Boxes to Clean White Cards */
+      html:not(.dark) .bg-slate-900,
+      html:not(.dark) .bg-slate-950,
+      html:not(.dark) .bg-slate-900\/90,
+      html:not(.dark) .bg-slate-950\/60,
+      html:not(.dark) .bg-slate-950\/80,
+      html:not(.dark) .bg-slate-950\/40 {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05) !important;
+      }
+
+      /* Deep Navy Sidebar in Light Mode */
+      html:not(.dark) aside,
+      html:not(.dark) aside .bg-slate-900 {
+        background-color: #0b132b !important;
+        color: #f8fafc !important;
+      }
+
+      /* Light Borders for Cards & Inputs */
+      html:not(.dark) .border-slate-800,
+      html:not(.dark) .border-slate-800\/80,
+      html:not(.dark) .border-slate-800\/60,
+      html:not(.dark) .border-slate-800\/40,
+      html:not(.dark) .border-slate-900 {
+        border-color: #e2e8f0 !important;
+      }
+
+      /* Text Colors in Light Mode */
+      html:not(.dark) .text-white {
+        color: #0f172a !important;
+      }
+      html:not(.dark) .text-slate-100,
+      html:not(.dark) .text-slate-200,
+      html:not(.dark) .text-slate-300 {
+        color: #334155 !important;
+      }
+      html:not(.dark) .text-slate-400,
+      html:not(.dark) .text-slate-500 {
+        color: #64748b !important;
+      }
+
+      /* Form Controls & Inputs */
+      html:not(.dark) input[type="text"],
+      html:not(.dark) input[type="date"],
+      html:not(.dark) input[type="password"],
+      html:not(.dark) select {
+        background-color: #f1f5f9 !important;
+        color: #0f172a !important;
+        border-color: #cbd5e1 !important;
+      }
+
+      /* Dark Mode Canvas Defaults */
+      html.dark, html.dark body {
+        background-color: #020617 !important;
+        color: #f8fafc !important;
       }
 
       #app {
@@ -67,18 +105,7 @@
         overflow: hidden;
       }
 
-      /* GLOBAL UTILITY OVERRIDES FOR CSS VARIABLE THEMING */
-      .theme-bg-main { background-color: var(--bg-main) !important; }
-      .theme-bg-card { background-color: var(--bg-card) !important; }
-      .theme-bg-inner { background-color: var(--bg-inner) !important; }
-      .theme-bg-sidebar { background-color: var(--bg-sidebar) !important; }
-      .theme-border { border-color: var(--border-color) !important; }
-      .theme-text-primary { color: var(--text-primary) !important; }
-      .theme-text-secondary { color: var(--text-secondary) !important; }
-      .theme-text-muted { color: var(--text-muted) !important; }
-      .theme-shadow { box-shadow: var(--card-shadow) !important; }
-
-      /* SCROLLBARS */
+      /* Custom Scrollbars */
       ::-webkit-scrollbar { width: 6px; height: 6px; }
       html.dark ::-webkit-scrollbar-track { background: #090d16; }
       html.dark ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
