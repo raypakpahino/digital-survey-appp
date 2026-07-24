@@ -75,7 +75,7 @@
   }
 
   onMount(async () => {
-    // 0. Recover Theme Preference
+    // Recover Theme Preference
     const savedTheme = localStorage.getItem('sdx_theme');
     if (savedTheme === 'light') {
       isDarkMode = false;
@@ -311,10 +311,10 @@
 </script>
 
 {#if isAuthChecking}
-  <div class="h-screen w-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-cyan-600 dark:text-cyan-400 font-mono text-sm overflow-hidden">
+  <div class="h-screen w-screen theme-bg-main flex items-center justify-center text-cyan-500 font-mono text-sm overflow-hidden">
     <div class="flex items-center space-x-3">
-      <div class="h-3 w-3 rounded-full bg-cyan-600 dark:bg-cyan-400 animate-ping"></div>
-      <span>Verifying User Credentials...</span>
+      <div class="h-3 w-3 rounded-full bg-cyan-500 animate-ping"></div>
+      <span class="theme-text-primary">Verifying User Credentials...</span>
     </div>
   </div>
 
@@ -324,14 +324,14 @@
 
 {:else}
   <!-- AUTHENTICATED PORTAL WORKSPACE -->
-  <div class="flex h-screen w-screen max-w-full max-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 overflow-hidden m-0 p-0 fixed inset-0 transition-colors duration-300">
+  <div class="flex h-screen w-screen max-w-full max-h-screen theme-bg-main theme-text-primary overflow-hidden m-0 p-0 fixed inset-0">
     
-    <!-- SIDEBAR (DEEP NAVY IN LIGHT MODE, SLATE 900 IN DARK MODE) -->
+    <!-- SIDEBAR -->
     {#if isSidebarVisible}
-      <aside class="w-64 bg-navy-950 dark:bg-slate-900 border-r border-navy-900 dark:border-slate-800 flex flex-col justify-between shrink-0 h-full z-40 transition-all duration-300 overflow-hidden text-slate-100">
+      <aside class="w-64 theme-bg-sidebar theme-border border-r flex flex-col justify-between shrink-0 h-full z-40 transition-all duration-300 overflow-hidden text-slate-100">
         <div class="flex flex-col h-full justify-between">
           <div>
-            <div class="px-5 h-16 border-b border-navy-900 dark:border-slate-800 flex items-center space-x-3 box-border">
+            <div class="px-5 h-16 theme-border border-b flex items-center space-x-3 box-border">
               <div class="h-8 w-8 rounded-lg bg-cyan-600 flex items-center justify-center font-bold text-white shadow-md shrink-0">
                 DS
               </div>
@@ -341,7 +341,7 @@
             <nav class="p-4 space-y-1">
               {#if currentUser?.role === "admin"}
                 <button
-                  class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'surveys' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20' : 'text-slate-300 hover:bg-navy-900 dark:hover:bg-slate-800 hover:text-white'}"
+                  class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'surveys' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'}"
                   on:click={async () => {
                     switchTab("surveys");
                     await refreshDataLedger();
@@ -351,7 +351,7 @@
                 </button>
 
                 <button
-                  class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'builder' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20' : 'text-slate-300 hover:bg-navy-900 dark:hover:bg-slate-800 hover:text-white'}"
+                  class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'builder' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'}"
                   on:click={() => switchTab("builder")}
                   disabled={surveysList.length === 0}
                 >
@@ -360,7 +360,7 @@
                 </button>
 
                 <button
-                  class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'kiosk' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20' : 'text-slate-300 hover:bg-navy-900 dark:hover:bg-slate-800 hover:text-white'}"
+                  class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'kiosk' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'}"
                   on:click={() => {
                     switchTab("kiosk");
                   }}
@@ -371,7 +371,7 @@
               {/if}
 
               <button
-                class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'answers' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20' : 'text-slate-300 hover:bg-navy-900 dark:hover:bg-slate-800 hover:text-white'}"
+                class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'answers' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'}"
                 on:click={async () => {
                   switchTab("answers");
                   await refreshDataLedger();
@@ -382,7 +382,7 @@
             </nav>
           </div>
 
-          <div class="p-4 border-t border-navy-900 dark:border-slate-800 bg-navy-950/80 dark:bg-slate-900/50 text-[11px] text-slate-400 font-medium tracking-wide flex items-center justify-between">
+          <div class="p-4 theme-border border-t bg-black/10 text-[11px] text-slate-400 font-medium tracking-wide flex items-center justify-between">
             <span class="truncate">Target: <strong class="text-white">{activeSurvey?.title || "None"}</strong></span>
           </div>
         </div>
@@ -394,13 +394,13 @@
       
       <!-- STICKY TOP NAVIGATION BAR -->
       {#if !isDedicatedKioskMode}
-        <header class="sticky top-0 z-30 w-full h-16 bg-white/90 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 shrink-0 box-border transition-colors duration-300">
+        <header class="sticky top-0 z-30 w-full h-16 theme-bg-card theme-border border-b flex items-center justify-between px-4 sm:px-6 shrink-0 box-border transition-colors duration-300 theme-shadow">
           
           <!-- Left Header: Toggle Sidebar & Branding -->
           <div class="flex items-center space-x-3 min-w-0">
             <button
               on:click={() => (isSidebarVisible = !isSidebarVisible)}
-              class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700/60 transition-all flex items-center justify-center focus:outline-none active:scale-95 shadow-sm shrink-0"
+              class="p-2 rounded-xl theme-text-secondary hover:theme-text-primary theme-bg-inner theme-border border transition-all flex items-center justify-center focus:outline-none active:scale-95 shadow-sm shrink-0"
               title={isSidebarVisible ? "Collapse Sidebar" : "Expand Sidebar"}
             >
               <span class="text-base leading-none font-bold">☰</span>
@@ -411,7 +411,7 @@
                 <div class="h-7 w-7 rounded-lg bg-cyan-600 flex items-center justify-center font-bold text-xs text-white shadow-md">
                   DS
                 </div>
-                <span class="font-bold text-sm tracking-tight text-navy-950 dark:text-white hidden sm:inline">DigitalSurvey</span>
+                <span class="font-bold text-sm tracking-tight theme-text-primary hidden sm:inline">DigitalSurvey</span>
               </div>
             {/if}
           </div>
@@ -419,42 +419,42 @@
           <!-- Right Header: Theme Switcher, User Pill & Sign Out -->
           <div class="flex items-center space-x-3 shrink-0">
             
-            <!-- EYE-CATCHING LIGHT/DARK MODE TOGGLE -->
+            <!-- THEME TOGGLE BUTTON -->
             <button
               on:click={toggleTheme}
-              class="relative flex items-center px-3 py-1.5 rounded-full border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-900 transition-all duration-300 active:scale-95 shadow-inner group"
+              class="relative flex items-center px-3 py-1.5 rounded-full theme-border border theme-bg-inner hover:opacity-80 transition-all duration-300 active:scale-95 shadow-inner cursor-pointer"
               title={isDarkMode ? "Switch to Crisp Light Mode" : "Switch to Deep Dark Mode"}
             >
               <div class="flex items-center space-x-2 text-xs font-semibold">
                 {#if isDarkMode}
                   <span class="text-amber-400 text-sm">🌙</span>
-                  <span class="text-slate-300 text-[11px] hidden md:inline">Dark</span>
+                  <span class="theme-text-secondary text-[11px] hidden md:inline">Dark</span>
                 {:else}
                   <span class="text-amber-500 text-sm">☀️</span>
-                  <span class="text-navy-950 text-[11px] font-bold hidden md:inline">Light</span>
+                  <span class="theme-text-primary text-[11px] font-bold hidden md:inline">Light</span>
                 {/if}
               </div>
             </button>
 
             {#if currentUser}
-              <div class="flex items-center space-x-2 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-xl text-xs font-mono shadow-inner">
-                <span class="text-slate-600 dark:text-slate-400 truncate">User: <strong class="text-navy-950 dark:text-white">{currentUser.username}</strong></span>
-                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase shrink-0 {currentUser.role === 'admin' ? 'bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}">
+              <div class="flex items-center space-x-2 theme-bg-inner theme-border border px-3 py-1.5 rounded-xl text-xs font-mono shadow-inner">
+                <span class="theme-text-secondary truncate">User: <strong class="theme-text-primary">{currentUser.username}</strong></span>
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase shrink-0 {currentUser.role === 'admin' ? 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30' : 'theme-bg-card theme-text-secondary'}">
                   {currentUser.role}
                 </span>
               </div>
 
               <button
                 on:click={handleLogout}
-                class="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900/60 px-3.5 py-1.5 rounded-xl font-bold transition-all active:scale-95 shadow-sm flex items-center space-x-1 shrink-0"
+                class="text-xs text-rose-500 hover:text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 px-3.5 py-1.5 rounded-xl font-bold transition-all active:scale-95 shadow-sm flex items-center space-x-1 shrink-0"
               >
                 <span>Sign Out</span>
                 <span class="text-sm">➔</span>
               </button>
             {/if}
 
-            <div class="hidden sm:flex items-center space-x-2 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-500 dark:text-slate-400 shrink-0">
-              <span class="h-2 w-2 rounded-full {isOfflineMode ? 'bg-rose-500 shadow-rose-500/50' : 'bg-emerald-500 shadow-emerald-500/50'} shadow-sm animate-pulse"></span>
+            <div class="hidden sm:flex items-center space-x-2 px-2.5 py-1 rounded-full theme-bg-inner theme-border border text-xs font-mono theme-text-secondary shrink-0">
+              <span class="h-2 w-2 rounded-full {isOfflineMode ? 'bg-rose-500' : 'bg-emerald-500'} shadow-sm animate-pulse"></span>
               <span>{isOfflineMode ? "Offline" : "Online"}</span>
             </div>
           </div>
@@ -462,7 +462,7 @@
       {/if}
 
       <!-- SCROLLABLE CANVAS -->
-      <main class="flex-1 bg-slate-50 dark:bg-slate-950 overflow-y-auto overflow-x-hidden w-full max-w-full box-border transition-colors duration-300 {isDedicatedKioskMode ? 'p-0' : 'p-4 sm:p-6 lg:p-8'}">
+      <main class="flex-1 theme-bg-main overflow-y-auto overflow-x-hidden w-full max-w-full box-border transition-colors duration-300 {isDedicatedKioskMode ? 'p-0' : 'p-4 sm:p-6 lg:p-8'}">
         <div class="w-full h-full min-w-0 max-w-full {isDedicatedKioskMode || activeTab === 'kiosk' ? '' : 'max-w-7xl mx-auto'}">
           {#if activeTab === "surveys" && currentUser?.role === "admin"}
             <div class="w-full h-full min-w-0">
