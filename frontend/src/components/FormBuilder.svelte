@@ -7,13 +7,11 @@
   export let onSelectSurvey = (id) => {};
   export let onCreateNewSurvey = () => {};
 
-  // Local Draft State (prevents Kiosk and App from reacting until Save is clicked)
   let localTitle = "";
   let localQuestions = [];
 
-  // Re-sync the local working copy when the parent changes the active survey
   $: {
-    let dummy = activeSurveyId; // Tells Svelte to re-run this block on ID change
+    let dummy = activeSurveyId;
     localTitle = surveyTitle || "";
     localQuestions = JSON.parse(JSON.stringify(questions || []));
   }
@@ -95,7 +93,6 @@
     }
   }
 
-  // FILE UPLOAD HANDLER: Header Image
   function handleQuestionImageUpload(event, question) {
     const file = event.target.files[0];
     if (!file) return;
@@ -108,7 +105,6 @@
     reader.readAsDataURL(file);
   }
 
-  // FILE UPLOAD HANDLER: Option Image
   function handleOptionImageUpload(event, question, optionKey) {
     const file = event.target.files[0];
     if (!file) return;
@@ -135,9 +131,8 @@
   }
 
   function triggerExplicitSave() {
-    // Send local edits back to App.svelte explicitly
     onSaveSurvey(localTitle, localQuestions);
-    alert("💾 Form schema states committed and deployed successfully!");
+    alert("💾 Form schema committed and deployed successfully!");
   }
 
   function getNormalizedType(qType) {
@@ -147,20 +142,19 @@
 </script>
 
 <div
-  class="w-full h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-8 animate-fade overflow-hidden box-border text-slate-100"
+  class="w-full h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-8 animate-fade overflow-hidden box-border text-slate-800 dark:text-slate-100"
 >
-  <!-- LEFT SIDEBAR: COMPONENT TOOLBOX TRAY -->
+  <!-- LEFT SIDEBAR: TOOLBOX -->
   <div
-    class="w-full lg:w-80 bg-slate-900 border border-slate-800/80 rounded-2xl p-6 shrink-0 flex flex-col justify-between shadow-xl h-full box-border"
+    class="w-full lg:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 shrink-0 flex flex-col justify-between shadow-md h-full box-border"
   >
     <div class="space-y-6">
       <div>
-        <h3 class="text-sm font-bold text-white uppercase tracking-wider">
+        <h3 class="text-sm font-bold text-navy-950 dark:text-white uppercase tracking-wider">
           Form Components
         </h3>
-        <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">
-          Click a layout element below to drop it instantly into your design
-          canvas workspace.
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+          Click a layout element below to drop it instantly into your design canvas workspace.
         </p>
       </div>
 
@@ -168,19 +162,19 @@
         {#each availableComponents as comp}
           <button
             on:click={() => dropComponent(comp.type)}
-            class="w-full text-left bg-slate-950/40 border border-slate-800/60 hover:border-cyan-500/40 p-4 rounded-xl flex items-center space-x-4 transition-all group active:scale-[0.98]"
+            class="w-full text-left bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/60 hover:border-cyan-500/40 p-4 rounded-xl flex items-center space-x-4 transition-all group active:scale-[0.98]"
           >
             <span
-              class="text-2xl bg-slate-900 border border-slate-800 h-12 w-12 rounded-xl flex items-center justify-center group-hover:bg-cyan-950/30 group-hover:border-cyan-900/40 group-hover:text-cyan-400 transition-all shadow-inner"
+              class="text-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 h-12 w-12 rounded-xl flex items-center justify-center group-hover:bg-cyan-50 dark:group-hover:bg-cyan-950/30 group-hover:border-cyan-300 dark:group-hover:border-cyan-900/40 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-all shadow-xs"
               >{comp.icon}</span
             >
             <div>
               <p
-                class="text-xs font-bold text-slate-200 group-hover:text-cyan-400 transition-all"
+                class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-all"
               >
                 {comp.label}
               </p>
-              <p class="text-[11px] text-slate-400 mt-0.5 leading-normal">
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-normal">
                 {comp.desc}
               </p>
             </div>
@@ -189,12 +183,12 @@
       </div>
     </div>
 
-    <div class="pt-6 border-t border-slate-800/80 mt-6 hidden lg:block">
+    <div class="pt-6 border-t border-slate-200 dark:border-slate-800/80 mt-6 hidden lg:block">
       <div
-        class="bg-slate-950 border border-slate-800/40 p-4 rounded-xl text-center shadow-inner"
+        class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/40 p-4 rounded-xl text-center shadow-inner"
       >
         <span
-          class="text-[10px] font-bold text-slate-500 tracking-widest uppercase block"
+          class="text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-widest uppercase block"
           >Interactive Canvas</span
         >
         <p class="text-[11px] text-slate-500 mt-1 leading-normal">
@@ -204,20 +198,20 @@
     </div>
   </div>
 
-  <!-- RIGHT: THE DESIGN CANVAS WORKSPACE -->
+  <!-- RIGHT: DESIGN CANVAS WORKSPACE -->
   <div
-    class="flex-1 bg-slate-900 border border-slate-800/80 rounded-2xl p-8 flex flex-col shadow-xl h-full overflow-hidden box-border"
+    class="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-8 flex flex-col shadow-md h-full overflow-hidden box-border"
   >
     <!-- TOP CONTROL BAR -->
     <div
-      class="bg-slate-950 border border-slate-800/80 rounded-xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shrink-0 shadow-inner"
+      class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shrink-0 shadow-inner"
     >
       <div
         class="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3"
       >
         <label
           for="survey-selector"
-          class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap"
+          class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap"
         >
           Target Schema:
         </label>
@@ -225,7 +219,7 @@
           id="survey-selector"
           value={activeSurveyId}
           on:change={(e) => onSelectSurvey(e.target.value)}
-          class="bg-slate-900 border border-slate-800 text-cyan-400 font-bold text-xs rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyan-500 transition-all w-full sm:w-auto flex-1 cursor-pointer"
+          class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-cyan-700 dark:text-cyan-400 font-bold text-xs rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyan-500 transition-all w-full sm:w-auto flex-1 cursor-pointer"
         >
           {#if surveys.length === 0}
             <option value="" disabled>No surveys available</option>
@@ -242,7 +236,7 @@
 
       <button
         on:click={onCreateNewSurvey}
-        class="bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 font-bold text-xs px-4 py-2.5 rounded-xl transition-all shrink-0 flex items-center justify-center space-x-1.5 active:scale-[0.98]"
+        class="bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 font-bold text-xs px-4 py-2.5 rounded-xl transition-all shrink-0 flex items-center justify-center space-x-1.5 active:scale-[0.98]"
       >
         <span>+</span> <span>Create New Form</span>
       </button>
@@ -258,16 +252,16 @@
         id="form-heading"
         type="text"
         bind:value={localTitle}
-        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-5 py-3.5 text-base text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all font-semibold shadow-inner"
+        class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-5 py-3.5 text-base text-navy-950 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all font-semibold shadow-inner"
         placeholder="Enter survey identity..."
       />
     </div>
 
-    <hr class="border-slate-800/80 my-6 shrink-0" />
+    <hr class="border-slate-200 dark:border-slate-800/80 my-6 shrink-0" />
 
     <!-- Header Grid Tracker -->
     <div
-      class="flex items-center justify-between border-b border-slate-800/40 pb-3 shrink-0"
+      class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/40 pb-3 shrink-0"
     >
       <h3
         class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"
@@ -275,7 +269,7 @@
         Active Canvas Stack
       </h3>
       <span
-        class="text-xs font-bold bg-slate-950 px-2.5 py-1 rounded-md text-cyan-400 border border-slate-800"
+        class="text-xs font-bold bg-slate-50 dark:bg-slate-950 px-2.5 py-1 rounded-md text-cyan-600 dark:text-cyan-400 border border-slate-200 dark:border-slate-800"
         >{localQuestions.length} Items</span
       >
     </div>
@@ -286,7 +280,7 @@
     >
       {#if localQuestions.length === 0}
         <div
-          class="border-2 border-dashed border-slate-800 rounded-2xl p-16 text-center text-slate-400 text-sm leading-relaxed mt-2"
+          class="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-16 text-center text-slate-400 dark:text-slate-500 text-sm leading-relaxed mt-2"
         >
           Canvas is completely empty. Click components from the left toolbox bar
           to assemble your form configuration layout.
@@ -297,22 +291,22 @@
             {@const normType = getNormalizedType(question.type)}
 
             <div
-              class="bg-slate-950/60 border border-slate-800/80 p-6 rounded-2xl space-y-5 group hover:border-slate-700 hover:bg-slate-950 transition-all duration-200 shadow-sm relative"
+              class="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 p-6 rounded-2xl space-y-5 group hover:border-slate-300 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-950 transition-all duration-200 shadow-xs relative"
             >
               <!-- Card Header -->
               <div class="flex items-start justify-between gap-4">
                 <div class="flex-1 space-y-3">
                   <div class="flex items-center space-x-2.5">
                     <span
-                      class="bg-slate-900 text-slate-300 h-6 w-6 rounded-lg text-xs font-mono border border-slate-800 flex items-center justify-center font-bold shadow-inner"
+                      class="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 h-6 w-6 rounded-lg text-xs font-mono border border-slate-200 dark:border-slate-800 flex items-center justify-center font-bold shadow-inner"
                       >{index + 1}</span
                     >
                     <span
-                      class="text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-md bg-slate-900 text-cyan-400 border border-slate-800 tracking-wider font-mono"
+                      class="text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-md bg-white dark:bg-slate-900 text-cyan-600 dark:text-cyan-400 border border-slate-200 dark:border-slate-800 tracking-wider font-mono"
                       >{question.type}</span
                     >
                     {#if question.isRequired}
-                      <span class="text-[9px] uppercase font-bold px-2 py-0.5 rounded-md bg-rose-950/80 text-rose-400 border border-rose-800/60 tracking-wider font-mono">
+                      <span class="text-[9px] uppercase font-bold px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60 tracking-wider font-mono">
                         REQUIRED
                       </span>
                     {/if}
@@ -321,27 +315,27 @@
                   <input
                     type="text"
                     bind:value={question.questionText}
-                    class="w-full bg-transparent border-b border-transparent text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-0 focus:border-slate-700 py-1 text-base font-semibold transition-all"
+                    class="w-full bg-transparent border-b border-transparent text-navy-950 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-0 focus:border-slate-300 dark:focus:border-slate-700 py-1 text-base font-semibold transition-all"
                   />
 
-                  <!-- LOCAL DEVICE FILE UPLOADER: QUESTION HEADER IMAGE -->
+                  <!-- FILE UPLOADER: HEADER IMAGE -->
                   <div class="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 pt-2">
-                    <span class="text-[11px] font-mono font-bold text-cyan-400 shrink-0">🖼️ Header Image:</span>
+                    <span class="text-[11px] font-mono font-bold text-cyan-600 dark:text-cyan-400 shrink-0">🖼️ Header Image:</span>
                     
                     {#if question.questionImage}
-                      <div class="flex items-center space-x-3 bg-slate-900 border border-slate-800 p-2 rounded-xl">
-                        <img src={question.questionImage} alt="Header Preview" class="h-10 w-10 object-cover rounded-lg border border-slate-700" />
-                        <span class="text-[10px] font-mono text-emerald-400 font-bold">Image Attached</span>
+                      <div class="flex items-center space-x-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-xl">
+                        <img src={question.questionImage} alt="Header Preview" class="h-10 w-10 object-cover rounded-lg border border-slate-300 dark:border-slate-700" />
+                        <span class="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">Image Attached</span>
                         <button
                           type="button"
                           on:click={() => removeQuestionImage(question)}
-                          class="text-xs font-bold text-rose-400 hover:text-rose-300 bg-rose-950/40 border border-rose-900/60 px-2 py-1 rounded-lg transition-all"
+                          class="text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 px-2 py-1 rounded-lg transition-all"
                         >
                           ✕ Remove
                         </button>
                       </div>
                     {:else}
-                      <label class="cursor-pointer bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 px-3 py-1.5 rounded-xl text-xs font-mono font-semibold flex items-center space-x-2 transition-all w-fit active:scale-95">
+                      <label class="cursor-pointer bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-xl text-xs font-mono font-semibold flex items-center space-x-2 transition-all w-fit active:scale-95 shadow-xs">
                         <span>📁 Choose Picture File</span>
                         <input
                           type="file"
@@ -356,7 +350,7 @@
 
                 <button
                   on:click={() => removeQuestion(index)}
-                  class="text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1.5 rounded-xl transition-all shrink-0 shadow-sm"
+                  class="text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 px-3 py-1.5 rounded-xl transition-all shrink-0 shadow-xs"
                 >
                   Delete
                 </button>
@@ -365,7 +359,7 @@
               <!-- Options Subgrid for Multiple Choice -->
               {#if normType === "multiple-choice"}
                 <div
-                  class="pl-0 sm:pl-2 pt-4 border-t border-slate-900/80 mt-2 space-y-3"
+                  class="pl-0 sm:pl-2 pt-4 border-t border-slate-200 dark:border-slate-900/80 mt-2 space-y-3"
                 >
                   <span
                     class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block"
@@ -373,39 +367,38 @@
                   >
                   <div class="grid grid-cols-1 gap-3">
                     {#each question.options as option, optIndex}
-                      <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 shadow-sm space-y-2">
+                      <div class="bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
                         <div class="flex items-center space-x-2">
                           <input
                             type="text"
                             bind:value={question.options[optIndex]}
                             placeholder={`Option ${optIndex + 1}`}
-                            class="bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 px-3 py-2 focus:outline-none focus:border-cyan-500 w-full font-medium"
+                            class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-navy-950 dark:text-slate-200 px-3 py-2 focus:outline-none focus:border-cyan-500 w-full font-medium"
                           />
                           <button
                             on:click={() => removeOption(index, optIndex)}
-                            class="text-slate-400 hover:text-rose-400 text-sm px-2 font-bold transition-all"
+                            class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 text-sm px-2 font-bold transition-all"
                             >✕</button
                           >
                         </div>
 
-                        <!-- LOCAL DEVICE FILE UPLOADER: OPTION IMAGE -->
                         {#if question.enableOptionImages}
                           <div class="flex items-center space-x-3 pl-2 pt-1">
-                            <span class="text-[10px] font-mono text-cyan-400 shrink-0">🖼️ Option Picture:</span>
+                            <span class="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 shrink-0">🖼️ Option Picture:</span>
                             
                             {#if question.optionImages && question.optionImages[option]}
-                              <div class="flex items-center space-x-2 bg-slate-950 border border-slate-800 p-1.5 rounded-lg">
-                                <img src={question.optionImages[option]} alt="Option Preview" class="h-7 w-7 object-cover rounded-md border border-slate-700" />
+                              <div class="flex items-center space-x-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-1.5 rounded-lg">
+                                <img src={question.optionImages[option]} alt="Option Preview" class="h-7 w-7 object-cover rounded-md border border-slate-300 dark:border-slate-700" />
                                 <button
                                   type="button"
                                   on:click={() => removeOptionImage(question, option)}
-                                  class="text-[10px] font-bold text-rose-400 hover:underline"
+                                  class="text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:underline"
                                 >
                                   Remove
                                 </button>
                               </div>
                             {:else}
-                              <label class="cursor-pointer bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold flex items-center space-x-1.5 transition-all w-fit active:scale-95">
+                              <label class="cursor-pointer bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold flex items-center space-x-1.5 transition-all w-fit active:scale-95">
                                 <span>📁 Browse File</span>
                                 <input
                                   type="file"
@@ -422,7 +415,7 @@
 
                     <button
                       on:click={() => addOption(index)}
-                      class="border border-dashed border-slate-800 hover:border-slate-600 bg-slate-900/20 hover:bg-slate-900/40 text-slate-400 hover:text-slate-200 rounded-xl text-xs font-bold py-2.5 transition-all shadow-sm flex items-center justify-center space-x-1"
+                      class="border border-dashed border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-50 dark:bg-slate-900/20 hover:bg-slate-100 dark:hover:bg-slate-900/40 text-slate-600 dark:text-slate-400 hover:text-navy-950 dark:hover:text-slate-200 rounded-xl text-xs font-bold py-2.5 transition-all shadow-xs flex items-center justify-center space-x-1"
                     >
                       <span>+ Insert Option</span>
                     </button>
@@ -431,19 +424,19 @@
               {/if}
 
               <!-- TOGGLES SECTION -->
-              <div class="pt-4 border-t border-slate-900/80 space-y-3 max-w-md">
+              <div class="pt-4 border-t border-slate-200 dark:border-slate-900/80 space-y-3 max-w-md">
                 
                 {#if normType === 'multiple-choice'}
-                  <!-- 1. ENABLE IMAGES FOR OPTIONS -->
-                  <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/40 border border-slate-800/60">
-                    <span class="text-xs font-semibold text-slate-300">Enable images for options</span>
+                  <!-- 1. ENABLE IMAGES -->
+                  <div class="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60">
+                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Enable images for options</span>
                     <button
                       type="button"
                       on:click={() => {
                         question.enableOptionImages = !question.enableOptionImages;
                         if (!question.optionImages) question.optionImages = {};
                       }}
-                      class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-700/80 {question.enableOptionImages ? 'bg-cyan-600 border-cyan-500' : 'bg-slate-800'}"
+                      class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.enableOptionImages ? 'bg-cyan-600 border-cyan-500' : 'bg-slate-200 dark:bg-slate-800'}"
                     >
                       <div
                         class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out {question.enableOptionImages ? 'translate-x-6' : 'translate-x-0'}"
@@ -451,13 +444,13 @@
                     </button>
                   </div>
 
-                  <!-- 2. ALLOW SELECTION OF MULTIPLE OPTIONS -->
-                  <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/40 border border-slate-800/60">
-                    <span class="text-xs font-semibold text-slate-300">Allow selection of multiple options</span>
+                  <!-- 2. ALLOW MULTIPLE -->
+                  <div class="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60">
+                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Allow selection of multiple options</span>
                     <button
                       type="button"
                       on:click={() => (question.allowMultiple = !question.allowMultiple)}
-                      class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-700/80 {question.allowMultiple ? 'bg-cyan-600 border-cyan-500' : 'bg-slate-800'}"
+                      class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.allowMultiple ? 'bg-cyan-600 border-cyan-500' : 'bg-slate-200 dark:bg-slate-800'}"
                     >
                       <div
                         class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out {question.allowMultiple ? 'translate-x-6' : 'translate-x-0'}"
@@ -467,12 +460,12 @@
                 {/if}
 
                 <!-- 3. REQUIRED QUESTION -->
-                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/40 border border-slate-800/60">
-                  <span class="text-xs font-semibold text-slate-300">Required question</span>
+                <div class="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60">
+                  <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Required question</span>
                   <button
                     type="button"
                     on:click={() => (question.isRequired = !question.isRequired)}
-                    class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-700/80 {question.isRequired ? 'bg-cyan-600 border-cyan-500' : 'bg-slate-800'}"
+                    class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.isRequired ? 'bg-cyan-600 border-cyan-500' : 'bg-slate-200 dark:bg-slate-800'}"
                   >
                     <div
                       class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out {question.isRequired ? 'translate-x-6' : 'translate-x-0'}"
@@ -490,7 +483,7 @@
 
     <!-- CANVAS FOOTER -->
     <div
-      class="pt-4 border-t border-slate-800/60 flex items-center justify-end shrink-0 bg-slate-900"
+      class="pt-4 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-end shrink-0 bg-white dark:bg-slate-900"
     >
       <button
         on:click={triggerExplicitSave}
@@ -504,17 +497,8 @@
 </div>
 
 <style>
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #1e293b;
-    border-radius: 10px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #334155;
-  }
+  .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; }
 </style>
