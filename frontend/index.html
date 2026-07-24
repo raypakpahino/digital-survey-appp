@@ -255,18 +255,12 @@
       /* Active Buttons & Launch Pills ("Analytics", "All", "Launch ➔") */
       html:not(.dark) main [class*="bg-cyan-600"],
       html:not(.dark) main [class*="bg-cyan-500"],
-      html:not(.dark) main span[class*="bg-cyan-600"],
-      html:not(.dark) main button span[class*="bg-cyan-600"] {
+      html:not(.dark) main [class*="bg-cyan-600"] *,
+      html:not(.dark) main [class*="bg-cyan-500"] * {
         background-color: #1a2b6c !important;
         color: #ffffff !important;
         border-color: #1a2b6c !important;
-      }
-      html:not(.dark) main [class*="bg-cyan-600"] *,
-      html:not(.dark) main [class*="bg-cyan-500"] *,
-      html:not(.dark) main span[class*="bg-cyan-600"] *,
-      html:not(.dark) main button span[class*="bg-cyan-600"] * {
-        color: #ffffff !important; /* Enforces white text on primary buttons */
-        font-weight: 800 !important;
+        font-weight: 700 !important;
       }
 
       /* Inactive Filter & Preset Buttons ("Log Matrix", "Today", "7 Days") */
