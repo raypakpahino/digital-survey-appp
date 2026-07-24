@@ -41,7 +41,7 @@
       }
 
       /* =============================================================
-         1. DARK MODE DEFAULTS
+         1. DARK MODE CANVAS (DEFAULT)
          ============================================================= */
       html.dark, html.dark body {
         background-color: #020617 !important;
@@ -49,30 +49,35 @@
       }
 
       /* =============================================================
-         2. LIGHT MODE OVERRIDES (APPLIES TO ALL ELEMENT TAGS)
+         2. MASTER LIGHT MODE OVERRIDES (HIGH-CONTRAST SAAS DESIGN)
          ============================================================= */
       
-      /* Base Canvas Background */
+      /* Base Page & Workspace Canvas */
       html:not(.dark), 
       html:not(.dark) body,
       html:not(.dark) #app,
       html:not(.dark) main {
-        background-color: #f1f5f9 !important;
+        background-color: #f1f5f9 !important; /* Soft Slate 100 Canvas */
         color: #0f172a !important;
       }
 
-      /* Top Header Bar */
+      /* Sticky Navigation Header Bar */
       html:not(.dark) header {
         background-color: #ffffff !important;
-        border-color: #cbd5e1 !important;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
+        border-color: #e2e8f0 !important;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04) !important;
       }
 
-      /* Sidebar (Deep Executive Navy Accent) */
-      html:not(.dark) aside,
-      html:not(.dark) aside * {
+      /* Executive Dark Navy Sidebar (Maintains high-contrast branding) */
+      html:not(.dark) aside {
         background-color: #0b132b !important;
         border-color: #1c2541 !important;
+        color: #f8fafc !important;
+      }
+      html:not(.dark) aside * {
+        border-color: #1c2541 !important;
+      }
+      html:not(.dark) aside span:not(.bg-cyan-600) {
         color: #f8fafc !important;
       }
       html:not(.dark) aside button:not(.bg-cyan-600) {
@@ -83,56 +88,84 @@
         color: #ffffff !important;
       }
 
-      /* Convert ALL Dark Slate Elements (div, button, span, section, etc.) to Crisp White Cards */
-      html:not(.dark) [class*="bg-slate-900"],
-      html:not(.dark) [class*="bg-slate-950"],
-      html:not(.dark) [class*="bg-slate-800"],
-      html:not(.dark) [class*="bg-navy"] {
+      /* Crisp White Cards & Containers */
+      html:not(.dark) main [class*="bg-slate-900"],
+      html:not(.dark) main [class*="bg-slate-950"],
+      html:not(.dark) main [class*="bg-slate-800"] {
         background-color: #ffffff !important;
-        color: #0f172a !important;
         border-color: #cbd5e1 !important;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03) !important;
+        box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.05), 0 2px 4px -1px rgba(15, 23, 42, 0.03) !important;
       }
 
-      /* Inner Input / Inner Sub-slots */
-      html:not(.dark) [class*="bg-slate-950/"],
-      html:not(.dark) [class*="bg-slate-900/"] {
+      /* Inner Item Sub-Slots, Selected Pills & Chart Legend Slots */
+      html:not(.dark) main [class*="bg-slate-950/"],
+      html:not(.dark) main [class*="bg-slate-900/"],
+      html:not(.dark) main [class*="bg-slate-900/80"] {
         background-color: #f8fafc !important;
-        color: #0f172a !important;
         border-color: #e2e8f0 !important;
       }
 
-      /* All Headings & Titles in Light Mode */
-      html:not(.dark) h1,
-      html:not(.dark) h2,
-      html:not(.dark) h3,
-      html:not(.dark) h4,
-      html:not(.dark) h5,
-      html:not(.dark) h6,
-      html:not(.dark) .text-white,
-      html:not(.dark) [class*="text-slate-100"],
-      html:not(.dark) [class*="text-slate-200"],
-      html:not(.dark) [class*="text-slate-300"] {
+      /* Typography Contrast Fix (Transforms all white/light texts to deep slate navy) */
+      html:not(.dark) main h1,
+      html:not(.dark) main h2,
+      html:not(.dark) main h3,
+      html:not(.dark) main h4,
+      html:not(.dark) main h5,
+      html:not(.dark) main h6,
+      html:not(.dark) main .text-white,
+      html:not(.dark) main [class*="text-slate-100"],
+      html:not(.dark) main [class*="text-slate-200"],
+      html:not(.dark) main [class*="text-slate-300"] {
         color: #0f172a !important;
       }
 
-      /* Muted Labels & Descriptions */
-      html:not(.dark) p,
-      html:not(.dark) [class*="text-slate-400"],
-      html:not(.dark) [class*="text-slate-500"] {
+      /* Muted Labels, Descriptions, and Dates */
+      html:not(.dark) main p,
+      html:not(.dark) main [class*="text-slate-400"],
+      html:not(.dark) main [class*="text-slate-500"] {
         color: #475569 !important;
       }
 
-      /* Form Inputs, Date Pickers & Select Boxes */
-      html:not(.dark) input,
-      html:not(.dark) select,
-      html:not(.dark) textarea {
+      /* Chart Center Donut Hole Fix */
+      html:not(.dark) main .absolute.rounded-full[class*="bg-slate-"] {
         background-color: #ffffff !important;
+        border-color: #cbd5e1 !important;
+      }
+      html:not(.dark) main .absolute.rounded-full[class*="bg-slate-"] span {
+        color: #0f172a !important;
+      }
+
+      /* Entry Counter Badges ("3 entries") */
+      html:not(.dark) main span[class*="bg-slate-"] {
+        background-color: #e2e8f0 !important;
         color: #0f172a !important;
         border-color: #cbd5e1 !important;
       }
 
-      /* Preserve Accent Buttons */
+      /* Form Controls, Date Pickers, & Dropdowns */
+      html:not(.dark) main input,
+      html:not(.dark) main select,
+      html:not(.dark) main textarea {
+        background-color: #f8fafc !important;
+        color: #0f172a !important;
+        border-color: #cbd5e1 !important;
+      }
+      html:not(.dark) main input::placeholder {
+        color: #94a3b8 !important;
+      }
+
+      /* Inactive Filter & Preset Buttons */
+      html:not(.dark) main button[class*="bg-slate-"]:not(.bg-cyan-600) {
+        background-color: #f1f5f9 !important;
+        color: #334155 !important;
+        border-color: #cbd5e1 !important;
+      }
+      html:not(.dark) main button[class*="bg-slate-"]:not(.bg-cyan-600):hover {
+        background-color: #e2e8f0 !important;
+        color: #0f172a !important;
+      }
+
+      /* Primary Action Buttons (Cyan & Emerald) */
       html:not(.dark) [class*="bg-cyan-600"],
       html:not(.dark) [class*="bg-cyan-500"] {
         background-color: #0891b2 !important;
@@ -144,12 +177,30 @@
         color: #ffffff !important;
       }
 
+      /* Clear All Danger Button */
+      html:not(.dark) [class*="bg-rose-"] {
+        background-color: #ffe4e6 !important;
+        color: #e11d48 !important;
+        border-color: #fecdd3 !important;
+      }
+      html:not(.dark) [class*="bg-rose-"]:hover {
+        background-color: #fecdd3 !important;
+        color: #be123c !important;
+      }
+
+      /* Tablet Filter Tags */
+      html:not(.dark) main [class*="bg-emerald-950"] {
+        background-color: #d1fae5 !important;
+        color: #047857 !important;
+        border-color: #6ee7b7 !important;
+      }
+
       /* Custom Scrollbars */
       ::-webkit-scrollbar { width: 6px; height: 6px; }
       html.dark ::-webkit-scrollbar-track { background: #090d16; }
       html.dark ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
-      html:not(.dark) ::-webkit-scrollbar-track { background: #e2e8f0; }
-      html:not(.dark) ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+      html:not(.dark) ::-webkit-scrollbar-track { background: #f1f5f9; }
+      html:not(.dark) ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     </style>
   </head>
   <body class="antialiased overflow-hidden h-screen w-screen m-0 p-0">
