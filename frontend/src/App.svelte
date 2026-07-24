@@ -307,23 +307,13 @@
 
 {:else}
   <!-- AUTHENTICATED PORTAL WORKSPACE -->
-  <div class="flex h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden m-0 p-0 box-border relative">
+  <div class="flex h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden m-0 p-0 relative">
     
-    <!-- FIXED ANCHORED TOGGLE BUTTON -->
-    {#if !isDedicatedKioskMode}
-      <button
-        on:click={() => (isSidebarVisible = !isSidebarVisible)}
-        class="fixed top-3 left-3 z-50 p-2.5 rounded-xl text-slate-300 hover:text-white bg-slate-900/90 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 transition-all flex items-center justify-center focus:outline-none select-none active:scale-95 shadow-lg backdrop-blur-md"
-        title={isSidebarVisible ? "Collapse Sidebar" : "Expand Sidebar"}
-      >
-        <span class="text-lg leading-none font-bold">☰</span>
-      </button>
-    {/if}
-
+    <!-- SIDEBAR -->
     {#if isSidebarVisible}
       <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0 h-full z-40 transition-all duration-200">
         <div>
-          <div class="pr-5 pl-14 h-16 border-b border-slate-800 flex items-center space-x-3 box-border">
+          <div class="px-5 h-16 border-b border-slate-800 flex items-center space-x-3 box-border">
             <div class="h-8 w-8 rounded-lg bg-cyan-600 flex items-center justify-center font-bold text-white shadow-md shrink-0">
               DS
             </div>
@@ -380,23 +370,37 @@
       </aside>
     {/if}
 
-    <div class="flex-1 flex flex-col h-full overflow-hidden">
+    <!-- MAIN BODY CANVAS -->
+    <div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
+      
+      <!-- STICKY TOP NAVIGATION BAR -->
       {#if !isDedicatedKioskMode}
-        <header class="w-full h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6 box-border shrink-0">
-          <div class="flex items-center space-x-4">
+        <header class="sticky top-0 z-30 w-full h-16 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 flex items-center justify-between px-4 sm:px-6 shrink-0">
+          
+          <!-- Left Header: Toggle Sidebar & Branding -->
+          <div class="flex items-center space-x-3">
+            <button
+              on:click={() => (isSidebarVisible = !isSidebarVisible)}
+              class="p-2 rounded-xl text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 transition-all flex items-center justify-center focus:outline-none active:scale-95 shadow-sm"
+              title={isSidebarVisible ? "Collapse Sidebar" : "Expand Sidebar"}
+            >
+              <span class="text-base leading-none font-bold">☰</span>
+            </button>
+
             {#if !isSidebarVisible}
-              <div class="flex items-center space-x-2 animate-fade pl-10">
-                <div class="h-6 w-6 rounded-md bg-cyan-600 flex items-center justify-center font-bold text-xs text-white">
+              <div class="flex items-center space-x-2">
+                <div class="h-7 w-7 rounded-lg bg-cyan-600 flex items-center justify-center font-bold text-xs text-white shadow-md">
                   DS
                 </div>
-                <span class="font-bold text-sm tracking-tight text-white">DigitalSurvey</span>
+                <span class="font-bold text-sm tracking-tight text-white hidden sm:inline">DigitalSurvey</span>
               </div>
             {/if}
           </div>
 
-          <div class="flex items-center space-x-4">
+          <!-- Right Header: User Pill, Online Status & Sign Out -->
+          <div class="flex items-center space-x-3">
             {#if currentUser}
-              <div class="flex items-center space-x-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-full text-xs font-mono">
+              <div class="flex items-center space-x-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl text-xs font-mono shadow-inner">
                 <span class="text-slate-400">User: <strong class="text-white">{currentUser.username}</strong></span>
                 <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase {currentUser.role === 'admin' ? 'bg-cyan-950 text-cyan-300 border border-cyan-800' : 'bg-slate-800 text-slate-300'}">
                   {currentUser.role}
@@ -405,21 +409,23 @@
 
               <button
                 on:click={handleLogout}
-                class="text-xs text-rose-400 hover:text-rose-300 bg-rose-950/40 hover:bg-rose-950 border border-rose-900/60 px-3 py-1.5 rounded-xl font-bold transition-all active:scale-95"
+                class="text-xs text-rose-400 hover:text-rose-300 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900/60 px-3.5 py-1.5 rounded-xl font-bold transition-all active:scale-95 shadow-sm flex items-center space-x-1"
               >
-                Sign Out ➔
+                <span>Sign Out</span>
+                <span class="text-sm">➔</span>
               </button>
             {/if}
 
-            <div class="flex items-center space-x-3 text-xs text-slate-400 font-mono hidden md:flex">
-              <span class="h-2 w-2 rounded-full {isOfflineMode ? 'bg-rose-500 shadow-rose-500/50' : 'bg-emerald-500 shadow-emerald-500/50'} shadow-sm"></span>
+            <div class="hidden sm:flex items-center space-x-2 px-2.5 py-1 rounded-full bg-slate-950 border border-slate-800 text-xs font-mono text-slate-400">
+              <span class="h-2 w-2 rounded-full {isOfflineMode ? 'bg-rose-500 shadow-rose-500/50' : 'bg-emerald-500 shadow-emerald-500/50'} shadow-sm animate-pulse"></span>
               <span>{isOfflineMode ? "Offline" : "Online"}</span>
             </div>
           </div>
         </header>
       {/if}
 
-      <main class="flex-1 bg-slate-950 overflow-y-auto w-full box-border {isDedicatedKioskMode ? 'p-0' : 'p-6 md:p-8 lg:p-10'}">
+      <!-- SCROLLABLE CANVAS -->
+      <main class="flex-1 bg-slate-950 overflow-y-auto overflow-x-hidden w-full box-border {isDedicatedKioskMode ? 'p-0' : 'p-4 sm:p-6 lg:p-8'}">
         <div class="w-full h-full {isDedicatedKioskMode || activeTab === 'kiosk' ? '' : 'max-w-7xl mx-auto'}">
           {#if activeTab === "surveys" && currentUser?.role === "admin"}
             <div class="w-full h-full">
@@ -471,6 +477,7 @@
           {/if}
         </div>
       </main>
+
     </div>
   </div>
 {/if}
