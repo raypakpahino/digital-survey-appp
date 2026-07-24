@@ -148,31 +148,36 @@
   });
 </script>
 
-<div class="w-full h-full flex flex-col justify-between items-center p-2 sm:p-4 text-slate-800 dark:text-slate-100 font-sans box-border overflow-y-auto custom-scrollbar">
+<div class="w-full h-full flex flex-col items-center p-3 sm:p-5 text-slate-800 dark:text-slate-100 font-sans box-border overflow-y-auto custom-scrollbar">
   
-  <!-- HEADER (FLUSH TOP ALIGNMENT) -->
-  <header class="w-full max-w-5xl flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 pb-3 pt-1 shrink-0 gap-2">
-    <div class="flex items-center space-x-2 truncate">
-      <div class="h-2.5 w-2.5 rounded-full bg-cyan-500 animate-pulse shadow-md shrink-0"></div>
-      <span class="text-xs font-black font-mono tracking-widest text-slate-600 dark:text-slate-300 uppercase truncate">{surveyTitle || "Feedback Terminal"}</span>
+  <!-- PERFECTLY CENTERED HEADER BAR -->
+  <header class="w-full max-w-5xl h-14 px-5 sm:px-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-between shrink-0 shadow-sm my-0 py-0 transition-all">
+    
+    <!-- LEFT: BRAND & FORM IDENTITY -->
+    <div class="flex items-center space-x-3 min-w-0">
+      <div class="h-2.5 w-2.5 rounded-full bg-cyan-500 animate-pulse shadow-sm shrink-0"></div>
+      <span class="text-xs sm:text-sm font-black font-mono tracking-widest text-navy-950 dark:text-slate-200 uppercase truncate leading-none">
+        {surveyTitle || "Feedback Terminal"}
+      </span>
     </div>
 
-    <div class="flex items-center space-x-2 shrink-0">
+    <!-- RIGHT: DEVICE & PROGRESS PILLS -->
+    <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
       
       {#if isEditingDeviceId}
-        <div class="flex items-center space-x-1 bg-white dark:bg-slate-900 border border-cyan-500 rounded-full px-2 py-0.5">
+        <div class="flex items-center space-x-1.5 bg-slate-50 dark:bg-slate-950 border border-cyan-500 rounded-full px-2.5 py-1">
           <input
             type="text"
             bind:value={tempDeviceId}
             placeholder="Tablet-A"
-            class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-navy-950 dark:text-white px-2 py-0.5 rounded-full font-mono focus:outline-none w-20"
+            class="bg-transparent text-xs text-navy-950 dark:text-white px-1 py-0 font-mono focus:outline-none w-20"
           />
-          <button on:click={saveCustomDeviceId} class="bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Save</button>
+          <button on:click={saveCustomDeviceId} class="bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full transition-all">Save</button>
         </div>
       {:else}
         <button
           on:click={() => { tempDeviceId = deviceId; isEditingDeviceId = true; }}
-          class="bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-cyan-700 dark:text-cyan-400 border border-slate-200 dark:border-slate-800 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold tracking-wider flex items-center space-x-1 shadow-xs active:scale-95"
+          class="bg-slate-100 dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 text-cyan-700 dark:text-cyan-400 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-full text-[11px] font-mono font-bold tracking-wider flex items-center space-x-1.5 shadow-xs active:scale-95 transition-all"
           title="Click to set this tablet's Site/Device Name"
         >
           <span>🏷️</span> <span>{deviceId}</span>
@@ -180,7 +185,7 @@
       {/if}
 
       {#if activeSurveyId && !isSubmitted && questions.length > 0}
-        <div class="bg-white dark:bg-slate-900 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800 text-[11px] font-bold text-cyan-700 dark:text-cyan-400 font-mono tracking-wide hidden sm:block">
+        <div class="bg-slate-100 dark:bg-slate-950 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-800 text-[11px] font-bold text-cyan-700 dark:text-cyan-400 font-mono tracking-wide hidden sm:flex items-center justify-center">
           QUESTION {currentQuestionIndex + 1} OF {questions.length}
         </div>
         <button
@@ -188,16 +193,16 @@
             resetTerminal();
             onSelectSurvey("");
           }}
-          class="text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-navy-950 dark:hover:text-white bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 px-3 py-1 rounded-full transition-all shrink-0 active:scale-95 shadow-xs"
+          class="text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-navy-950 dark:hover:text-white bg-slate-100 dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-full transition-all shrink-0 active:scale-95 shadow-xs flex items-center space-x-1"
         >
-          🔄 Change Form
+          <span>🔄</span> <span>Change Form</span>
         </button>
       {/if}
     </div>
   </header>
 
-  <!-- MAIN BODY CONTENT -->
-  <main class="w-full max-w-5xl flex-1 flex flex-col justify-start pt-4 sm:pt-6">
+  <!-- MAIN BODY WORKSPACE -->
+  <main class="w-full max-w-5xl flex-1 flex flex-col justify-start pt-6 sm:pt-8">
     {#if !activeSurveyId || !surveyTitle || questions.length === 0}
       <div in:scale={{ duration: 300, start: 0.96 }} class="w-full max-w-3xl mx-auto bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl backdrop-blur-xl">
         <div class="text-center space-y-2 border-b border-slate-200 dark:border-slate-800/80 pb-4">
