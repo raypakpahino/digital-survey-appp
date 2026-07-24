@@ -41,7 +41,7 @@
       }
 
       /* =============================================================
-         1. DARK MODE DEFAULTS
+         1. DARK MODE DEFAULTS & SUBTLE DIVIDERS
          ============================================================= */
       html.dark, html.dark body {
         background-color: #020617 !important;
@@ -56,8 +56,14 @@
         border-color: #1e293b !important;
       }
 
+      html.dark hr {
+        border-top-width: 1px !important;
+        opacity: 0.6 !important;
+      }
+
       /* =============================================================
-         2. SODEXO LIGHT MODE OVERRIDES (CONTRAST FIXES FOR BUTTONS)
+         2. SODEXO LIGHT MODE OVERRIDES
+         Primary: Sodexo Navy (#1A2B6C) | Accent: Sodexo Red (#E31B23)
          ============================================================= */
       
       /* Base Canvas */
@@ -74,6 +80,21 @@
         background-color: #ffffff !important;
         border-color: #e2e8f0 !important;
         box-shadow: 0 2px 4px 0 rgba(26, 43, 108, 0.04) !important;
+      }
+
+      /* Header Device Pills & Action Buttons */
+      html:not(.dark) header button,
+      html:not(.dark) header div[class*="bg-slate-"],
+      html:not(.dark) header div[class*="bg-white"] {
+        background-color: #f1f5f9 !important;
+        border-color: #cbd5e1 !important;
+        color: #1a2b6c !important;
+      }
+      html:not(.dark) header button *,
+      html:not(.dark) header div[class*="bg-slate-"] *,
+      html:not(.dark) header div[class*="bg-white"] * {
+        color: #1a2b6c !important;
+        font-weight: 700 !important;
       }
 
       /* Sodexo Deep Navy Sidebar */
@@ -109,16 +130,17 @@
         background-color: #121e52 !important;
       }
 
-      /* White Cards & Panels */
+      /* White Container Cards & Panels */
       html:not(.dark) main [class*="bg-slate-900"],
       html:not(.dark) main [class*="bg-slate-950"],
-      html:not(.dark) main [class*="bg-slate-800"] {
+      html:not(.dark) main [class*="bg-slate-800"],
+      html:not(.dark) main [class*="bg-white"] {
         background-color: #ffffff !important;
         border-color: #cbd5e1 !important;
         box-shadow: 0 4px 16px -2px rgba(26, 43, 108, 0.06) !important;
       }
 
-      /* Target Form Cards */
+      /* Target Form Cards & Kiosk Form Cards */
       html:not(.dark) main button[class*="bg-cyan-600\/10"] {
         background-color: #eef2ff !important;
         border-color: #1a2b6c !important;
@@ -127,22 +149,41 @@
         color: #1a2b6c !important;
         font-weight: 800 !important;
       }
-      html:not(.dark) main button[class*="bg-slate-950\/40"] {
-        background-color: #ffffff !important;
+      html:not(.dark) main button[class*="bg-slate-950\/40"],
+      html:not(.dark) main button[class*="bg-slate-50"],
+      html:not(.dark) main button[class*="bg-slate-950"] {
+        background-color: #f8fafc !important;
         border-color: #e2e8f0 !important;
       }
-      html:not(.dark) main button[class*="bg-slate-950\/40"] span {
-        color: #475569 !important;
+      html:not(.dark) main button[class*="bg-slate-950\/40"]:hover,
+      html:not(.dark) main button[class*="bg-slate-50"]:hover,
+      html:not(.dark) main button[class*="bg-slate-950"]:hover {
+        background-color: #ffffff !important;
+        border-color: #1a2b6c !important;
+      }
+      html:not(.dark) main button[class*="bg-slate-950\/40"] span,
+      html:not(.dark) main button[class*="bg-slate-50"] span,
+      html:not(.dark) main button[class*="bg-slate-950"] span {
+        color: #334155 !important;
       }
 
-      /* Inner Sub-Slots & Legend Containers */
+      /* Active Form Badges ("ACTIVE FORM") */
+      html:not(.dark) main [class*="bg-cyan-100"],
+      html:not(.dark) main [class*="bg-cyan-950"] {
+        background-color: #e0f2fe !important;
+        border-color: #bae6fd !important;
+        color: #0369a1 !important;
+        font-weight: 800 !important;
+      }
+
+      /* Inner Item Sub-Slots, Selected Pills & Chart Legend Slots */
       html:not(.dark) main [class*="bg-slate-950\/"],
       html:not(.dark) main [class*="bg-slate-900\/"] {
         background-color: #f8fafc !important;
         border-color: #e2e8f0 !important;
       }
 
-      /* Text Colors */
+      /* Primary Headings & Field Titles */
       html:not(.dark) main h1,
       html:not(.dark) main h2,
       html:not(.dark) main h3,
@@ -152,11 +193,12 @@
       html:not(.dark) main .text-white,
       html:not(.dark) main [class*="text-slate-100"],
       html:not(.dark) main [class*="text-slate-200"],
-      html:not(.dark) main [class*="text-slate-300"] {
+      html:not(.dark) main [class*="text-slate-300"],
+      html:not(.dark) main [class*="text-navy-950"] {
         color: #1a2b6c !important;
       }
 
-      /* Question Sub-Headings & Red Accent */
+      /* Question Sub-Headings & Accent Dividers */
       html:not(.dark) main [class*="text-cyan-400"],
       html:not(.dark) main [class*="text-cyan-300"] {
         color: #e31b23 !important;
@@ -166,13 +208,14 @@
         border-color: #e31b23 !important;
       }
 
+      /* Muted Labels & Descriptions */
       html:not(.dark) main p,
       html:not(.dark) main [class*="text-slate-400"],
       html:not(.dark) main [class*="text-slate-500"] {
         color: #475569 !important;
       }
 
-      /* Chart Donut Center */
+      /* Chart Donut Center Hole */
       html:not(.dark) main .absolute.rounded-full {
         background-color: #ffffff !important;
         border-color: #e2e8f0 !important;
@@ -182,7 +225,7 @@
         font-weight: 800 !important;
       }
 
-      /* Entry Counter Badges */
+      /* Entry Counter Badges ("3 entries") */
       html:not(.dark) main span[class*="bg-slate-900"] {
         background-color: #f1f5f9 !important;
         color: #1a2b6c !important;
@@ -190,7 +233,7 @@
         font-weight: 700 !important;
       }
 
-      /* Inputs */
+      /* Form Inputs, Date Pickers & Dropdowns */
       html:not(.dark) main input,
       html:not(.dark) main select,
       html:not(.dark) main textarea {
@@ -198,24 +241,30 @@
         color: #0f172a !important;
         border-color: #cbd5e1 !important;
       }
+      html:not(.dark) main input::placeholder {
+        color: #94a3b8 !important;
+      }
 
       /* -------------------------------------------------------------
-         CRITICAL BUTTON & TEXT CONTRAST OVERRIDES
+         3. ACTION BUTTONS & CONTRAST ENFORCEMENT
          ------------------------------------------------------------- */
       
-      /* Active Buttons ("Analytics", "All", "+ Create New Form") */
+      /* Active Buttons & Launch Pills ("Analytics", "All", "Launch ➔") */
       html:not(.dark) main [class*="bg-cyan-600"],
-      html:not(.dark) main [class*="bg-cyan-500"] {
+      html:not(.dark) main [class*="bg-cyan-500"],
+      html:not(.dark) main span[class*="bg-cyan-600"] {
         background-color: #1a2b6c !important;
         color: #ffffff !important;
         border-color: #1a2b6c !important;
       }
       html:not(.dark) main [class*="bg-cyan-600"] *,
-      html:not(.dark) main [class*="bg-cyan-500"] * {
-        color: #ffffff !important; /* Forces inner spans/icons to pure white */
+      html:not(.dark) main [class*="bg-cyan-500"] *,
+      html:not(.dark) main span[class*="bg-cyan-600"] * {
+        color: #ffffff !important; /* Enforces white text on primary buttons */
+        font-weight: 700 !important;
       }
 
-      /* Inactive Filter Buttons ("Log Matrix", "Today", "7 Days", "30 Days") */
+      /* Inactive Filter & Preset Buttons ("Log Matrix", "Today", "7 Days") */
       html:not(.dark) main button[class*="bg-slate-"]:not([class*="bg-cyan-600"]) {
         background-color: #f1f5f9 !important;
         color: #1a2b6c !important;
@@ -247,7 +296,7 @@
         border-color: #e31b23 !important;
       }
       html:not(.dark) [class*="bg-rose-"] * {
-        color: #ffffff !important; /* Fixes invisible Clear All text */
+        color: #ffffff !important;
       }
       html:not(.dark) [class*="bg-rose-"]:hover {
         background-color: #c8141a !important;
@@ -260,6 +309,15 @@
         color: #1a2b6c !important;
         border-color: #cbd5e1 !important;
         font-weight: 700 !important;
+      }
+
+      /* Footer Bar */
+      html:not(.dark) footer {
+        border-color: #cbd5e1 !important;
+        color: #64748b !important;
+      }
+      html:not(.dark) footer * {
+        color: #64748b !important;
       }
 
       /* Custom Scrollbars */
