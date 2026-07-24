@@ -6,9 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Digital Survey Platform</title>
 
-    <!-- 1. TAILWIND CONFIGURATION (MUST BE BEFORE TAILWIND SCRIPT) -->
+    <!-- 1. TAILWIND PLAY CDN SCRIPT -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 2. TAILWIND CONFIGURATION (MUST BE RIGHT AFTER CDN SCRIPT) -->
     <script>
-      tailwind = {
+      tailwind.config = {
         darkMode: 'class',
         theme: {
           extend: {
@@ -25,11 +28,10 @@
       }
     </script>
 
-    <!-- 2. TAILWIND CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 3. TAILWIND PLUGINS -->
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 
-    <!-- 3. PREMIUM FONT -->
+    <!-- 4. PREMIUM FONT -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -52,7 +54,7 @@
         inset: 0;
       }
 
-      /* DYNAMIC LIGHT/DARK BACKGROUND ENFORCEMENT */
+      /* DYNAMIC LIGHT/DARK CANVAS ENFORCEMENT */
       html.dark, html.dark body {
         background-color: #020617 !important;
         color: #f8fafc !important;
@@ -69,7 +71,7 @@
         overflow: hidden;
       }
 
-      /* SCROLLBAR CUSTOMIZATION */
+      /* CUSTOM SCROLLBARS */
       ::-webkit-scrollbar {
         width: 6px;
         height: 6px;
