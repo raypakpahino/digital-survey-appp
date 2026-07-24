@@ -41,34 +41,26 @@
       }
 
       /* =============================================================
-         1. DARK MODE BORDER & DIVIDER FIXES (SUBTLE SLATE TONES)
+         1. DARK MODE DEFAULTS
          ============================================================= */
       html.dark, html.dark body {
         background-color: #020617 !important;
         color: #f8fafc !important;
       }
 
-      /* Fix all borders & dividers in Dark Mode to subtle slate */
       html.dark *,
       html.dark hr,
       html.dark header,
       html.dark aside,
       html.dark [class*="border-"] {
-        border-color: #1e293b !important; /* Soft Slate 800 (No bright white lines) */
-      }
-
-      /* Subtle inner divider line overrides */
-      html.dark hr {
-        border-top-width: 1px !important;
-        opacity: 0.6 !important;
+        border-color: #1e293b !important;
       }
 
       /* =============================================================
-         2. SODEXO BRANDED LIGHT MODE (WHEN .dark IS REMOVED)
-         Primary: Sodexo Blue (#1A2B6C) | Accent: Sodexo Red (#E31B23)
+         2. SODEXO LIGHT MODE OVERRIDES (CONTRAST FIXES FOR BUTTONS)
          ============================================================= */
       
-      /* Base Application Canvas */
+      /* Base Canvas */
       html:not(.dark), 
       html:not(.dark) body,
       html:not(.dark) #app,
@@ -77,7 +69,7 @@
         color: #0f172a !important;
       }
 
-      /* Top Navigation Bar */
+      /* Top Header */
       html:not(.dark) header {
         background-color: #ffffff !important;
         border-color: #e2e8f0 !important;
@@ -117,7 +109,7 @@
         background-color: #121e52 !important;
       }
 
-      /* Crisp White Containers & Analytics Cards */
+      /* White Cards & Panels */
       html:not(.dark) main [class*="bg-slate-900"],
       html:not(.dark) main [class*="bg-slate-950"],
       html:not(.dark) main [class*="bg-slate-800"] {
@@ -126,7 +118,7 @@
         box-shadow: 0 4px 16px -2px rgba(26, 43, 108, 0.06) !important;
       }
 
-      /* Target Form Selector Cards */
+      /* Target Form Cards */
       html:not(.dark) main button[class*="bg-cyan-600\/10"] {
         background-color: #eef2ff !important;
         border-color: #1a2b6c !important;
@@ -140,17 +132,17 @@
         border-color: #e2e8f0 !important;
       }
       html:not(.dark) main button[class*="bg-slate-950\/40"] span {
-        color: #334155 !important;
+        color: #475569 !important;
       }
 
-      /* Inner Item Sub-Slots, Selected Pills & Chart Legend Slots */
+      /* Inner Sub-Slots & Legend Containers */
       html:not(.dark) main [class*="bg-slate-950\/"],
       html:not(.dark) main [class*="bg-slate-900\/"] {
         background-color: #f8fafc !important;
         border-color: #e2e8f0 !important;
       }
 
-      /* Primary Headings & Field Titles */
+      /* Text Colors */
       html:not(.dark) main h1,
       html:not(.dark) main h2,
       html:not(.dark) main h3,
@@ -164,7 +156,7 @@
         color: #1a2b6c !important;
       }
 
-      /* Field Header Accents & Question Type Labels */
+      /* Question Sub-Headings & Red Accent */
       html:not(.dark) main [class*="text-cyan-400"],
       html:not(.dark) main [class*="text-cyan-300"] {
         color: #e31b23 !important;
@@ -174,14 +166,13 @@
         border-color: #e31b23 !important;
       }
 
-      /* Muted Labels & Descriptions */
       html:not(.dark) main p,
       html:not(.dark) main [class*="text-slate-400"],
       html:not(.dark) main [class*="text-slate-500"] {
         color: #475569 !important;
       }
 
-      /* Chart Center Donut Hole */
+      /* Chart Donut Center */
       html:not(.dark) main .absolute.rounded-full {
         background-color: #ffffff !important;
         border-color: #e2e8f0 !important;
@@ -191,7 +182,7 @@
         font-weight: 800 !important;
       }
 
-      /* Entry Count Badges */
+      /* Entry Counter Badges */
       html:not(.dark) main span[class*="bg-slate-900"] {
         background-color: #f1f5f9 !important;
         color: #1a2b6c !important;
@@ -199,7 +190,7 @@
         font-weight: 700 !important;
       }
 
-      /* Form Inputs, Date Pickers & Dropdowns */
+      /* Inputs */
       html:not(.dark) main input,
       html:not(.dark) main select,
       html:not(.dark) main textarea {
@@ -207,38 +198,68 @@
         color: #0f172a !important;
         border-color: #cbd5e1 !important;
       }
-      html:not(.dark) main input::placeholder {
-        color: #94a3b8 !important;
-      }
 
-      /* Preset Date Buttons & Filter Buttons */
-      html:not(.dark) main button[class*="bg-slate-"]:not(.bg-cyan-600) {
-        background-color: #f1f5f9 !important;
-        color: #334155 !important;
-        border-color: #cbd5e1 !important;
-      }
-      html:not(.dark) main button[class*="bg-slate-"]:not(.bg-cyan-600):hover {
-        background-color: #e2e8f0 !important;
-        color: #1a2b6c !important;
-      }
-
-      /* Primary Action Buttons */
-      html:not(.dark) [class*="bg-cyan-600"],
-      html:not(.dark) [class*="bg-cyan-500"] {
+      /* -------------------------------------------------------------
+         CRITICAL BUTTON & TEXT CONTRAST OVERRIDES
+         ------------------------------------------------------------- */
+      
+      /* Active Buttons ("Analytics", "All", "+ Create New Form") */
+      html:not(.dark) main [class*="bg-cyan-600"],
+      html:not(.dark) main [class*="bg-cyan-500"] {
         background-color: #1a2b6c !important;
         color: #ffffff !important;
+        border-color: #1a2b6c !important;
       }
+      html:not(.dark) main [class*="bg-cyan-600"] *,
+      html:not(.dark) main [class*="bg-cyan-500"] * {
+        color: #ffffff !important; /* Forces inner spans/icons to pure white */
+      }
+
+      /* Inactive Filter Buttons ("Log Matrix", "Today", "7 Days", "30 Days") */
+      html:not(.dark) main button[class*="bg-slate-"]:not([class*="bg-cyan-600"]) {
+        background-color: #f1f5f9 !important;
+        color: #1a2b6c !important;
+        border-color: #cbd5e1 !important;
+        font-weight: 700 !important;
+      }
+      html:not(.dark) main button[class*="bg-slate-"]:not([class*="bg-cyan-600"]) * {
+        color: #1a2b6c !important;
+      }
+      html:not(.dark) main button[class*="bg-slate-"]:not([class*="bg-cyan-600"]):hover {
+        background-color: #e2e8f0 !important;
+      }
+
+      /* Export CSV Button */
       html:not(.dark) [class*="bg-emerald-600"],
       html:not(.dark) [class*="bg-emerald-500"] {
         background-color: #059669 !important;
         color: #ffffff !important;
       }
+      html:not(.dark) [class*="bg-emerald-600"] *,
+      html:not(.dark) [class*="bg-emerald-500"] * {
+        color: #ffffff !important;
+      }
 
       /* Clear All Danger Button */
       html:not(.dark) [class*="bg-rose-"] {
-        background-color: #fee2e2 !important;
-        color: #dc2626 !important;
-        border-color: #fca5a5 !important;
+        background-color: #e31b23 !important; /* Sodexo Red */
+        color: #ffffff !important;
+        border-color: #e31b23 !important;
+      }
+      html:not(.dark) [class*="bg-rose-"] * {
+        color: #ffffff !important; /* Fixes invisible Clear All text */
+      }
+      html:not(.dark) [class*="bg-rose-"]:hover {
+        background-color: #c8141a !important;
+      }
+
+      /* Tablet Site Filter Pills */
+      html:not(.dark) main button[class*="bg-emerald-950"],
+      html:not(.dark) main button[class*="bg-slate-950"] {
+        background-color: #f1f5f9 !important;
+        color: #1a2b6c !important;
+        border-color: #cbd5e1 !important;
+        font-weight: 700 !important;
       }
 
       /* Custom Scrollbars */
