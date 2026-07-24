@@ -21,7 +21,6 @@
   let isAuthChecking = true;
 
   function switchTab(tab) {
-    // If standard user tries to navigate away from answers, enforce restriction
     if (currentUser && currentUser.role !== "admin" && tab !== "answers") {
       activeTab = "answers";
       return;
@@ -36,7 +35,6 @@
     }
   }
 
-  // Auto-sync URL and localStorage whenever activeSurveyId or activeTab changes across all tabs
   $: if (activeSurveyId) {
     localStorage.setItem("sdx_active_survey_id", activeSurveyId);
     if (!isDedicatedKioskMode && (activeTab === "builder" || activeTab === "kiosk" || activeTab === "answers")) {
@@ -70,7 +68,6 @@
       hash.includes("?") ? hash.split("?")[1] : window.location.search,
     );
     
-    // 1. Recover active survey ID from URL parameter or localStorage
     const urlSurveyId = urlParams.get("id");
     const savedSurveyId = localStorage.getItem("sdx_active_survey_id");
     const targetSurveyId = urlSurveyId || savedSurveyId || "";
@@ -88,7 +85,6 @@
       return;
     }
 
-    // Verify stored JWT session token
     const storedToken = localStorage.getItem("sdx_token");
     if (storedToken) {
       try {
@@ -146,7 +142,6 @@
         surveysList = (surveyData.surveys || []).map(normalizeSurvey);
         isOfflineMode = false;
 
-        // If activeSurveyId is not set yet, default to the first survey in database
         if (!activeSurveyId && surveysList.length > 0) {
           activeSurveyId = surveysList[0]._id;
         }
@@ -294,7 +289,7 @@
 </script>
 
 {#if isAuthChecking}
-  <div class="h-screen w-screen bg-slate-950 flex items-center justify-center text-cyan-400 font-mono text-sm">
+  <div class="h-screen w-screen bg-slate-950 flex items-center justify-center text-cyan-400 font-mono text-sm overflow-hidden">
     <div class="flex items-center space-x-3">
       <div class="h-3 w-3 rounded-full bg-cyan-400 animate-ping"></div>
       <span>Verifying User Credentials...</span>
@@ -307,88 +302,90 @@
 
 {:else}
   <!-- AUTHENTICATED PORTAL WORKSPACE -->
-  <div class="flex h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden m-0 p-0 relative">
+  <div class="flex h-screen w-screen max-w-full max-h-screen bg-slate-950 text-slate-100 overflow-hidden m-0 p-0 fixed inset-0">
     
     <!-- SIDEBAR -->
     {#if isSidebarVisible}
-      <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0 h-full z-40 transition-all duration-200">
-        <div>
-          <div class="px-5 h-16 border-b border-slate-800 flex items-center space-x-3 box-border">
-            <div class="h-8 w-8 rounded-lg bg-cyan-600 flex items-center justify-center font-bold text-white shadow-md shrink-0">
-              DS
+      <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0 h-full z-40 transition-all duration-200 overflow-hidden">
+        <div class="flex flex-col h-full justify-between">
+          <div>
+            <div class="px-5 h-16 border-b border-slate-800 flex items-center space-x-3 box-border">
+              <div class="h-8 w-8 rounded-lg bg-cyan-600 flex items-center justify-center font-bold text-white shadow-md shrink-0">
+                DS
+              </div>
+              <span class="font-bold text-base tracking-tight text-white truncate">DigitalSurvey</span>
             </div>
-            <span class="font-bold text-base tracking-tight text-white truncate">DigitalSurvey</span>
-          </div>
 
-          <nav class="p-4 space-y-1">
-            {#if currentUser?.role === "admin"}
+            <nav class="p-4 space-y-1">
+              {#if currentUser?.role === "admin"}
+                <button
+                  class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'surveys' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/10' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}"
+                  on:click={async () => {
+                    switchTab("surveys");
+                    await refreshDataLedger();
+                  }}
+                >
+                  <span>📋</span> <span>Surveys Portal</span>
+                </button>
+
+                <button
+                  class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'builder' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/10' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}"
+                  on:click={() => switchTab("builder")}
+                  disabled={surveysList.length === 0}
+                >
+                  <span>🛠️</span>
+                  <span class={surveysList.length === 0 ? "opacity-40" : ""}>Form Designer</span>
+                </button>
+
+                <button
+                  class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'kiosk' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/10' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}"
+                  on:click={() => {
+                    switchTab("kiosk");
+                  }}
+                >
+                  <span>📱</span>
+                  <span>Live Kiosk Mode</span>
+                </button>
+              {/if}
+
               <button
-                class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'surveys' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/10' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}"
+                class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'answers' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/10' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}"
                 on:click={async () => {
-                  switchTab("surveys");
+                  switchTab("answers");
                   await refreshDataLedger();
                 }}
               >
-                <span>📋</span> <span>Surveys Portal</span>
+                <span>📥</span> <span>Answers Log</span>
               </button>
+            </nav>
+          </div>
 
-              <button
-                class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'builder' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/10' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}"
-                on:click={() => switchTab("builder")}
-                disabled={surveysList.length === 0}
-              >
-                <span>🛠️</span>
-                <span class={surveysList.length === 0 ? "opacity-40" : ""}>Form Designer</span>
-              </button>
-
-              <button
-                class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'kiosk' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/10' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}"
-                on:click={() => {
-                  switchTab("kiosk");
-                }}
-              >
-                <span>📱</span>
-                <span>Live Kiosk Mode</span>
-              </button>
-            {/if}
-
-            <button
-              class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'answers' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/10' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}"
-              on:click={async () => {
-                switchTab("answers");
-                await refreshDataLedger();
-              }}
-            >
-              <span>📥</span> <span>Answers Log</span>
-            </button>
-          </nav>
-        </div>
-
-        <div class="p-4 border-t border-slate-800 bg-slate-900/50 text-[11px] text-slate-500 font-medium tracking-wide flex items-center justify-between">
-          <span class="truncate">Target: <strong class="text-slate-300">{activeSurvey?.title || "None"}</strong></span>
+          <div class="p-4 border-t border-slate-800 bg-slate-900/50 text-[11px] text-slate-500 font-medium tracking-wide flex items-center justify-between">
+            <span class="truncate">Target: <strong class="text-slate-300">{activeSurvey?.title || "None"}</strong></span>
+          </div>
         </div>
       </aside>
     {/if}
 
     <!-- MAIN BODY CANVAS -->
-    <div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
+    <div class="flex-1 flex flex-col h-full min-w-0 max-w-full overflow-hidden relative">
       
       <!-- STICKY TOP NAVIGATION BAR -->
       {#if !isDedicatedKioskMode}
-        <header class="sticky top-0 z-30 w-full h-16 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 flex items-center justify-between px-4 sm:px-6 shrink-0">
+        <header class="sticky top-0 z-30 w-full h-16 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 flex items-center justify-between px-4 sm:px-6 shrink-0 box-border">
           
           <!-- Left Header: Toggle Sidebar & Branding -->
-          <div class="flex items-center space-x-3">
+          <div class="flex items-center space-x-3 min-w-0">
             <button
               on:click={() => (isSidebarVisible = !isSidebarVisible)}
-              class="p-2 rounded-xl text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 transition-all flex items-center justify-center focus:outline-none active:scale-95 shadow-sm"
+              class="p-2 rounded-xl text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 transition-all flex items-center justify-center focus:outline-none active:scale-95 shadow-sm shrink-0"
               title={isSidebarVisible ? "Collapse Sidebar" : "Expand Sidebar"}
             >
               <span class="text-base leading-none font-bold">☰</span>
             </button>
 
             {#if !isSidebarVisible}
-              <div class="flex items-center space-x-2">
+              <div class="flex items-center space-x-2 shrink-0">
                 <div class="h-7 w-7 rounded-lg bg-cyan-600 flex items-center justify-center font-bold text-xs text-white shadow-md">
                   DS
                 </div>
@@ -398,25 +395,25 @@
           </div>
 
           <!-- Right Header: User Pill, Online Status & Sign Out -->
-          <div class="flex items-center space-x-3">
+          <div class="flex items-center space-x-3 shrink-0">
             {#if currentUser}
               <div class="flex items-center space-x-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl text-xs font-mono shadow-inner">
-                <span class="text-slate-400">User: <strong class="text-white">{currentUser.username}</strong></span>
-                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase {currentUser.role === 'admin' ? 'bg-cyan-950 text-cyan-300 border border-cyan-800' : 'bg-slate-800 text-slate-300'}">
+                <span class="text-slate-400 truncate">User: <strong class="text-white">{currentUser.username}</strong></span>
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase shrink-0 {currentUser.role === 'admin' ? 'bg-cyan-950 text-cyan-300 border border-cyan-800' : 'bg-slate-800 text-slate-300'}">
                   {currentUser.role}
                 </span>
               </div>
 
               <button
                 on:click={handleLogout}
-                class="text-xs text-rose-400 hover:text-rose-300 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900/60 px-3.5 py-1.5 rounded-xl font-bold transition-all active:scale-95 shadow-sm flex items-center space-x-1"
+                class="text-xs text-rose-400 hover:text-rose-300 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900/60 px-3.5 py-1.5 rounded-xl font-bold transition-all active:scale-95 shadow-sm flex items-center space-x-1 shrink-0"
               >
                 <span>Sign Out</span>
                 <span class="text-sm">➔</span>
               </button>
             {/if}
 
-            <div class="hidden sm:flex items-center space-x-2 px-2.5 py-1 rounded-full bg-slate-950 border border-slate-800 text-xs font-mono text-slate-400">
+            <div class="hidden sm:flex items-center space-x-2 px-2.5 py-1 rounded-full bg-slate-950 border border-slate-800 text-xs font-mono text-slate-400 shrink-0">
               <span class="h-2 w-2 rounded-full {isOfflineMode ? 'bg-rose-500 shadow-rose-500/50' : 'bg-emerald-500 shadow-emerald-500/50'} shadow-sm animate-pulse"></span>
               <span>{isOfflineMode ? "Offline" : "Online"}</span>
             </div>
@@ -425,10 +422,10 @@
       {/if}
 
       <!-- SCROLLABLE CANVAS -->
-      <main class="flex-1 bg-slate-950 overflow-y-auto overflow-x-hidden w-full box-border {isDedicatedKioskMode ? 'p-0' : 'p-4 sm:p-6 lg:p-8'}">
-        <div class="w-full h-full {isDedicatedKioskMode || activeTab === 'kiosk' ? '' : 'max-w-7xl mx-auto'}">
+      <main class="flex-1 bg-slate-950 overflow-y-auto overflow-x-hidden w-full max-w-full box-border {isDedicatedKioskMode ? 'p-0' : 'p-4 sm:p-6 lg:p-8'}">
+        <div class="w-full h-full min-w-0 max-w-full {isDedicatedKioskMode || activeTab === 'kiosk' ? '' : 'max-w-7xl mx-auto'}">
           {#if activeTab === "surveys" && currentUser?.role === "admin"}
-            <div class="w-full h-full">
+            <div class="w-full h-full min-w-0">
               <Dashboard
                 surveys={surveysList.filter(
                   (s) => !s.isDraft && !String(s._id).startsWith("DRAFT-"),
@@ -441,7 +438,7 @@
               />
             </div>
           {:else if activeTab === "builder" && currentUser?.role === "admin"}
-            <div class="w-full h-full">
+            <div class="w-full h-full min-w-0">
               <FormBuilder
                 surveyTitle={activeSurvey.title}
                 questions={activeSurvey.questions}
@@ -453,7 +450,7 @@
               />
             </div>
           {:else if activeTab === "kiosk" && (currentUser?.role === "admin" || isDedicatedKioskMode)}
-            <div class="w-full h-full flex items-center justify-center">
+            <div class="w-full h-full min-w-0 flex items-center justify-center">
               <Kiosk
                 surveyTitle={activeSurvey.title}
                 questions={activeSurvey.questions}
@@ -464,7 +461,7 @@
               />
             </div>
           {:else if activeTab === "answers"}
-            <div class="w-full h-full">
+            <div class="w-full h-full min-w-0">
               <Answers
                 bind:responses
                 bind:activeSurveyId
