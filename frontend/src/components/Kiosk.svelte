@@ -231,10 +231,10 @@
               >
                 <div class="space-y-1">
                   <div class="flex items-center justify-between">
-                    <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-cyan-700 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-950/60 border border-cyan-200 dark:border-cyan-800/40 px-2 py-0.5 rounded">
+                    <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-sky-800 bg-sky-100 border border-sky-200 dark:text-cyan-400 dark:bg-cyan-950/60 dark:border-cyan-800/40 px-2 py-0.5 rounded">
                       Active Form
                     </span>
-                    <span class="text-[11px] font-mono text-slate-400 dark:text-slate-500 font-bold">
+                    <span class="text-[11px] font-mono text-slate-600 dark:text-slate-400 font-bold">
                       {survey.questions?.length || 0} Fields
                     </span>
                   </div>
@@ -244,9 +244,12 @@
                 </div>
 
                 <div class="flex items-center justify-between pt-1.5 border-t border-slate-200 dark:border-slate-900">
-                  <span class="text-[11px] text-slate-500 dark:text-slate-400 font-medium group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">Tap to start terminal</span>
-                  <span class="text-[11px] font-bold bg-cyan-600 group-hover:bg-cyan-500 text-white px-3 py-1 rounded-xl shadow-xs transition-all">
-                    Launch →
+                  <span class="text-[11px] text-slate-600 dark:text-slate-400 font-medium group-hover:text-slate-900 dark:group-hover:text-slate-200 transition-colors">Tap to start terminal</span>
+                  
+                  <!-- HIGH CONTRAST EXPLICIT LAUNCH BUTTON -->
+                  <span class="text-[11px] font-bold bg-[#1a2b6c] dark:bg-cyan-600 group-hover:bg-[#121e52] dark:group-hover:bg-cyan-500 !text-white px-3.5 py-1 rounded-xl shadow-xs transition-all flex items-center space-x-1">
+                    <span class="!text-white font-bold">Launch</span>
+                    <span class="!text-white font-bold">→</span>
                   </span>
                 </div>
               </button>
