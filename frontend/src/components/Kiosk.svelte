@@ -172,7 +172,14 @@
             placeholder="Tablet-A"
             class="bg-transparent text-xs text-navy-950 dark:text-white px-1 py-0 font-mono focus:outline-none w-20"
           />
-          <button on:click={saveCustomDeviceId} class="bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full transition-all">Save</button>
+          <!-- DIRECT INLINE STYLING FOR SAFE BUTTON TEXT -->
+          <button 
+            on:click={saveCustomDeviceId} 
+            class="bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full transition-all"
+            style="color: #ffffff !important; font-weight: 800 !important;"
+          >
+            Save
+          </button>
         </div>
       {:else}
         <button
