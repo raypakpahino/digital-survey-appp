@@ -172,11 +172,10 @@
             placeholder="Tablet-A"
             class="bg-transparent text-xs text-navy-950 dark:text-white px-1 py-0 font-mono focus:outline-none w-20"
           />
-          <!-- DIRECT INLINE STYLING FOR SAFE BUTTON TEXT -->
           <button 
             on:click={saveCustomDeviceId} 
             class="bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full transition-all"
-            style="color: #ffffff !important; font-weight: 800 !important;"
+            style="background-color: #1a2b6c !important; color: #ffffff !important; font-weight: 800 !important;"
           >
             Save
           </button>
@@ -253,10 +252,13 @@
                 <div class="flex items-center justify-between pt-1.5 border-t border-slate-200 dark:border-slate-900">
                   <span class="text-[11px] text-slate-600 dark:text-slate-400 font-medium group-hover:text-slate-900 dark:group-hover:text-slate-200 transition-colors">Tap to start terminal</span>
                   
-                  <!-- FORCE SOLID WHITE TEXT WITH DIRECT INLINE STYLES -->
-                  <span class="text-[11px] font-bold bg-[#1a2b6c] dark:bg-cyan-600 group-hover:bg-[#121e52] dark:group-hover:bg-cyan-500 px-3.5 py-1 rounded-xl shadow-xs transition-all flex items-center space-x-1" style="color: #ffffff !important;">
-                    <span style="color: #ffffff !important; font-weight: 800 !important;">Launch</span>
-                    <span style="color: #ffffff !important; font-weight: 800 !important;">→</span>
+                  <!-- SOLID NAVY FILL IN LIGHT MODE, CYAN IN DARK MODE -->
+                  <span 
+                    class="text-[11px] font-bold px-3.5 py-1 rounded-xl shadow-xs transition-all flex items-center space-x-1"
+                    style="background-color: #1a2b6c !important; color: #ffffff !important;"
+                  >
+                    <span style="color: #ffffff !important; font-weight: 800 !important; background-color: transparent !important;">Launch</span>
+                    <span style="color: #ffffff !important; font-weight: 800 !important; background-color: transparent !important;">→</span>
                   </span>
                 </div>
               </button>
@@ -388,9 +390,10 @@
                 <button
                   on:click={advanceStep}
                   class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-5 text-xs sm:text-sm rounded-xl transition-all shadow-md active:scale-[0.98] mt-3 flex items-center justify-center space-x-2"
+                  style="background-color: #1a2b6c !important; color: #ffffff !important;"
                 >
-                  <span style="color: #ffffff !important;">Confirm & Continue</span>
-                  <span style="color: #ffffff !important;">➔</span>
+                  <span style="color: #ffffff !important; background-color: transparent !important;">Confirm & Continue</span>
+                  <span style="color: #ffffff !important; background-color: transparent !important;">➔</span>
                 </button>
               {/if}
             </div>
@@ -407,8 +410,10 @@
               />
               <button 
                 type="submit"
-                class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-5 text-xs sm:text-sm rounded-xl transition-all shadow-md active:scale-[0.98]">
-                <span style="color: #ffffff !important;">Submit Field Input ➔</span>
+                class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-5 text-xs sm:text-sm rounded-xl transition-all shadow-md active:scale-[0.98]"
+                style="background-color: #1a2b6c !important; color: #ffffff !important;"
+              >
+                <span style="color: #ffffff !important; background-color: transparent !important;">Submit Field Input ➔</span>
               </button>
             </form>
           {/if}

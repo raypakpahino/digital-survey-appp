@@ -163,9 +163,9 @@
         border-color: #1a2b6c !important;
       }
       
-      /* Explicit Sub-Text inside Form Selector Cards */
-      html:not(.dark) main button[class*="bg-slate-50"] span:not([class*="bg-cyan"]):not([class*="bg-rose"]),
-      html:not(.dark) main button[class*="bg-slate-950"] span:not([class*="bg-cyan"]):not([class*="bg-rose"]) {
+      /* Sub-Text inside Form Selector Cards */
+      html:not(.dark) main button[class*="bg-slate-50"] span:not([style]),
+      html:not(.dark) main button[class*="bg-slate-950"] span:not([style]) {
         color: #475569 !important;
       }
 
@@ -261,12 +261,6 @@
         color: #ffffff !important;
         border-color: #1a2b6c !important;
       }
-      html:not(.dark) main button.bg-cyan-600 *,
-      html:not(.dark) main button.bg-cyan-500 * {
-        background-color: transparent !important;
-        color: #ffffff !important;
-        font-weight: 700 !important;
-      }
 
       /* Inactive Filter & Preset Buttons ("Log Matrix", "Today", "7 Days") */
       html:not(.dark) main button[class*="bg-slate-"]:not([class*="bg-cyan-600"]) {
@@ -275,12 +269,9 @@
         border-color: #cbd5e1 !important;
         font-weight: 700 !important;
       }
-      html:not(.dark) main button[class*="bg-slate-"]:not([class*="bg-cyan-600"]) * {
+      html:not(.dark) main button[class*="bg-slate-"]:not([class*="bg-cyan-600"]) span:not([style]) {
         background-color: transparent !important;
         color: #1a2b6c !important;
-      }
-      html:not(.dark) main button[class*="bg-slate-"]:not([class*="bg-cyan-600"]):hover {
-        background-color: #e2e8f0 !important;
       }
 
       /* Export CSV Button */
@@ -289,24 +280,12 @@
         background-color: #059669 !important;
         color: #ffffff !important;
       }
-      html:not(.dark) [class*="bg-emerald-600"] *,
-      html:not(.dark) [class*="bg-emerald-500"] * {
-        background-color: transparent !important;
-        color: #ffffff !important;
-      }
 
       /* Clear All Danger Button */
       html:not(.dark) [class*="bg-rose-"] {
         background-color: #e31b23 !important; /* Sodexo Red */
         color: #ffffff !important;
         border-color: #e31b23 !important;
-      }
-      html:not(.dark) [class*="bg-rose-"] * {
-        background-color: transparent !important;
-        color: #ffffff !important;
-      }
-      html:not(.dark) [class*="bg-rose-"]:hover {
-        background-color: #c8141a !important;
       }
 
       /* Tablet Site Filter Pills */
