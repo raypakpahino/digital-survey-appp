@@ -385,7 +385,7 @@
       <div>
         <h3 class="text-[11px] font-bold text-white uppercase tracking-wider">Select Target Form</h3>
         <p class="text-[10px] text-slate-400 mt-0.5 leading-tight hidden lg:block">
-          Choose a form sequence to analyze metrics and export logs.
+          Choose an active form sequence to analyze metrics and export logs.
         </p>
       </div>
 
@@ -533,7 +533,10 @@
         >
           <span class="text-sm">🔔</span>
           {#if lowRatingAlerts.length > 0}
-            <span class="absolute -top-1 -right-1 bg-rose-600 text-white font-mono font-bold text-[9px] h-4 min-w-[1.1rem] px-0.5 rounded-full flex items-center justify-center animate-pulse border border-slate-900">
+            <span 
+              class="absolute -top-1 -right-1 font-mono font-bold text-[9px] h-4 min-w-[1.1rem] px-0.5 rounded-full flex items-center justify-center animate-pulse border shadow-sm"
+              style="background-color: #e31b23 !important; color: #ffffff !important; border-color: #ffffff !important;"
+            >
               {lowRatingAlerts.length}
             </span>
           {/if}

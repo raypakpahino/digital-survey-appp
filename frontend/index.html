@@ -266,6 +266,13 @@
         border-color: #1a2b6c !important;
       }
 
+      /* Notification Alert Red Counter Badge */
+      html:not(.dark) main span[class*="bg-rose-"] {
+        background-color: #e31b23 !important;
+        color: #ffffff !important;
+        border-color: #ffffff !important;
+      }
+
       /* Inactive Filter & Preset Buttons ("Log Matrix", "Today", "7 Days") */
       html:not(.dark) main button[class*="bg-slate-"]:not([class*="bg-cyan-600"]) {
         background-color: #f1f5f9 !important;
@@ -286,7 +293,7 @@
       }
 
       /* Clear All Danger Button */
-      html:not(.dark) [class*="bg-rose-"] {
+      html:not(.dark) button[class*="bg-rose-"] {
         background-color: #e31b23 !important; /* Sodexo Red */
         color: #ffffff !important;
         border-color: #e31b23 !important;
