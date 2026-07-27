@@ -37,6 +37,12 @@
       activeTab = "answers";
       return;
     }
+    
+    // Reset active survey state when manually navigating to Kiosk via sidebar
+    if (tab === "kiosk" && !isDedicatedKioskMode) {
+      activeSurveyId = "";
+    }
+
     activeTab = tab;
     if (!isDedicatedKioskMode) {
       if (activeSurveyId && (tab === "builder" || tab === "kiosk" || tab === "answers")) {
@@ -122,6 +128,9 @@
             const route = hash.replace("#/", "").split("?")[0];
             if (["surveys", "builder", "kiosk", "answers"].includes(route)) {
               activeTab = route;
+              if (route === "kiosk") {
+                activeSurveyId = "";
+              }
             } else {
               window.location.hash = "/surveys";
             }
@@ -164,7 +173,7 @@
         surveysList = (surveyData.surveys || []).map(normalizeSurvey);
         isOfflineMode = false;
 
-        if (!activeSurveyId && surveysList.length > 0) {
+        if (!activeSurveyId && surveysList.length > 0 && activeTab !== "kiosk") {
           activeSurveyId = surveysList[0]._id;
         }
       }

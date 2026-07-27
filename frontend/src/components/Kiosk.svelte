@@ -28,8 +28,15 @@
   $: currentQuestion = questions[currentQuestionIndex] || null;
 
   onMount(() => {
-    const urlParams = new URLSearchParams(window.location.hash.includes("?") ? window.location.hash.split("?")[1] : window.location.search);
+    const hash = window.location.hash;
+    const urlParams = new URLSearchParams(hash.includes("?") ? hash.split("?")[1] : window.location.search);
     const paramDeviceId = urlParams.get("deviceId");
+    const isDirectLink = urlParams.has("id") && (hash.startsWith("#/kiosk") || window.location.search.includes("id="));
+
+    // Force reset active survey on initial kiosk tab open UNLESS opened via direct shared URL link
+    if (!isDirectLink) {
+      activeSurveyId = "";
+    }
 
     if (paramDeviceId) {
       deviceId = paramDeviceId;
