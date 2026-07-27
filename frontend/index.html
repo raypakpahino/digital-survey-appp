@@ -146,6 +146,7 @@
         border-color: #1a2b6c !important;
       }
       html:not(.dark) main button[class*="bg-cyan-600\/10"] span {
+        background-color: transparent !important;
         color: #1a2b6c !important;
         font-weight: 800 !important;
       }
@@ -201,7 +202,7 @@
         color: #1a2b6c !important;
       }
 
-      /* Question Sub-Headings & Accent Dividers */
+      /* Question Sub-Headings & Red Accent */
       html:not(.dark) main [class*="text-cyan-400"],
       html:not(.dark) main [class*="text-cyan-300"] {
         color: #e31b23 !important;
@@ -252,14 +253,18 @@
          3. ACTION BUTTONS & CONTRAST ENFORCEMENT
          ------------------------------------------------------------- */
       
-      /* Active Buttons & Launch Pills ("Analytics", "All", "Launch ➔") */
-      html:not(.dark) main [class*="bg-cyan-600"],
-      html:not(.dark) main [class*="bg-cyan-500"],
-      html:not(.dark) main [class*="bg-cyan-600"] *,
-      html:not(.dark) main [class*="bg-cyan-500"] * {
+      /* Solid Active Buttons ("Analytics", "All", "+ Create New Form") */
+      html:not(.dark) main button.bg-cyan-600,
+      html:not(.dark) main button.bg-cyan-500,
+      html:not(.dark) main a.bg-cyan-600 {
         background-color: #1a2b6c !important;
         color: #ffffff !important;
         border-color: #1a2b6c !important;
+      }
+      html:not(.dark) main button.bg-cyan-600 *,
+      html:not(.dark) main button.bg-cyan-500 * {
+        background-color: transparent !important;
+        color: #ffffff !important;
         font-weight: 700 !important;
       }
 
@@ -271,6 +276,7 @@
         font-weight: 700 !important;
       }
       html:not(.dark) main button[class*="bg-slate-"]:not([class*="bg-cyan-600"]) * {
+        background-color: transparent !important;
         color: #1a2b6c !important;
       }
       html:not(.dark) main button[class*="bg-slate-"]:not([class*="bg-cyan-600"]):hover {
@@ -285,6 +291,7 @@
       }
       html:not(.dark) [class*="bg-emerald-600"] *,
       html:not(.dark) [class*="bg-emerald-500"] * {
+        background-color: transparent !important;
         color: #ffffff !important;
       }
 
@@ -295,6 +302,7 @@
         border-color: #e31b23 !important;
       }
       html:not(.dark) [class*="bg-rose-"] * {
+        background-color: transparent !important;
         color: #ffffff !important;
       }
       html:not(.dark) [class*="bg-rose-"]:hover {
