@@ -75,11 +75,19 @@
         color: #0f172a !important;
       }
 
-      /* Top Header */
+      /* Top Header Bar */
       html:not(.dark) header {
         background-color: #ffffff !important;
         border-color: #e2e8f0 !important;
         box-shadow: 0 2px 4px 0 rgba(26, 43, 108, 0.04) !important;
+      }
+
+      /* DS Logo Icon Badge Override (Sodexo Red in Light Mode) */
+      html:not(.dark) .bg-cyan-600,
+      html:not(.dark) header .bg-cyan-600,
+      html:not(.dark) aside .bg-cyan-600 {
+        background-color: #e31b23 !important;
+        color: #ffffff !important;
       }
 
       /* Header Device Pills & Action Buttons */
@@ -105,10 +113,6 @@
       }
       html:not(.dark) aside * {
         border-color: #24388a !important;
-      }
-      html:not(.dark) aside .bg-cyan-600 {
-        background-color: #e31b23 !important;
-        color: #ffffff !important;
       }
       html:not(.dark) aside span {
         color: #ffffff !important;

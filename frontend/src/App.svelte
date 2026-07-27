@@ -340,11 +340,22 @@
       <aside class="w-64 theme-bg-sidebar theme-border border-r flex flex-col justify-between shrink-0 h-full z-40 transition-all duration-300 overflow-hidden text-slate-100">
         <div class="flex flex-col h-full justify-between">
           <div>
-            <div class="px-5 h-16 theme-border border-b flex items-center space-x-3 box-border">
-              <div class="h-8 w-8 rounded-lg bg-cyan-600 flex items-center justify-center font-bold text-white shadow-md shrink-0">
-                DS
+            <!-- SIDEBAR HEADER (INCLUDES PINNED TOGGLE BUTTON AT TOP LEFT) -->
+            <div class="px-4 h-16 theme-border border-b flex items-center space-x-3 box-border shrink-0">
+              <button
+                on:click={() => (isSidebarVisible = !isSidebarVisible)}
+                class="p-2 rounded-xl text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 transition-all flex items-center justify-center focus:outline-none active:scale-95 shadow-sm shrink-0"
+                title="Collapse Sidebar"
+              >
+                <span class="text-base leading-none font-bold">☰</span>
+              </button>
+
+              <div class="flex items-center space-x-2 min-w-0 truncate">
+                <div class="h-8 w-8 rounded-lg bg-cyan-600 flex items-center justify-center font-bold text-white shadow-md shrink-0">
+                  DS
+                </div>
+                <span class="font-bold text-base tracking-tight text-white truncate">DigitalSurvey</span>
               </div>
-              <span class="font-bold text-base tracking-tight text-white truncate">DigitalSurvey</span>
             </div>
 
             <nav class="p-4 space-y-1">
@@ -405,17 +416,17 @@
       {#if !isDedicatedKioskMode}
         <header class="sticky top-0 z-30 w-full h-16 theme-bg-card theme-border border-b flex items-center justify-between px-4 sm:px-6 shrink-0 box-border transition-colors duration-300 theme-shadow">
           
-          <!-- Left Header: Toggle Sidebar & Branding -->
+          <!-- Left Header Branding & Pinned Toggle -->
           <div class="flex items-center space-x-3 min-w-0">
-            <button
-              on:click={() => (isSidebarVisible = !isSidebarVisible)}
-              class="p-2 rounded-xl theme-text-secondary hover:theme-text-primary theme-bg-inner theme-border border transition-all flex items-center justify-center focus:outline-none active:scale-95 shadow-sm shrink-0"
-              title={isSidebarVisible ? "Collapse Sidebar" : "Expand Sidebar"}
-            >
-              <span class="text-base leading-none font-bold">☰</span>
-            </button>
-
             {#if !isSidebarVisible}
+              <button
+                on:click={() => (isSidebarVisible = !isSidebarVisible)}
+                class="p-2 rounded-xl theme-text-secondary hover:theme-text-primary theme-bg-inner theme-border border transition-all flex items-center justify-center focus:outline-none active:scale-95 shadow-sm shrink-0"
+                title="Expand Sidebar"
+              >
+                <span class="text-base leading-none font-bold">☰</span>
+              </button>
+
               <div class="flex items-center space-x-2 shrink-0">
                 <div class="h-7 w-7 rounded-lg bg-cyan-600 flex items-center justify-center font-bold text-xs text-white shadow-md">
                   DS
