@@ -246,10 +246,10 @@
                 <div class="flex items-center justify-between pt-1.5 border-t border-slate-200 dark:border-slate-900">
                   <span class="text-[11px] text-slate-600 dark:text-slate-400 font-medium group-hover:text-slate-900 dark:group-hover:text-slate-200 transition-colors">Tap to start terminal</span>
                   
-                  <!-- HIGH CONTRAST EXPLICIT LAUNCH BUTTON -->
-                  <span class="text-[11px] font-bold bg-[#1a2b6c] dark:bg-cyan-600 group-hover:bg-[#121e52] dark:group-hover:bg-cyan-500 !text-white px-3.5 py-1 rounded-xl shadow-xs transition-all flex items-center space-x-1">
-                    <span class="!text-white font-bold">Launch</span>
-                    <span class="!text-white font-bold">→</span>
+                  <!-- FORCE SOLID WHITE TEXT WITH DIRECT INLINE STYLES -->
+                  <span class="text-[11px] font-bold bg-[#1a2b6c] dark:bg-cyan-600 group-hover:bg-[#121e52] dark:group-hover:bg-cyan-500 px-3.5 py-1 rounded-xl shadow-xs transition-all flex items-center space-x-1" style="color: #ffffff !important;">
+                    <span style="color: #ffffff !important; font-weight: 800 !important;">Launch</span>
+                    <span style="color: #ffffff !important; font-weight: 800 !important;">→</span>
                   </span>
                 </div>
               </button>
@@ -382,8 +382,8 @@
                   on:click={advanceStep}
                   class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-5 text-xs sm:text-sm rounded-xl transition-all shadow-md active:scale-[0.98] mt-3 flex items-center justify-center space-x-2"
                 >
-                  <span>Confirm & Continue</span>
-                  <span>➔</span>
+                  <span style="color: #ffffff !important;">Confirm & Continue</span>
+                  <span style="color: #ffffff !important;">➔</span>
                 </button>
               {/if}
             </div>
@@ -401,7 +401,7 @@
               <button 
                 type="submit"
                 class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-5 text-xs sm:text-sm rounded-xl transition-all shadow-md active:scale-[0.98]">
-                Submit Field Input ➔
+                <span style="color: #ffffff !important;">Submit Field Input ➔</span>
               </button>
             </form>
           {/if}
