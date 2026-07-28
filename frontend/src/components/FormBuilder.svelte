@@ -142,11 +142,11 @@
 </script>
 
 <div
-  class="w-full h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-8 animate-fade overflow-hidden box-border text-slate-800 dark:text-slate-100"
+  class="w-full min-h-full flex flex-col lg:flex-row gap-6 animate-fade overflow-visible box-border text-slate-800 dark:text-slate-100 pb-12"
 >
-  <!-- LEFT SIDEBAR: TOOLBOX -->
+  <!-- LEFT SIDEBAR: TOOLBOX (STICKY POSITIONED ON DESKTOP) -->
   <div
-    class="w-full lg:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 shrink-0 flex flex-col justify-between shadow-md h-full box-border"
+    class="w-full lg:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 shrink-0 flex flex-col justify-between shadow-md h-fit lg:sticky lg:top-4 box-border self-start z-10"
   >
     <div class="space-y-6">
       <div>
@@ -162,10 +162,10 @@
         {#each availableComponents as comp}
           <button
             on:click={() => dropComponent(comp.type)}
-            class="w-full text-left bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/60 hover:border-cyan-500/40 p-4 rounded-xl flex items-center space-x-4 transition-all group active:scale-[0.98]"
+            class="w-full text-left bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/60 hover:border-cyan-500/40 p-3.5 rounded-xl flex items-center space-x-3.5 transition-all group active:scale-[0.98]"
           >
             <span
-              class="text-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 h-12 w-12 rounded-xl flex items-center justify-center group-hover:bg-cyan-50 dark:group-hover:bg-cyan-950/30 group-hover:border-cyan-300 dark:group-hover:border-cyan-900/40 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-all shadow-xs"
+              class="text-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 h-10 w-10 rounded-xl flex items-center justify-center group-hover:bg-cyan-50 dark:group-hover:bg-cyan-950/30 group-hover:border-cyan-300 dark:group-hover:border-cyan-900/40 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-all shadow-xs shrink-0"
               >{comp.icon}</span
             >
             <div>
@@ -198,9 +198,9 @@
     </div>
   </div>
 
-  <!-- RIGHT: DESIGN CANVAS WORKSPACE -->
+  <!-- RIGHT: EXPANDABLE DESIGN CANVAS WORKSPACE -->
   <div
-    class="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-8 flex flex-col shadow-md h-full overflow-hidden box-border"
+    class="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 sm:p-8 flex flex-col shadow-md h-auto overflow-visible box-border min-w-0"
   >
     <!-- TOP CONTROL BAR -->
     <div
@@ -243,7 +243,7 @@
     </div>
 
     <!-- Title Input Section -->
-    <div class="space-y-3 shrink-0 mt-6">
+    <div class="space-y-2.5 shrink-0 mt-6">
       <label
         class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block"
         for="form-heading">Form Name Header</label
@@ -274,10 +274,8 @@
       >
     </div>
 
-    <!-- FIELD CANVAS CONTAINER -->
-    <div
-      class="flex-1 overflow-y-auto mt-6 pr-2 custom-scrollbar box-border pb-4"
-    >
+    <!-- EXPANDABLE FIELD CANVAS (NATURAL FLOW DOWN PAGE) -->
+    <div class="mt-6 box-border flex-1">
       {#if localQuestions.length === 0}
         <div
           class="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-16 text-center text-slate-400 dark:text-slate-500 text-sm leading-relaxed mt-2"
@@ -481,9 +479,9 @@
       {/if}
     </div>
 
-    <!-- CANVAS FOOTER -->
+    <!-- CANVAS STICKY FOOTER (ALWAYS ACCESSIBLE AT BOTTOM) -->
     <div
-      class="pt-4 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-end shrink-0 bg-white dark:bg-slate-900"
+      class="pt-6 mt-8 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-end shrink-0 bg-white dark:bg-slate-900 sticky bottom-0 py-4 z-10"
     >
       <button
         on:click={triggerExplicitSave}
