@@ -9,6 +9,7 @@
 
   let localTitle = "";
   let localQuestions = [];
+  let saveContainerRef;
 
   $: {
     let dummy = activeSurveyId;
@@ -130,6 +131,14 @@
     }
   }
 
+  function scrollToSave() {
+    if (saveContainerRef) {
+      saveContainerRef.scrollIntoView({ behavior: "smooth", block: "center" });
+    } else {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    }
+  }
+
   function triggerExplicitSave() {
     onSaveSurvey(localTitle, localQuestions);
     alert("💾 Form schema committed and deployed successfully!");
@@ -142,9 +151,9 @@
 </script>
 
 <div
-  class="w-full min-h-full flex flex-col lg:flex-row gap-6 animate-fade overflow-visible box-border text-slate-800 dark:text-slate-100 pb-12"
+  class="w-full min-h-full flex flex-col lg:flex-row gap-6 animate-fade overflow-visible box-border text-slate-800 dark:text-slate-100 pb-16 relative"
 >
-  <!-- LEFT SIDEBAR: TOOLBOX (STICKY POSITIONED ON DESKTOP) -->
+  <!-- LEFT SIDEBAR: TOOLBOX (STICKY ON DESKTOP) -->
   <div
     class="w-full lg:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 shrink-0 flex flex-col justify-between shadow-md h-fit lg:sticky lg:top-4 box-border self-start z-10"
   >
@@ -204,7 +213,7 @@
   >
     <!-- TOP CONTROL BAR -->
     <div
-      class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shrink-0 shadow-inner"
+      class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0 shadow-inner"
     >
       <div
         class="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3"
@@ -234,12 +243,25 @@
         </select>
       </div>
 
-      <button
-        on:click={onCreateNewSurvey}
-        class="bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 font-bold text-xs px-4 py-2.5 rounded-xl transition-all shrink-0 flex items-center justify-center space-x-1.5 active:scale-[0.98]"
-      >
-        <span>+</span> <span>Create New Form</span>
-      </button>
+      <div class="flex items-center space-x-2">
+        {#if localQuestions.length > 0}
+          <button
+            type="button"
+            on:click={scrollToSave}
+            class="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all shrink-0 flex items-center justify-center space-x-1.5 active:scale-95 shadow-xs"
+            title="Scroll down to Save button"
+          >
+            <span>⬇️</span> <span>Jump to Save</span>
+          </button>
+        {/if}
+
+        <button
+          on:click={onCreateNewSurvey}
+          class="bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 font-bold text-xs px-4 py-2.5 rounded-xl transition-all shrink-0 flex items-center justify-center space-x-1.5 active:scale-[0.98]"
+        >
+          <span>+</span> <span>Create New Form</span>
+        </button>
+      </div>
     </div>
 
     <!-- Title Input Section -->
@@ -274,7 +296,7 @@
       >
     </div>
 
-    <!-- EXPANDABLE FIELD CANVAS (NATURAL FLOW DOWN PAGE) -->
+    <!-- EXPANDABLE FIELD CANVAS -->
     <div class="mt-6 box-border flex-1">
       {#if localQuestions.length === 0}
         <div
@@ -479,9 +501,10 @@
       {/if}
     </div>
 
-    <!-- CANVAS STICKY FOOTER (ALWAYS ACCESSIBLE AT BOTTOM) -->
+    <!-- CANVAS FOOTER (SITS AT THE VERY BOTTOM OF THE BUILDER) -->
     <div
-      class="pt-6 mt-8 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-end shrink-0 bg-white dark:bg-slate-900 sticky bottom-0 py-4 z-10"
+      bind:this={saveContainerRef}
+      class="pt-6 mt-8 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-end shrink-0 bg-white dark:bg-slate-900 py-4"
     >
       <button
         on:click={triggerExplicitSave}
@@ -493,6 +516,19 @@
     </div>
   </div>
 </div>
+
+<!-- FLOATING QUICK JUMP BUTTON (APPEARS WHEN BUILDER HAS QUESTIONS) -->
+{#if localQuestions.length >= 2}
+  <button
+    on:click={scrollToSave}
+    class="fixed bottom-6 right-6 z-40 bg-[#1a2b6c] dark:bg-cyan-600 hover:bg-[#121e52] dark:hover:bg-cyan-500 text-white font-bold text-xs py-3 px-5 rounded-full shadow-2xl flex items-center space-x-2 transition-all active:scale-95 border border-white/20"
+    style="color: #ffffff !important;"
+    title="Jump straight to Save button"
+  >
+    <span style="color: #ffffff !important;">⬇️</span>
+    <span style="color: #ffffff !important; font-weight: 800 !important;">Jump to Save</span>
+  </button>
+{/if}
 
 <style>
   .custom-scrollbar::-webkit-scrollbar { width: 6px; }
