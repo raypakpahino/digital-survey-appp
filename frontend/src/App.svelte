@@ -459,14 +459,16 @@
       {#if !isDedicatedKioskMode}
         <header class="sticky top-0 z-30 w-full h-16 theme-bg-card theme-border border-b flex items-center justify-between px-4 sm:px-6 shrink-0 box-border transition-colors duration-300 theme-shadow">
           
-          <!-- Left Header Branding -->
+          <!-- Left Header Branding (ONLY RENDERS WHEN SIDEBAR IS COLLAPSED) -->
           <div class="flex items-center space-x-3 min-w-0">
-            <div class="flex items-center space-x-2 shrink-0">
-              <div class="h-7 w-7 rounded-lg bg-cyan-600 flex items-center justify-center font-extrabold text-xs text-white shadow-md">
-                DS
+            {#if !isSidebarExpanded}
+              <div class="flex items-center space-x-2 shrink-0 transition-all duration-300">
+                <div class="h-7 w-7 rounded-lg bg-cyan-600 flex items-center justify-center font-extrabold text-xs text-white shadow-md">
+                  DS
+                </div>
+                <span class="font-bold text-sm tracking-tight theme-text-primary">DigitalSurvey</span>
               </div>
-              <span class="font-bold text-sm tracking-tight theme-text-primary">DigitalSurvey</span>
-            </div>
+            {/if}
           </div>
 
           <!-- Right Header: Theme Switcher, User Pill & Sign Out -->
