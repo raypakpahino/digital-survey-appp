@@ -43,26 +43,37 @@
       <h1 class="text-2xl font-bold tracking-tight text-navy-950 dark:text-white">Surveys & Forms Portal</h1>
       <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Design questionnaires, organize remote interactive deployment hubs, and manage historical entry structures.</p>
     </div>
-    <button on:click={onCreateSurvey} class="bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-cyan-600/20 active:scale-[0.98]">
-      + Create New Form
+    <button on:click={onCreateSurvey} class="bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-cyan-600/20 active:scale-[0.98] flex items-center space-x-2">
+      <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      <span>Create New Form</span>
     </button>
   </div>
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- FORM LIBRARY CAPACITY STAT CARD -->
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 shadow-sm flex items-center justify-between">
       <div>
         <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Form Library Capacity</h4>
         <p class="text-3xl font-extrabold text-cyan-600 dark:text-cyan-400 mt-2">{surveys.length} Deployed Schemas</p>
       </div>
-      <div class="text-3xl bg-slate-100 dark:bg-slate-950 h-14 w-14 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-800 shadow-inner">📋</div>
+      <div class="bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 h-14 w-14 rounded-xl flex items-center justify-center border border-cyan-200 dark:border-cyan-900/60 shadow-xs">
+        <svg class="w-7 h-7 fill-current" viewBox="0 0 24 24">
+          <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 16H5V5h2v2h10V5h2v14z"/>
+        </svg>
+      </div>
     </div>
     
+    <!-- AGGREGATED RESPONSES STAT CARD -->
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 shadow-sm flex items-center justify-between">
       <div>
         <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Aggregated Responses Collected</h4>
         <p class="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-2">{responseCount} Submissions</p>
       </div>
-      <div class="text-3xl bg-slate-100 dark:bg-slate-950 h-14 w-14 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-800 shadow-inner">📥</div>
+      <div class="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 h-14 w-14 rounded-xl flex items-center justify-center border border-emerald-200 dark:border-emerald-900/60 shadow-xs">
+        <svg class="w-7 h-7 fill-current" viewBox="0 0 24 24">
+          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-7-2l5-5-1.41-1.41L13 14.17V7h-2v7.17l-2.59-2.58L7 12l5 5z"/>
+        </svg>
+      </div>
     </div>
   </div>
 
@@ -81,6 +92,7 @@
             <button 
               on:click={() => onDeleteSurvey(survey._id)}
               class="absolute top-4 right-4 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 bg-slate-100 dark:bg-slate-950 hover:bg-rose-50 dark:hover:bg-rose-950/20 border border-slate-200 dark:border-slate-800/60 hover:border-rose-300 dark:hover:border-rose-900/40 h-8 w-8 rounded-xl flex items-center justify-center text-xs transition-all opacity-0 group-hover:opacity-100 shadow-xs"
+              title="Delete Survey"
             >
               ✕
             </button>
@@ -98,17 +110,33 @@
 
             <div class="flex flex-col gap-2 pt-2 border-t border-slate-200 dark:border-slate-800/60">
               <div class="grid grid-cols-2 gap-2">
-                <button on:click={() => onEditSurvey(survey._id)} class="w-full text-center bg-slate-100 dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold py-2.5 px-4 text-xs rounded-xl border border-slate-200 dark:border-slate-800 transition-all">
-                  🛠️ Open Designer
+                
+                <!-- OPEN DESIGNER BUTTON -->
+                <button on:click={() => onEditSurvey(survey._id)} class="w-full text-center bg-slate-100 dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold py-2.5 px-4 text-xs rounded-xl border border-slate-200 dark:border-slate-800 transition-all flex items-center justify-center space-x-2">
+                  <svg class="w-4 h-4 fill-current text-slate-600 dark:text-slate-300" viewBox="0 0 24 24">
+                    <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                  </svg>
+                  <span>Open Designer</span>
                 </button>
-                <button on:click={() => onTestSurvey(survey._id)} class="w-full text-center bg-cyan-50 dark:bg-cyan-950/40 hover:bg-cyan-100 dark:hover:bg-cyan-950/80 text-cyan-700 dark:text-cyan-400 font-bold py-2.5 px-4 text-xs rounded-xl border border-cyan-200 dark:border-cyan-950/80 transition-all">
-                  📱 Test Kiosk
+
+                <!-- TEST KIOSK BUTTON -->
+                <button on:click={() => onTestSurvey(survey._id)} class="w-full text-center bg-cyan-50 dark:bg-cyan-950/40 hover:bg-cyan-100 dark:hover:bg-cyan-950/80 text-cyan-700 dark:text-cyan-400 font-bold py-2.5 px-4 text-xs rounded-xl border border-cyan-200 dark:border-cyan-950/80 transition-all flex items-center justify-center space-x-2">
+                  <svg class="w-4 h-4 fill-current text-cyan-600 dark:text-cyan-400" viewBox="0 0 24 24">
+                    <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
+                  </svg>
+                  <span>Test Kiosk</span>
                 </button>
+
               </div>
               
-              <button on:click={() => openShareHub(survey)} class="w-full bg-slate-100 dark:bg-slate-950 text-emerald-700 dark:text-emerald-400 font-bold py-2 px-4 text-xs rounded-xl border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/10 transition-all flex items-center justify-center space-x-2">
-                <span>⚡</span> <span>Deploy & Share Form</span>
+              <!-- DEPLOY & SHARE FORM BUTTON -->
+              <button on:click={() => openShareHub(survey)} class="w-full bg-slate-100 dark:bg-slate-950 text-emerald-700 dark:text-emerald-400 font-bold py-2.5 px-4 text-xs rounded-xl border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/10 transition-all flex items-center justify-center space-x-2">
+                <svg class="w-4 h-4 fill-current text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24">
+                  <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/>
+                </svg>
+                <span>Deploy & Share Form</span>
               </button>
+
             </div>
           </div>
         {/each}
@@ -145,7 +173,10 @@
 
         <div class="pt-2 border-t border-slate-200 dark:border-slate-800/60">
           <button on:click={() => copyKioskLink(activeShareSurvey._id)} class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-4 text-xs rounded-xl transition-all shadow-md flex items-center justify-center space-x-2">
-            <span>🔗</span> <span>Copy Direct Form Link</span>
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+              <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
+            </svg>
+            <span>Copy Direct Form Link</span>
           </button>
         </div>
       </div>
