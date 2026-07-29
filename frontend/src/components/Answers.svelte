@@ -21,6 +21,33 @@
   let isNotificationOpen = false;
   let expandedAlertIds = new Set();
 
+  // DRAGGABLE RESIZER STATE
+  let leftPanelWidth = 280; // default pixel width for left panel
+  let isResizing = false;
+
+  function startResizing(event) {
+    isResizing = true;
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", stopResizing);
+  }
+
+  function handleMouseMove(event) {
+    if (!isResizing) return;
+    // Calculate new width relative to the left side of the window/container
+    const minWidth = 200;
+    const maxWidth = 520;
+    const newWidth = event.clientX - 280; // accounts for layout offset
+    if (newWidth >= minWidth && newWidth <= maxWidth) {
+      leftPanelWidth = newWidth;
+    }
+  }
+
+  function stopResizing() {
+    isResizing = false;
+    window.removeEventListener("mousemove", handleMouseMove);
+    window.removeEventListener("mouseup", stopResizing);
+  }
+
   $: selectedSurveyObj = surveys.find((s) => s._id === activeSurveyId) || surveys[0] || null;
 
   $: if (surveys.length > 0 && (!activeSurveyId || !surveys.some(s => s._id === activeSurveyId))) {
@@ -375,10 +402,13 @@
   }
 </script>
 
-<div class="w-full h-auto lg:h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-4 lg:gap-5 animate-fade overflow-y-auto lg:overflow-hidden box-border p-1 relative">
+<div class="w-full h-auto lg:h-[calc(100vh-5rem)] flex flex-col lg:flex-row animate-fade overflow-y-auto lg:overflow-hidden box-border p-1 relative select-none">
   
-  <!-- LEFT SIDE CONTROL PANEL (FIXED SIDEBAR ON LAPTOP & DESKTOP) -->
-  <div class="w-full lg:w-64 bg-slate-900 border border-slate-800/80 rounded-2xl p-4 shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3 box-border shadow-lg">
+  <!-- LEFT SIDE CONTROL PANEL (RESIZABLE) -->
+  <div 
+    class="w-full bg-slate-900 border border-slate-800/80 rounded-2xl p-4 shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3 box-border shadow-lg"
+    style="width: {leftPanelWidth}px;"
+  >
     
     <!-- TARGET FORM SELECTOR -->
     <div class="flex-1 space-y-2">
@@ -507,8 +537,17 @@
     </div>
   </div>
 
+  <!-- INTERACTIVE RESIZER DIVIDER HANDLE -->
+  <div
+    on:mousedown={startResizing}
+    class="hidden lg:flex w-3 hover:w-3 cursor-col-resize items-center justify-center shrink-0 group transition-all"
+    title="Drag to resize panels"
+  >
+    <div class="w-1 h-12 rounded-full bg-slate-700/60 group-hover:bg-cyan-500 transition-colors shadow-xs"></div>
+  </div>
+
   <!-- RIGHT MAIN ANALYTICS WORKSPACE -->
-  <div class="flex-1 bg-slate-900 border border-slate-800/80 rounded-2xl p-4 lg:p-5 flex flex-col h-full overflow-hidden box-border shadow-lg">
+  <div class="flex-1 bg-slate-900 border border-slate-800/80 rounded-2xl p-4 lg:p-5 flex flex-col h-full overflow-hidden box-border shadow-lg min-w-0">
     
     <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800/40 pb-3 shrink-0 gap-2">
       <div>
@@ -576,7 +615,7 @@
       </div>
     </div>
 
-    <!-- MAIN GRID CARDS (2 COLUMNS ON LAPTOPS) -->
+    <!-- MAIN GRID CARDS (DYNAMIC COLUMNS BASED ON PANEL WIDTH) -->
     <div class="flex-1 overflow-y-auto mt-3 custom-scrollbar pr-1 box-border">
       {#if !selectedSurveyObj || filteredResponses.length === 0}
         <div class="border-2 border-dashed border-slate-800 rounded-2xl p-8 text-center text-slate-500 text-xs">
@@ -584,7 +623,7 @@
         </div>
 
       {:else if activeViewMode === "analytics"}
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 pb-4">
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4 pb-4">
           {#each displayedQuestions as question}
             {@const stats = getQuestionAnalytics(question, filteredResponses)}
             {@const isPieEligible = isPieChartType(question.type)}
