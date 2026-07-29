@@ -14,7 +14,7 @@
   let activeSurveyId = "";
   let isOfflineMode = false;
   let isDedicatedKioskMode = false;
-  let isSidebarVisible = true;
+  let isSidebarExpanded = true;
   let isDarkMode = true;
 
   // AUTHENTICATION STATE
@@ -106,7 +106,7 @@
 
     if (urlSurveyId && (hash.startsWith("#/kiosk") || window.location.search.includes("id="))) {
       isDedicatedKioskMode = true;
-      isSidebarVisible = false;
+      isSidebarExpanded = false;
       activeTab = "kiosk";
       isAuthChecking = false;
       await refreshDataLedger();
@@ -335,76 +335,119 @@
   <!-- AUTHENTICATED PORTAL WORKSPACE -->
   <div class="flex h-screen w-screen max-w-full max-h-screen theme-bg-main theme-text-primary overflow-hidden m-0 p-0 fixed inset-0">
     
-    <!-- SIDEBAR -->
-    {#if isSidebarVisible}
-      <aside class="w-64 theme-bg-sidebar theme-border border-r flex flex-col justify-between shrink-0 h-full z-40 transition-all duration-300 overflow-hidden text-slate-100">
+    <!-- PROFESSIONAL COLLAPSIBLE SIDEBAR WITH ICON-RAIL MODE -->
+    {#if !isDedicatedKioskMode}
+      <aside class="{isSidebarExpanded ? 'w-64' : 'w-20'} theme-bg-sidebar theme-border border-r flex flex-col justify-between shrink-0 h-full z-40 transition-all duration-300 overflow-hidden text-slate-100">
         <div class="flex flex-col h-full justify-between">
           <div>
-            <!-- SIDEBAR HEADER (INCLUDES PINNED TOGGLE BUTTON AT TOP LEFT) -->
-            <div class="px-4 h-16 theme-border border-b flex items-center space-x-3 box-border shrink-0">
-              <button
-                on:click={() => (isSidebarVisible = !isSidebarVisible)}
-                class="p-2 rounded-xl text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 transition-all flex items-center justify-center focus:outline-none active:scale-95 shadow-sm shrink-0"
-                title="Collapse Sidebar"
-              >
-                <span class="text-base leading-none font-bold">☰</span>
-              </button>
+            
+            <!-- HEADER TOGGLE & LOGO -->
+            <div class="px-4 h-16 theme-border border-b flex items-center justify-between box-border shrink-0">
+              <div class="flex items-center space-x-3 overflow-hidden">
+                <button
+                  on:click={() => (isSidebarExpanded = !isSidebarExpanded)}
+                  class="p-2.5 rounded-xl text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 transition-all flex items-center justify-center focus:outline-none active:scale-95 shadow-sm shrink-0"
+                  title={isSidebarExpanded ? "Collapse to Icon Rail" : "Expand Sidebar"}
+                >
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                  </svg>
+                </button>
 
-              <div class="flex items-center space-x-2 min-w-0 truncate">
-                <div class="h-8 w-8 rounded-lg bg-cyan-600 flex items-center justify-center font-bold text-white shadow-md shrink-0">
-                  DS
-                </div>
-                <span class="font-bold text-base tracking-tight text-white truncate">DigitalSurvey</span>
+                {#if isSidebarExpanded}
+                  <div class="flex items-center space-x-2.5 min-w-0 truncate">
+                    <div class="h-8 w-8 rounded-xl bg-cyan-600 flex items-center justify-center font-extrabold text-white text-xs shadow-md shrink-0">
+                      DS
+                    </div>
+                    <span class="font-black text-sm tracking-tight text-white truncate">DigitalSurvey</span>
+                  </div>
+                {/if}
               </div>
             </div>
 
-            <nav class="p-4 space-y-1">
+            <!-- NAVIGATION ITEMS -->
+            <nav class="p-3 space-y-2">
               {#if currentUser?.role === "admin"}
+                
+                <!-- 1. SURVEYS PORTAL -->
                 <button
-                  class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'surveys' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'}"
+                  class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'surveys' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={async () => {
                     switchTab("surveys");
                     await refreshDataLedger();
                   }}
+                  title="Surveys Portal"
                 >
-                  <span>📋</span> <span>Surveys Portal</span>
+                  <svg class="w-5 h-5 shrink-0 fill-current" viewBox="0 0 24 24">
+                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                  </svg>
+                  {#if isSidebarExpanded}
+                    <span class="truncate">Surveys Portal</span>
+                  {/if}
                 </button>
 
+                <!-- 2. FORM DESIGNER -->
                 <button
-                  class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'builder' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'}"
+                  class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'builder' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={() => switchTab("builder")}
                   disabled={surveysList.length === 0}
+                  title="Form Designer"
                 >
-                  <span>🛠️</span>
-                  <span class={surveysList.length === 0 ? "opacity-40" : ""}>Form Designer</span>
+                  <svg class="w-5 h-5 shrink-0 fill-current {surveysList.length === 0 ? 'opacity-40' : ''}" viewBox="0 0 24 24">
+                    <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                  </svg>
+                  {#if isSidebarExpanded}
+                    <span class="truncate {surveysList.length === 0 ? 'opacity-40' : ''}">Form Designer</span>
+                  {/if}
                 </button>
 
+                <!-- 3. LIVE KIOSK MODE -->
                 <button
-                  class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'kiosk' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'}"
+                  class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'kiosk' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={() => {
                     switchTab("kiosk");
                   }}
+                  title="Live Kiosk Mode"
                 >
-                  <span>📱</span>
-                  <span>Live Kiosk Mode</span>
+                  <svg class="w-5 h-5 shrink-0 fill-current" viewBox="0 0 24 24">
+                    <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
+                  </svg>
+                  {#if isSidebarExpanded}
+                    <span class="truncate">Live Kiosk Mode</span>
+                  {/if}
                 </button>
               {/if}
 
+              <!-- 4. ANSWERS LOG -->
               <button
-                class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all {activeTab === 'answers' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'}"
+                class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'answers' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                 on:click={async () => {
                   switchTab("answers");
                   await refreshDataLedger();
                 }}
+                title="Answers Log"
               >
-                <span>📥</span> <span>Answers Log</span>
+                <svg class="w-5 h-5 shrink-0 fill-current" viewBox="0 0 24 24">
+                  <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+                </svg>
+                {#if isSidebarExpanded}
+                  <span class="truncate">Answers Log</span>
+                {/if}
               </button>
             </nav>
           </div>
 
-          <div class="p-4 theme-border border-t bg-black/10 text-[11px] text-slate-400 font-medium tracking-wide flex items-center justify-between">
-            <span class="truncate">Target: <strong class="text-white">{activeSurvey?.title || "None"}</strong></span>
-          </div>
+          <!-- FOOTER STATUS ITEM -->
+          {#if isSidebarExpanded}
+            <div class="p-4 theme-border border-t bg-black/10 text-[11px] text-slate-400 font-medium tracking-wide flex items-center justify-between">
+              <span class="truncate">Target: <strong class="text-white">{activeSurvey?.title || "None"}</strong></span>
+            </div>
+          {:else}
+            <div class="p-3 theme-border border-t bg-black/10 text-center">
+              <span class="h-2 w-2 rounded-full inline-block bg-cyan-500 animate-pulse" title="System Active"></span>
+            </div>
+          {/if}
+
         </div>
       </aside>
     {/if}
@@ -416,24 +459,14 @@
       {#if !isDedicatedKioskMode}
         <header class="sticky top-0 z-30 w-full h-16 theme-bg-card theme-border border-b flex items-center justify-between px-4 sm:px-6 shrink-0 box-border transition-colors duration-300 theme-shadow">
           
-          <!-- Left Header Branding & Pinned Toggle -->
+          <!-- Left Header Branding -->
           <div class="flex items-center space-x-3 min-w-0">
-            {#if !isSidebarVisible}
-              <button
-                on:click={() => (isSidebarVisible = !isSidebarVisible)}
-                class="p-2 rounded-xl theme-text-secondary hover:theme-text-primary theme-bg-inner theme-border border transition-all flex items-center justify-center focus:outline-none active:scale-95 shadow-sm shrink-0"
-                title="Expand Sidebar"
-              >
-                <span class="text-base leading-none font-bold">☰</span>
-              </button>
-
-              <div class="flex items-center space-x-2 shrink-0">
-                <div class="h-7 w-7 rounded-lg bg-cyan-600 flex items-center justify-center font-bold text-xs text-white shadow-md">
-                  DS
-                </div>
-                <span class="font-bold text-sm tracking-tight theme-text-primary hidden sm:inline">DigitalSurvey</span>
+            <div class="flex items-center space-x-2 shrink-0">
+              <div class="h-7 w-7 rounded-lg bg-cyan-600 flex items-center justify-center font-extrabold text-xs text-white shadow-md">
+                DS
               </div>
-            {/if}
+              <span class="font-bold text-sm tracking-tight theme-text-primary">DigitalSurvey</span>
+            </div>
           </div>
 
           <!-- Right Header: Theme Switcher, User Pill & Sign Out -->
