@@ -25,17 +25,23 @@
   let leftPanelWidth = 280;
   let isResizing = false;
 
-  // DYNAMIC HOVER & TOOLTIP STATE MAP (Key: questionIndex -> Item)
-  let hoveredSliceMap = {};
+  // DYNAMIC HOVER & RECTANGLE TOOLTIP STATE
+  let activeHoveredSlice = null; // { qIdx, label, count, percentage, color }
+  let mousePos = { x: 0, y: 0 };
 
-  function setHoveredSlice(qIdx, item) {
-    hoveredSliceMap[qIdx] = item;
-    hoveredSliceMap = hoveredSliceMap;
+  function handleSliceMouseEnter(qIdx, item, event) {
+    activeHoveredSlice = { qIdx, ...item };
+    if (event) {
+      mousePos = { x: event.clientX, y: event.clientY };
+    }
   }
 
-  function clearHoveredSlice(qIdx) {
-    delete hoveredSliceMap[qIdx];
-    hoveredSliceMap = hoveredSliceMap;
+  function handleSliceMouseMove(event) {
+    mousePos = { x: event.clientX, y: event.clientY };
+  }
+
+  function handleSliceMouseLeave() {
+    activeHoveredSlice = null;
   }
 
   function startResizing(event) {
@@ -78,13 +84,13 @@
   }
 
   const SLICE_COLORS = [
-    '#10b981', // emerald-500 (green)
-    '#06b6d4', // cyan-500 (light blue)
-    '#3b82f6', // blue-500 (royal blue)
-    '#f59e0b', // amber-500 (orange)
-    '#ec4899', // pink-500 (pink)
+    '#06b6d4', // cyan-500
+    '#f59e0b', // amber-500
+    '#10b981', // emerald-500
+    '#3b82f6', // blue-500
+    '#f43f5e', // rose-500
     '#8b5cf6', // violet-500
-    '#f43f5e'  // rose-500
+    '#ec4899'  // pink-500
   ];
 
   function cleanString(str) {
@@ -404,7 +410,7 @@
       const startRad = ((startDeg - 90) * Math.PI) / 180;
       const endRad = ((endDeg - 90) * Math.PI) / 180;
 
-      const r = 40;
+      const r = 45; // Outer radius of full pie
       const x1 = 50 + r * Math.cos(startRad);
       const y1 = 50 + r * Math.sin(startRad);
       const x2 = 50 + r * Math.cos(endRad);
@@ -412,7 +418,7 @@
 
       const largeArc = sliceDeg > 180 ? 1 : 0;
       const svgPath = total === count
-        ? "M 50,10 A 40 40 0 1 1 49.99,10 Z"
+        ? "M 50,5 A 45 45 0 1 1 49.99,5 Z" // Full circle pie
         : `M 50 50 L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
 
       return { label: key, count, percentage, color, startDeg, endDeg, svgPath };
@@ -435,6 +441,21 @@
     focusedQuestion = null;
   }
 </script>
+
+<!-- RECTANGLE SHORT POP-UP TOOLTIP FLOATING ON MOUSE HOVER -->
+{#if activeHoveredSlice}
+  <div 
+    class="fixed z-50 pointer-events-none bg-slate-950/95 text-white border border-cyan-500/80 px-3 py-2 rounded-xl shadow-2xl backdrop-blur-md font-mono text-xs flex items-center space-x-2.5 transition-all duration-75 transform -translate-x-1/2 -translate-y-12"
+    style="left: {mousePos.x}px; top: {mousePos.y}px;"
+  >
+    <div class="w-3 h-3 rounded-full shrink-0 shadow-sm" style="background-color: {activeHoveredSlice.color};"></div>
+    <div class="flex items-center space-x-1.5 whitespace-nowrap">
+      <span class="font-bold text-slate-100">{activeHoveredSlice.label}:</span>
+      <span class="font-black text-cyan-400">{activeHoveredSlice.count}</span>
+      <span class="text-slate-400 font-semibold">({activeHoveredSlice.percentage}%)</span>
+    </div>
+  </div>
+{/if}
 
 <div class="w-full h-auto lg:h-[calc(100vh-5rem)] flex flex-col lg:flex-row animate-fade overflow-y-auto lg:overflow-hidden box-border p-1 relative">
   
@@ -640,7 +661,7 @@
       </div>
     </div>
 
-    <!-- MAIN GRID CARDS WITH SVG CONTEXT-AWARE INLINE HOVER HIGHLIGHTS -->
+    <!-- MAIN GRID CARDS WITH SOLID PIE CHARTS AND RECTANGLE TOOLTIPS -->
     <div class="flex-1 overflow-y-auto mt-3 custom-scrollbar pr-1 box-border">
       {#if !selectedSurveyObj || filteredResponses.length === 0}
         <div class="border-2 border-dashed border-slate-800 rounded-2xl p-8 text-center text-slate-500 text-xs">
@@ -652,7 +673,6 @@
           {#each displayedQuestions as question, qIdx}
             {@const stats = getQuestionAnalytics(question, filteredResponses)}
             {@const isPieEligible = isPieChartType(question.type)}
-            {@const activeHoveredSlice = hoveredSliceMap[qIdx]}
             
             <div 
               on:click={() => openQuestionModal(question)}
@@ -677,50 +697,39 @@
               {#if isPieEligible}
                 <div class="flex flex-row items-center gap-3 sm:gap-4 pt-0.5 relative">
                   
-                  <!-- SVG DONUT CHART WITH CONTEXT HOVER -->
+                  <!-- SOLID PIE CHART (NO CENTER HOLE) -->
                   <div class="relative shrink-0 flex items-center justify-center">
                     <svg class="w-28 h-28 transform -rotate-90 drop-shadow-md overflow-visible" viewBox="0 0 100 100">
                       {#each stats.breakdowns as item}
-                        {@const isHovered = activeHoveredSlice?.label === item.label}
+                        {@const isHovered = activeHoveredSlice?.qIdx === qIdx && activeHoveredSlice?.label === item.label}
                         <path
                           d={item.svgPath}
                           fill={item.color}
+                          stroke="#1e293b"
+                          stroke-width="0.8"
                           class="transition-all duration-300 cursor-pointer origin-center"
                           style="
-                            transform: {isHovered ? 'scale(1.08)' : 'scale(1)'};
-                            opacity: {activeHoveredSlice && !isHovered ? 0.35 : 1};
+                            transform: {isHovered ? 'scale(1.06)' : 'scale(1)'};
+                            opacity: {activeHoveredSlice?.qIdx === qIdx && !isHovered ? 0.4 : 1};
                             filter: {isHovered ? 'drop-shadow(0px 0px 8px ' + item.color + ')' : 'none'};
                           "
-                          on:mouseenter={(e) => { e.stopPropagation(); setHoveredSlice(qIdx, item); }}
-                          on:mouseleave={(e) => { e.stopPropagation(); clearHoveredSlice(qIdx); }}
+                          on:mouseenter={(e) => { e.stopPropagation(); handleSliceMouseEnter(qIdx, item, e); }}
+                          on:mousemove={(e) => handleSliceMouseMove(e)}
+                          on:mouseleave={(e) => { e.stopPropagation(); handleSliceMouseLeave(); }}
                         />
                       {/each}
                     </svg>
-
-                    <!-- CONTEXTUAL CENTER HOLE BADGE (REPLACES GENERIC "7 LOGS" ON HOVER) -->
-                    <div 
-                      class="absolute w-14 h-14 bg-slate-950 rounded-full border border-slate-800 flex flex-col items-center justify-center pointer-events-none shadow-inner p-1 text-center transition-all duration-200"
-                      style="border-color: {activeHoveredSlice ? activeHoveredSlice.color : '#1e293b'}"
-                    >
-                      {#if activeHoveredSlice}
-                        <span class="text-[8px] font-bold uppercase tracking-tight text-white truncate max-w-[48px] font-sans leading-none">{activeHoveredSlice.label}</span>
-                        <span class="text-[11px] font-mono font-black text-cyan-400 mt-0.5 leading-none">{activeHoveredSlice.percentage}%</span>
-                        <span class="text-[8px] font-mono text-slate-400 font-semibold leading-none">({activeHoveredSlice.count})</span>
-                      {:else}
-                        <span class="text-xs font-mono font-bold text-slate-300">{stats.total}</span>
-                        <span class="text-[8px] font-mono text-slate-500 uppercase font-bold">Logs</span>
-                      {/if}
-                    </div>
                   </div>
 
-                  <!-- INTERACTIVE BREAKDOWN LEGEND LIST WITH CONTEXT-LINKED HIGHLIGHT -->
+                  <!-- INTERACTIVE BREAKDOWN LEGEND LIST -->
                   <div class="flex-1 space-y-1 w-full">
                     {#each stats.breakdowns as item}
-                      {@const isHovered = activeHoveredSlice?.label === item.label}
+                      {@const isHovered = activeHoveredSlice?.qIdx === qIdx && activeHoveredSlice?.label === item.label}
                       
                       <div 
-                        on:mouseenter={(e) => { e.stopPropagation(); setHoveredSlice(qIdx, item); }}
-                        on:mouseleave={(e) => { e.stopPropagation(); clearHoveredSlice(qIdx); }}
+                        on:mouseenter={(e) => { e.stopPropagation(); handleSliceMouseEnter(qIdx, item, e); }}
+                        on:mousemove={(e) => handleSliceMouseMove(e)}
+                        on:mouseleave={(e) => { e.stopPropagation(); handleSliceMouseLeave(); }}
                         class="flex items-center justify-between text-[11px] px-2.5 py-1 rounded-md transition-all duration-200 border cursor-pointer relative {isHovered ? 'bg-slate-800/90 border-cyan-500 shadow-md translate-x-1 scale-[1.02]' : 'bg-slate-900/80 border-slate-800/60 hover:bg-slate-850 hover:border-slate-700'}"
                       >
                         <div class="flex items-center space-x-1.5 truncate pr-1">
@@ -739,11 +748,12 @@
                 <!-- INTERACTIVE BAR PROGRESS METRICS -->
                 <div class="space-y-2">
                   {#each stats.breakdowns as item}
-                    {@const isHovered = activeHoveredSlice?.label === item.label}
+                    {@const isHovered = activeHoveredSlice?.qIdx === qIdx && activeHoveredSlice?.label === item.label}
                     
                     <div 
-                      on:mouseenter={(e) => { e.stopPropagation(); setHoveredSlice(qIdx, item); }}
-                      on:mouseleave={(e) => { e.stopPropagation(); clearHoveredSlice(qIdx); }}
+                      on:mouseenter={(e) => { e.stopPropagation(); handleSliceMouseEnter(qIdx, item, e); }}
+                      on:mousemove={(e) => handleSliceMouseMove(e)}
+                      on:mouseleave={(e) => { e.stopPropagation(); handleSliceMouseLeave(); }}
                       class="space-y-0.5 p-1 rounded-lg transition-all duration-200 cursor-pointer relative {isHovered ? 'bg-slate-900/90 ring-1 ring-cyan-500/40' : ''}"
                     >
                       <div class="flex items-center justify-between text-[11px]">
@@ -1031,14 +1041,12 @@
                   <path
                     d={item.svgPath}
                     fill={item.color}
+                    stroke="#1e293b"
+                    stroke-width="0.8"
                     class="transition-all duration-300 cursor-pointer origin-center hover:scale-105"
                   />
                 {/each}
               </svg>
-              <div class="absolute w-20 h-20 sm:w-24 sm:h-24 bg-slate-950 rounded-full border border-slate-800 flex flex-col items-center justify-center shadow-inner pointer-events-none">
-                <span class="text-lg sm:text-xl font-bold text-cyan-400 font-mono">{modalStats.total}</span>
-                <span class="text-[9px] font-mono text-slate-500 uppercase font-bold">Total Logs</span>
-              </div>
             </div>
 
             <div class="flex-1 w-full space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
