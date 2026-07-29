@@ -193,7 +193,8 @@
           class="bg-slate-100 dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 text-cyan-700 dark:text-cyan-400 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-full text-[11px] font-mono font-bold tracking-wider flex items-center space-x-1.5 shadow-xs active:scale-95 transition-all"
           title="Click to set this tablet's Site/Device Name"
         >
-          <span>🏷️</span> <span>{deviceId}</span>
+          <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+          <span>{deviceId}</span>
         </button>
       {/if}
 
@@ -201,14 +202,19 @@
         <div class="bg-slate-100 dark:bg-slate-950 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-800 text-[11px] font-bold text-cyan-700 dark:text-cyan-400 font-mono tracking-wide hidden sm:flex items-center justify-center">
           QUESTION {currentQuestionIndex + 1} OF {questions.length}
         </div>
+        
+        <!-- CHANGE FORM BUTTON WITH PROFESSIONAL REFRESH VECTOR SVG -->
         <button
           on:click={() => {
             resetTerminal();
             onSelectSurvey("");
           }}
-          class="text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-navy-950 dark:hover:text-white bg-slate-100 dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-full transition-all shrink-0 active:scale-95 shadow-xs flex items-center space-x-1"
+          class="text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-navy-950 dark:hover:text-white bg-slate-100 dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-full transition-all shrink-0 active:scale-95 shadow-xs flex items-center space-x-1.5"
         >
-          <span>🔄</span> <span>Change Form</span>
+          <svg class="w-3.5 h-3.5 fill-current text-cyan-600 dark:text-cyan-400" viewBox="0 0 24 24">
+            <path d="M12 4V1L8 5l4 4V6c3.31 0 7 2.69 7 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C20.54 15.02 21 13.57 21 12c0-4.97-4.03-9-9-9zm0 14c-3.31 0-7-2.69-7-6 0-1.01.25-1.97.7-2.8L4.24 7.74C3.46 8.98 3 10.43 3 12c0 4.97 4.03 9 9 9v3l4-4-4-4v3z"/>
+          </svg>
+          <span>Change Form</span>
         </button>
       {/if}
     </div>
@@ -220,7 +226,7 @@
       <div in:scale={{ duration: 300, start: 0.96 }} class="w-full max-w-3xl mx-auto bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl backdrop-blur-xl">
         <div class="text-center space-y-2 border-b border-slate-200 dark:border-slate-800/80 pb-4">
           <div class="h-12 w-12 rounded-2xl bg-cyan-100 dark:bg-cyan-600/20 border border-cyan-300 dark:border-cyan-500/40 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold text-2xl mx-auto mb-1 shadow-md">
-            📱
+            <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
           </div>
           <h1 class="text-xl sm:text-3xl font-black tracking-tight text-navy-950 dark:text-white">Select Survey Form</h1>
           <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
@@ -276,7 +282,9 @@
 
     {:else if isSubmitted}
       <div in:scale={{ duration: 400, start: 0.95 }} class="text-center space-y-5 py-6 sm:py-10">
-        <div class="text-5xl sm:text-7xl animate-bounce">🎉</div>
+        <div class="h-16 w-16 bg-emerald-100 dark:bg-emerald-950 border border-emerald-300 dark:border-emerald-800 rounded-full flex items-center justify-center mx-auto text-emerald-600 dark:text-emerald-400 shadow-lg">
+          <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+        </div>
         <h2 class="text-2xl sm:text-4xl font-black tracking-tight bg-gradient-to-r from-emerald-500 via-cyan-600 to-blue-600 dark:from-emerald-400 dark:via-cyan-400 dark:to-blue-500 bg-clip-text text-transparent">
           Thank You!
         </h2>
