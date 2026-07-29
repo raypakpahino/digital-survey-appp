@@ -21,29 +21,44 @@
   let isNotificationOpen = false;
   let expandedAlertIds = new Set();
 
-  // DRAGGABLE RESIZER STATE
+  // DRAGGABLE RESIZER STATE & BULLETPROOF EVENT HANDLING
   let leftPanelWidth = 280; // default pixel width for left panel
   let isResizing = false;
 
   function startResizing(event) {
+    event.preventDefault();
     isResizing = true;
+    
+    // Prevent text selection across the entire document during drag
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "col-resize";
+
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", stopResizing);
   }
 
   function handleMouseMove(event) {
     if (!isResizing) return;
-    // Calculate new width relative to the left side of the window/container
-    const minWidth = 200;
-    const maxWidth = 520;
-    const newWidth = event.clientX - 280; // accounts for layout offset
+    
+    // Smooth pixel calculation relative to current viewport position
+    const minWidth = 180;
+    const maxWidth = 550;
+    
+    // Get mouse position relative to container
+    const newWidth = event.clientX - 260; // offset for collapsed/expanded sidebar
     if (newWidth >= minWidth && newWidth <= maxWidth) {
       leftPanelWidth = newWidth;
     }
   }
 
   function stopResizing() {
+    if (!isResizing) return;
     isResizing = false;
+
+    // Restore standard cursor & selection behavior
+    document.body.style.userSelect = "";
+    document.body.style.cursor = "";
+
     window.removeEventListener("mousemove", handleMouseMove);
     window.removeEventListener("mouseup", stopResizing);
   }
@@ -402,11 +417,11 @@
   }
 </script>
 
-<div class="w-full h-auto lg:h-[calc(100vh-5rem)] flex flex-col lg:flex-row animate-fade overflow-y-auto lg:overflow-hidden box-border p-1 relative select-none">
+<div class="w-full h-auto lg:h-[calc(100vh-5rem)] flex flex-col lg:flex-row animate-fade overflow-y-auto lg:overflow-hidden box-border p-1 relative">
   
   <!-- LEFT SIDE CONTROL PANEL (RESIZABLE) -->
   <div 
-    class="w-full bg-slate-900 border border-slate-800/80 rounded-2xl p-4 shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3 box-border shadow-lg"
+    class="w-full bg-slate-900 border border-slate-800/80 rounded-2xl p-4 shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3 box-border shadow-lg transition-none"
     style="width: {leftPanelWidth}px;"
   >
     
@@ -537,13 +552,13 @@
     </div>
   </div>
 
-  <!-- INTERACTIVE RESIZER DIVIDER HANDLE -->
+  <!-- INTERACTIVE RESIZER DIVIDER HANDLE (BULLETPROOF GRABBER) -->
   <div
     on:mousedown={startResizing}
-    class="hidden lg:flex w-3 hover:w-3 cursor-col-resize items-center justify-center shrink-0 group transition-all"
-    title="Drag to resize panels"
+    class="hidden lg:flex w-4 cursor-col-resize items-center justify-center shrink-0 group transition-colors z-20 hover:bg-cyan-500/10 active:bg-cyan-500/20"
+    title="Drag left/right to resize panels"
   >
-    <div class="w-1 h-12 rounded-full bg-slate-700/60 group-hover:bg-cyan-500 transition-colors shadow-xs"></div>
+    <div class="w-1.5 h-14 rounded-full bg-slate-700/80 group-hover:bg-cyan-500 group-active:bg-cyan-400 transition-colors shadow-sm"></div>
   </div>
 
   <!-- RIGHT MAIN ANALYTICS WORKSPACE -->
