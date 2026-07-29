@@ -61,25 +61,25 @@
   const availableComponents = [
     {
       type: "smiley",
-      icon: "😊",
+      svgPath: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z",
       label: "Smiley Matrix",
       desc: "CSAT smiley faces",
     },
     {
       type: "stars",
-      icon: "⭐",
+      svgPath: "M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z",
       label: "Star Scale",
       desc: "1-5 star rating review",
     },
     {
       type: "multiple-choice",
-      icon: "🔘",
+      svgPath: "M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z",
       label: "Multiple Choice",
       desc: "Radio button selection",
     },
     {
       type: "text",
-      icon: "📝",
+      svgPath: "M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z",
       label: "Short Answer",
       desc: "Open text area feedback",
     },
@@ -215,10 +215,13 @@
             on:click={() => dropComponent(comp.type)}
             class="w-full text-left bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/60 hover:border-cyan-500/40 p-3.5 rounded-xl flex items-center space-x-3.5 transition-all group active:scale-[0.98]"
           >
-            <span
-              class="text-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 h-10 w-10 rounded-xl flex items-center justify-center group-hover:bg-cyan-50 dark:group-hover:bg-cyan-950/30 group-hover:border-cyan-300 dark:group-hover:border-cyan-900/40 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-all shadow-xs shrink-0"
-              >{comp.icon}</span
+            <div
+              class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 h-10 w-10 rounded-xl flex items-center justify-center group-hover:bg-cyan-50 dark:group-hover:bg-cyan-950/30 group-hover:border-cyan-300 dark:group-hover:border-cyan-900/40 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-all shadow-xs shrink-0 text-slate-600 dark:text-slate-300"
             >
+              <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                <path d={comp.svgPath}/>
+              </svg>
+            </div>
             <div>
               <p
                 class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-all"
@@ -302,7 +305,8 @@
             class="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all shrink-0 flex items-center justify-center space-x-1.5 active:scale-95 shadow-xs"
             title="Scroll down to Save button"
           >
-            <span>⬇️</span> <span>Jump to Save</span>
+            <svg class="w-4 h-4 fill-current text-slate-700 dark:text-slate-200" viewBox="0 0 24 24"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
+            <span>Jump to Save</span>
           </button>
         {/if}
 
@@ -310,7 +314,8 @@
           on:click={onCreateNewSurvey}
           class="bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 font-bold text-xs px-4 py-2.5 rounded-xl transition-all shrink-0 flex items-center justify-center space-x-1.5 active:scale-[0.98]"
         >
-          <span>+</span> <span>Create New Form</span>
+          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          <span>Create New Form</span>
         </button>
       </div>
     </div>
@@ -391,7 +396,10 @@
 
                   <!-- FILE UPLOADER: HEADER IMAGE -->
                   <div class="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 pt-2">
-                    <span class="text-[11px] font-mono font-bold text-cyan-600 dark:text-cyan-400 shrink-0">🖼️ Header Image:</span>
+                    <span class="text-[11px] font-mono font-bold text-cyan-600 dark:text-cyan-400 shrink-0 flex items-center space-x-1">
+                      <svg class="w-3.5 h-3.5 fill-current inline-block mr-1" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                      <span>Header Image:</span>
+                    </span>
                     
                     {#if question.questionImage}
                       <div class="flex items-center space-x-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-xl">
@@ -407,7 +415,8 @@
                       </div>
                     {:else}
                       <label class="cursor-pointer bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-xl text-xs font-mono font-semibold flex items-center space-x-2 transition-all w-fit active:scale-95 shadow-xs">
-                        <span>📁 Choose Picture File</span>
+                        <svg class="w-4 h-4 fill-current text-slate-500" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>
+                        <span>Choose Picture File</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -455,7 +464,10 @@
 
                         {#if question.enableOptionImages}
                           <div class="flex items-center space-x-3 pl-2 pt-1">
-                            <span class="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 shrink-0">🖼️ Option Picture:</span>
+                            <span class="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 shrink-0 flex items-center space-x-1">
+                              <svg class="w-3.5 h-3.5 fill-current inline-block mr-1" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                              <span>Option Picture:</span>
+                            </span>
                             
                             {#if question.optionImages && question.optionImages[option]}
                               <div class="flex items-center space-x-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-1.5 rounded-lg">
@@ -470,7 +482,8 @@
                               </div>
                             {:else}
                               <label class="cursor-pointer bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold flex items-center space-x-1.5 transition-all w-fit active:scale-95">
-                                <span>📁 Browse File</span>
+                                <svg class="w-3.5 h-3.5 fill-current text-slate-500" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>
+                                <span>Browse File</span>
                                 <input
                                   type="file"
                                   accept="image/*"
@@ -562,7 +575,8 @@
         disabled={localQuestions.length === 0 || !localTitle.trim()}
         class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs py-3.5 px-6 rounded-xl transition-all shadow-md shadow-cyan-600/10 flex items-center space-x-2 active:scale-[0.98] disabled:opacity-25 disabled:cursor-not-allowed"
       >
-        <span>💾</span> <span>Save & Deploy Schema</span>
+        <svg class="w-4 h-4 fill-current text-white" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+        <span>Save & Deploy Schema</span>
       </button>
     </div>
   </div>
@@ -576,7 +590,7 @@
     style="color: #ffffff !important;"
     title="Jump straight to Save button"
   >
-    <span style="color: #ffffff !important;">⬇️</span>
+    <svg class="w-4 h-4 fill-current text-white" viewBox="0 0 24 24"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
     <span style="color: #ffffff !important; font-weight: 800 !important;">Jump to Save</span>
   </button>
 {/if}
