@@ -476,7 +476,10 @@
               class="w-full px-2 py-1 rounded-lg text-[9px] font-mono font-bold transition-all border flex items-center justify-between shadow-xs active:scale-95 truncate {isSelected ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}"
               title={devId}
             >
-              <span class="truncate pr-0.5">🏷️ {devId}</span>
+              <span class="truncate pr-0.5 flex items-center space-x-1">
+                <svg class="w-3 h-3 fill-current inline-block" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+                <span>{devId}</span>
+              </span>
               {#if isSelected}<span class="shrink-0 text-emerald-400">✓</span>{/if}
             </button>
           {/each}
@@ -582,10 +585,10 @@
         <!-- LOW RATING NOTIFICATION BELL BUTTON -->
         <button
           on:click={() => (isNotificationOpen = !isNotificationOpen)}
-          class="relative bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/60 p-2 rounded-lg transition-all active:scale-95 flex items-center justify-center shadow-xs"
+          class="relative bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/60 p-2 rounded-lg transition-all active:scale-95 flex items-center justify-center shadow-xs text-amber-400"
           title="View Low Rating Notifications"
         >
-          <span class="text-sm">🔔</span>
+          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.83-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
           {#if lowRatingAlerts.length > 0}
             <span 
               class="absolute -top-1 -right-1 font-mono font-bold text-[9px] h-4 min-w-[1.1rem] px-0.5 rounded-full flex items-center justify-center animate-pulse border shadow-sm"
@@ -599,15 +602,17 @@
         <div class="bg-slate-950 p-0.5 border border-slate-800 rounded-lg flex items-center space-x-1">
           <button
             on:click={() => (activeViewMode = "analytics")}
-            class="px-2.5 py-1 rounded-md text-[11px] font-bold transition-all {activeViewMode === 'analytics' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'}"
+            class="px-2.5 py-1 rounded-md text-[11px] font-bold transition-all flex items-center space-x-1.5 {activeViewMode === 'analytics' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'}"
           >
-            📊 Analytics
+            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+            <span>Analytics</span>
           </button>
           <button
             on:click={() => (activeViewMode = "table")}
-            class="px-2.5 py-1 rounded-md text-[11px] font-bold transition-all {activeViewMode === 'table' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'}"
+            class="px-2.5 py-1 rounded-md text-[11px] font-bold transition-all flex items-center space-x-1.5 {activeViewMode === 'table' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'}"
           >
-            📋 Log Matrix
+            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M4 3h16c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2zm0 4h16V5H4v2zm0 4h5V9H4v2zm7 0h9V9h-9v2zm-7 4h5v-2H4v2zm7 0h9v-2h-9v2zm-7 4h5v-2H4v2zm7 0h9v-2h-9v2z"/></svg>
+            <span>Log Matrix</span>
           </button>
         </div>
 
@@ -616,16 +621,18 @@
           disabled={filteredResponses.length === 0}
           class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] py-1.5 px-2.5 rounded-lg transition-all active:scale-[0.98] flex items-center space-x-1 disabled:opacity-20"
         >
-          <span>📥</span> <span>Export CSV</span>
+          <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          <span>Export CSV</span>
         </button>
 
         <button
           on:click={clearAllSurveyResponses}
           disabled={filteredResponses.length === 0}
-          class="bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 text-rose-300 font-bold text-[11px] py-1.5 px-2.5 rounded-lg transition-all active:scale-[0.98] disabled:opacity-20"
+          class="bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 text-rose-300 font-bold text-[11px] py-1.5 px-2.5 rounded-lg transition-all active:scale-[0.98] disabled:opacity-20 flex items-center space-x-1"
           title="Delete all submission logs for this form"
         >
-          <span>🗑️ Clear All</span>
+          <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+          <span>Clear All</span>
         </button>
       </div>
     </div>
@@ -651,7 +658,10 @@
                 <div class="space-y-0.5">
                   <span class="text-[9px] font-bold text-cyan-400 uppercase font-mono tracking-wider flex items-center space-x-1">
                     <span>Field #{selectedSurveyObj.questions.findIndex(q => cleanString(q.questionText) === cleanString(question.questionText)) + 1} • {question.type}</span>
-                    <span class="text-slate-500 text-[9px] hidden sm:inline">🔍 Click to enlarge</span>
+                    <span class="text-slate-500 text-[9px] hidden sm:inline flex items-center space-x-0.5">
+                      <svg class="w-3 h-3 fill-current inline-block ml-1" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                      <span>Click to enlarge</span>
+                    </span>
                   </span>
                   <h4 class="text-xs sm:text-sm font-bold text-white group-hover:text-cyan-100 transition-colors leading-snug">{question.questionText}</h4>
                 </div>
@@ -733,15 +743,16 @@
                       class="text-slate-500 hover:text-rose-400 bg-slate-900 hover:bg-rose-950/40 border border-slate-800 p-1 rounded-md transition-all"
                       title="Delete entry"
                     >
-                      🗑️
+                      <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
                     </button>
                   </td>
                   <td class="p-2.5 font-mono text-cyan-400 font-semibold border-r border-slate-800/40 truncate max-w-[90px]">
                     {response._id ? response._id.slice(-6) : 'Log'}
                   </td>
                   <td class="p-2.5 border-r border-slate-800/40">
-                    <span class="text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 font-mono font-bold px-1.5 py-0.5 rounded text-[10px]">
-                      🏷️ {response.deviceId || 'Tablet-A'}
+                    <span class="text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 font-mono font-bold px-1.5 py-0.5 rounded text-[10px] flex items-center space-x-1 w-fit">
+                      <svg class="w-3 h-3 fill-current inline-block" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+                      <span>{response.deviceId || 'Tablet-A'}</span>
                     </span>
                   </td>
                   <td class="p-2.5 text-slate-400 border-r border-slate-800/40 font-mono text-[10px]">
@@ -774,7 +785,7 @@
       <div class="flex items-center justify-between border-b border-slate-800 pb-4 shrink-0">
         <div class="flex items-center space-x-2.5">
           <div class="h-9 w-9 rounded-xl bg-rose-600/20 border border-rose-500/40 flex items-center justify-center text-lg text-rose-400 shadow-md">
-            🚨
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
           </div>
           <div>
             <h2 class="text-base font-black text-white tracking-tight">Low Rating Incident Log</h2>
@@ -796,7 +807,7 @@
       <div class="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1">
         {#if lowRatingAlerts.length === 0}
           <div class="border-2 border-dashed border-slate-800 rounded-2xl p-8 text-center text-slate-500 text-xs">
-            🎉 No below-average ratings recorded for this form!
+            No below-average ratings recorded for this form.
           </div>
         {:else}
           {#each lowRatingAlerts as alert}
@@ -806,8 +817,9 @@
               
               <div class="flex items-center justify-between border-b border-slate-900 pb-2">
                 <div class="flex items-center space-x-2">
-                  <span class="text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 font-mono font-bold px-2 py-0.5 rounded text-[10px]">
-                    🏷️ {alert.deviceId}
+                  <span class="text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 font-mono font-bold px-2 py-0.5 rounded text-[10px] flex items-center space-x-1">
+                    <svg class="w-3 h-3 fill-current inline-block" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+                    <span>{alert.deviceId}</span>
                   </span>
                   <span class="text-[10px] font-mono text-slate-500">
                     ID: {alert.responseId ? alert.responseId.slice(-6) : 'Log'}
@@ -1043,7 +1055,8 @@
         on:click={() => exportToExcel(focusedQuestion)}
         class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all active:scale-95 flex items-center space-x-1.5"
       >
-        <span>📥</span> <span>Export Field CSV</span>
+        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        <span>Export Field CSV</span>
       </button>
     </div>
 
