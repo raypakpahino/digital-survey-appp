@@ -21,16 +21,24 @@
   let isNotificationOpen = false;
   let expandedAlertIds = new Set();
 
-  // DRAGGABLE RESIZER STATE & BULLETPROOF EVENT HANDLING
+  // DRAGGABLE RESIZER STATE
   let leftPanelWidth = 280;
   let isResizing = false;
 
-  // HOVER & TOOLTIP STATE
+  // DYNAMIC HOVER & TOOLTIP STATE
   let hoveredSliceMap = {}; // { questionIndex: breakdownItem }
+  let tooltipPos = { x: 0, y: 0 };
 
-  function setHoveredSlice(qIdx, item) {
+  function setHoveredSlice(qIdx, item, event) {
     hoveredSliceMap[qIdx] = item;
     hoveredSliceMap = hoveredSliceMap;
+    if (event) {
+      tooltipPos = { x: event.clientX, y: event.clientY };
+    }
+  }
+
+  function handleMouseMoveSlice(event) {
+    tooltipPos = { x: event.clientX, y: event.clientY };
   }
 
   function clearHoveredSlice(qIdx) {
@@ -371,7 +379,7 @@
     const total = validEntries.length;
 
     if (total === 0) {
-      return { counts: {}, total: 0, breakdowns: [], conicGradient: "conic-gradient(#1e293b 0% 100%)", rawAnswersList: [] };
+      return { counts: {}, total: 0, breakdowns: [], rawAnswersList: [] };
     }
 
     const counts = {};
@@ -401,13 +409,25 @@
       currentAngle += sliceDeg;
       const endDeg = currentAngle;
 
-      return { label: key, count, percentage, color, startDeg, endDeg };
+      // Calculate SVG Arc Path coordinates
+      const startRad = ((startDeg - 90) * Math.PI) / 180;
+      const endRad = ((endDeg - 90) * Math.PI) / 180;
+
+      const r = 40;
+      const x1 = 50 + r * Math.cos(startRad);
+      const y1 = 50 + r * Math.sin(startRad);
+      const x2 = 50 + r * Math.cos(endRad);
+      const y2 = 50 + r * Math.sin(endRad);
+
+      const largeArc = sliceDeg > 180 ? 1 : 0;
+      const svgPath = total === count
+        ? "M 50,10 A 40 40 0 1 1 49.99,10" // Full Circle
+        : `M 50 50 L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+
+      return { label: key, count, percentage, color, startDeg, endDeg, svgPath };
     });
 
-    const gradientParts = breakdowns.map((b) => `${b.color} ${b.startDeg}deg ${b.endDeg}deg`);
-    const conicGradient = `conic-gradient(${gradientParts.join(', ')})`;
-
-    return { counts, total, breakdowns, conicGradient, rawAnswersList };
+    return { counts, total, breakdowns, rawAnswersList };
   }
 
   function isPieChartType(qType) {
@@ -424,6 +444,21 @@
     focusedQuestion = null;
   }
 </script>
+
+<!-- GLOBAL FLOATING HOVER TOOLTIP FOR COLOR SLICES -->
+{#if Object.keys(hoveredSliceMap).length > 0}
+  <div 
+    class="fixed z-50 pointer-events-none bg-slate-950/90 text-white text-xs font-mono px-3 py-2 rounded-xl border border-cyan-500/80 shadow-2xl backdrop-blur-md transform -translate-x-1/2 -translate-y-12 animate-fade transition-all duration-75 flex items-center space-x-2"
+    style="left: {tooltipPos.x}px; top: {tooltipPos.y}px;"
+  >
+    {@const activeSlice = Object.values(hoveredSliceMap)[0]}
+    <span class="w-3 h-3 rounded-full shrink-0 shadow-sm" style="background-color: {activeSlice.color};"></span>
+    <div class="flex flex-col">
+      <span class="font-bold text-white leading-none">{activeSlice.label}</span>
+      <span class="text-[10px] text-cyan-400 font-bold mt-0.5">{activeSlice.count} Submissions ({activeSlice.percentage}%)</span>
+    </div>
+  </div>
+{/if}
 
 <div class="w-full h-auto lg:h-[calc(100vh-5rem)] flex flex-col lg:flex-row animate-fade overflow-y-auto lg:overflow-hidden box-border p-1 relative">
   
@@ -547,7 +582,7 @@
     </div>
   </div>
 
-  <!-- INTERACTIVE RESIZER DIVIDER HANDLE (BULLETPROOF GRABBER) -->
+  <!-- INTERACTIVE RESIZER DIVIDER HANDLE -->
   <div
     on:mousedown={startResizing}
     class="hidden lg:flex w-4 cursor-col-resize items-center justify-center shrink-0 group transition-colors z-20 hover:bg-cyan-500/10 active:bg-cyan-500/20"
@@ -629,7 +664,7 @@
       </div>
     </div>
 
-    <!-- MAIN GRID CARDS WITH INTERACTIVE HOVER TOOLTIPS AND GLOW EFFECTS -->
+    <!-- MAIN GRID CARDS WITH SVG HOVER DETECTORS -->
     <div class="flex-1 overflow-y-auto mt-3 custom-scrollbar pr-1 box-border">
       {#if !selectedSurveyObj || filteredResponses.length === 0}
         <div class="border-2 border-dashed border-slate-800 rounded-2xl p-8 text-center text-slate-500 text-xs">
@@ -666,13 +701,29 @@
               {#if isPieEligible}
                 <div class="flex flex-row items-center gap-3 sm:gap-4 pt-0.5 relative">
                   
-                  <!-- DONUT CHART WITH HOVER HIGHLIGHT SCALE -->
-                  <div class="relative shrink-0 flex items-center justify-center group/chart">
-                    <div
-                      class="w-24 h-24 sm:w-28 sm:h-28 rounded-full shadow-md transition-all duration-300 border border-slate-800/60 hover:scale-105 hover:shadow-lg hover:shadow-cyan-500/10 cursor-pointer"
-                      style="background: {stats.conicGradient};"
-                    ></div>
-                    <div class="absolute w-10 h-10 sm:w-12 sm:h-12 bg-slate-950 rounded-full border border-slate-800 flex flex-col items-center justify-center transition-transform group-hover/chart:scale-110">
+                  <!-- PURE SVG DONUT CHART WITH INDIVIDUAL INTERACTIVE COLOR SLICES -->
+                  <div class="relative shrink-0 flex items-center justify-center">
+                    <svg class="w-28 h-28 transform -rotate-90 drop-shadow-md overflow-visible" viewBox="0 0 100 100">
+                      {#each stats.breakdowns as item}
+                        {@const isHovered = activeHoveredSlice?.label === item.label}
+                        <path
+                          d={item.svgPath}
+                          fill={item.color}
+                          class="transition-all duration-300 cursor-pointer origin-center"
+                          style="
+                            transform: {isHovered ? 'scale(1.08)' : 'scale(1)'};
+                            opacity: {activeHoveredSlice && !isHovered ? 0.4 : 1};
+                            filter: {isHovered ? 'drop-shadow(0px 0px 6px ' + item.color + ')' : 'none'};
+                          "
+                          on:mouseenter={(e) => { e.stopPropagation(); setHoveredSlice(qIdx, item, e); }}
+                          on:mousemove={(e) => handleMouseMoveSlice(e)}
+                          on:mouseleave={(e) => { e.stopPropagation(); clearHoveredSlice(qIdx); }}
+                        />
+                      {/each}
+                    </svg>
+
+                    <!-- CENTER HOLE BADGE -->
+                    <div class="absolute w-12 h-12 bg-slate-950 rounded-full border border-slate-800 flex flex-col items-center justify-center pointer-events-none shadow-inner">
                       {#if activeHoveredSlice}
                         <span class="text-[9px] font-mono font-bold text-cyan-400 animate-fade">{activeHoveredSlice.percentage}%</span>
                       {:else}
@@ -687,7 +738,8 @@
                       {@const isHovered = activeHoveredSlice?.label === item.label}
                       
                       <div 
-                        on:mouseenter={(e) => { e.stopPropagation(); setHoveredSlice(qIdx, item); }}
+                        on:mouseenter={(e) => { e.stopPropagation(); setHoveredSlice(qIdx, item, e); }}
+                        on:mousemove={(e) => handleMouseMoveSlice(e)}
                         on:mouseleave={(e) => { e.stopPropagation(); clearHoveredSlice(qIdx); }}
                         class="flex items-center justify-between text-[11px] px-2.5 py-1 rounded-md transition-all duration-200 border cursor-pointer relative {isHovered ? 'bg-slate-800/90 border-cyan-500 shadow-md translate-x-1 scale-[1.02]' : 'bg-slate-900/80 border-slate-800/60 hover:bg-slate-850 hover:border-slate-700'}"
                       >
@@ -698,28 +750,20 @@
                         <span class="font-mono font-bold text-[10px] shrink-0 {isHovered ? 'text-cyan-300' : 'text-cyan-400'}">
                           {item.percentage}% <span class="text-slate-500 text-[9px]">({item.count})</span>
                         </span>
-
-                        <!-- FLOATING HOVER TOOLTIP DETAIL -->
-                        {#if isHovered}
-                          <div class="absolute -top-9 right-2 bg-slate-950 text-white text-[10px] font-mono px-2.5 py-1 rounded-lg border border-cyan-500/80 shadow-xl z-30 pointer-events-none animate-fade flex items-center space-x-1.5">
-                            <span class="w-2 h-2 rounded-full" style="background-color: {item.color};"></span>
-                            <span class="font-bold text-cyan-400">{item.label}:</span>
-                            <span>{item.count} responses ({item.percentage}%)</span>
-                          </div>
-                        {/if}
                       </div>
                     {/each}
                   </div>
                 </div>
 
               {:else}
-                <!-- INTERACTIVE BAR PROGRESS METRICS WITH HOVER EFFECTS -->
+                <!-- INTERACTIVE BAR PROGRESS METRICS -->
                 <div class="space-y-2">
                   {#each stats.breakdowns as item}
                     {@const isHovered = activeHoveredSlice?.label === item.label}
                     
                     <div 
-                      on:mouseenter={(e) => { e.stopPropagation(); setHoveredSlice(qIdx, item); }}
+                      on:mouseenter={(e) => { e.stopPropagation(); setHoveredSlice(qIdx, item, e); }}
+                      on:mousemove={(e) => handleMouseMoveSlice(e)}
                       on:mouseleave={(e) => { e.stopPropagation(); clearHoveredSlice(qIdx); }}
                       class="space-y-0.5 p-1 rounded-lg transition-all duration-200 cursor-pointer relative {isHovered ? 'bg-slate-900/90 ring-1 ring-cyan-500/40' : ''}"
                     >
@@ -734,14 +778,6 @@
                           style="width: {item.percentage}%"
                         ></div>
                       </div>
-
-                      <!-- FLOATING TOOLTIP FOR BAR CHARTS -->
-                      {#if isHovered}
-                        <div class="absolute -top-8 right-2 bg-slate-950 text-white text-[10px] font-mono px-2.5 py-1 rounded-lg border border-cyan-500/80 shadow-xl z-30 pointer-events-none animate-fade flex items-center space-x-1.5">
-                          <span class="font-bold text-cyan-400">{item.label}:</span>
-                          <span>{item.count} submissions ({item.percentage}%)</span>
-                        </div>
-                      {/if}
                     </div>
                   {/each}
                 </div>
@@ -752,7 +788,7 @@
         </div>
 
       {:else}
-        <!-- LOG MATRIX TABLE WITH INTERACTIVE ROW HOVER -->
+        <!-- LOG MATRIX TABLE WITH ROW HOVER -->
         <div class="border border-slate-800 rounded-xl bg-slate-950/40 box-border overflow-x-auto mb-3 shadow-inner">
           <table class="w-full border-collapse text-left text-xs text-slate-300 whitespace-nowrap min-w-full">
             <thead class="bg-slate-900 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 sticky top-0 z-10 shadow-xs">
@@ -1011,11 +1047,16 @@
         {#if isPie}
           <div class="flex-1 flex flex-col md:flex-row items-center justify-center gap-6 overflow-hidden">
             <div class="relative shrink-0 flex items-center justify-center">
-              <div
-                class="w-44 h-44 sm:w-52 sm:h-56 rounded-full shadow-xl transition-all duration-300 border-2 border-slate-800/80"
-                style="background: {modalStats.conicGradient};"
-              ></div>
-              <div class="absolute w-20 h-20 sm:w-24 sm:h-24 bg-slate-950 rounded-full border border-slate-800 flex flex-col items-center justify-center shadow-inner">
+              <svg class="w-48 h-48 transform -rotate-90 drop-shadow-lg overflow-visible" viewBox="0 0 100 100">
+                {#each modalStats.breakdowns as item}
+                  <path
+                    d={item.svgPath}
+                    fill={item.color}
+                    class="transition-all duration-300 cursor-pointer origin-center hover:scale-105"
+                  />
+                {/each}
+              </svg>
+              <div class="absolute w-20 h-20 sm:w-24 sm:h-24 bg-slate-950 rounded-full border border-slate-800 flex flex-col items-center justify-center shadow-inner pointer-events-none">
                 <span class="text-lg sm:text-xl font-bold text-cyan-400 font-mono">{modalStats.total}</span>
                 <span class="text-[9px] font-mono text-slate-500 uppercase font-bold">Total Logs</span>
               </div>
