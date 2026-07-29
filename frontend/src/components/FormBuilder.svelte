@@ -11,6 +11,47 @@
   let localQuestions = [];
   let saveContainerRef;
 
+  // DRAGGABLE RESIZER STATE & DELTA MOVEMENT MECHANICS
+  let leftPanelWidth = 320; // default pixel width for toolbox sidebar
+  let isResizing = false;
+
+  function startResizing(event) {
+    event.preventDefault();
+    isResizing = true;
+    
+    // Lock text selection & enforce column cursor globally during drag
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "col-resize";
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", stopResizing);
+  }
+
+  function handleMouseMove(event) {
+    if (!isResizing) return;
+    
+    // Delta calculation ensures accuracy whether main app sidebar is expanded or collapsed
+    const minWidth = 220;
+    const maxWidth = 500;
+    const updatedWidth = leftPanelWidth + event.movementX;
+
+    if (updatedWidth >= minWidth && updatedWidth <= maxWidth) {
+      leftPanelWidth = updatedWidth;
+    }
+  }
+
+  function stopResizing() {
+    if (!isResizing) return;
+    isResizing = false;
+
+    // Restore text selection & standard cursor
+    document.body.style.userSelect = "";
+    document.body.style.cursor = "";
+
+    window.removeEventListener("mousemove", handleMouseMove);
+    window.removeEventListener("mouseup", stopResizing);
+  }
+
   $: {
     let dummy = activeSurveyId;
     localTitle = surveyTitle || "";
@@ -151,11 +192,12 @@
 </script>
 
 <div
-  class="w-full min-h-full flex flex-col lg:flex-row gap-6 animate-fade overflow-visible box-border text-slate-800 dark:text-slate-100 pb-16 relative"
+  class="w-full min-h-full flex flex-col lg:flex-row animate-fade overflow-visible box-border text-slate-800 dark:text-slate-100 pb-16 relative select-none"
 >
-  <!-- LEFT SIDEBAR: TOOLBOX (STICKY ON DESKTOP) -->
+  <!-- LEFT SIDEBAR: TOOLBOX (RESIZABLE & STICKY ON DESKTOP) -->
   <div
-    class="w-full lg:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 shrink-0 flex flex-col justify-between shadow-md h-fit lg:sticky lg:top-4 box-border self-start z-10"
+    class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 shrink-0 flex flex-col justify-between shadow-md h-fit lg:sticky lg:top-4 box-border self-start z-10 transition-none"
+    style="width: {leftPanelWidth}px;"
   >
     <div class="space-y-6">
       <div>
@@ -205,6 +247,15 @@
         </p>
       </div>
     </div>
+  </div>
+
+  <!-- INTERACTIVE RESIZER DIVIDER HANDLE -->
+  <div
+    on:mousedown={startResizing}
+    class="hidden lg:flex w-4 cursor-col-resize items-center justify-center shrink-0 group transition-colors z-20 hover:bg-cyan-500/10 active:bg-cyan-500/20"
+    title="Drag left/right to resize panels"
+  >
+    <div class="w-1.5 h-16 rounded-full bg-slate-300 dark:bg-slate-700/80 group-hover:bg-cyan-500 group-active:bg-cyan-400 transition-colors shadow-sm"></div>
   </div>
 
   <!-- RIGHT: EXPANDABLE DESIGN CANVAS WORKSPACE -->
@@ -517,7 +568,7 @@
   </div>
 </div>
 
-<!-- FLOATING QUICK JUMP BUTTON (APPEARS WHEN BUILDER HAS QUESTIONS) -->
+<!-- FLOATING QUICK JUMP BUTTON -->
 {#if localQuestions.length >= 2}
   <button
     on:click={scrollToSave}
