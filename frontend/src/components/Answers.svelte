@@ -22,14 +22,26 @@
   let expandedAlertIds = new Set();
 
   // DRAGGABLE RESIZER STATE & BULLETPROOF EVENT HANDLING
-  let leftPanelWidth = 280; // default pixel width for left panel
+  let leftPanelWidth = 280;
   let isResizing = false;
+
+  // HOVER & TOOLTIP STATE
+  let hoveredSliceMap = {}; // { questionIndex: breakdownItem }
+
+  function setHoveredSlice(qIdx, item) {
+    hoveredSliceMap[qIdx] = item;
+    hoveredSliceMap = hoveredSliceMap;
+  }
+
+  function clearHoveredSlice(qIdx) {
+    delete hoveredSliceMap[qIdx];
+    hoveredSliceMap = hoveredSliceMap;
+  }
 
   function startResizing(event) {
     event.preventDefault();
     isResizing = true;
     
-    // Prevent text selection across the entire document during drag
     document.body.style.userSelect = "none";
     document.body.style.cursor = "col-resize";
 
@@ -40,12 +52,9 @@
   function handleMouseMove(event) {
     if (!isResizing) return;
     
-    // Smooth pixel calculation relative to current viewport position
     const minWidth = 180;
     const maxWidth = 550;
-    
-    // Get mouse position relative to container
-    const newWidth = event.clientX - 260; // offset for collapsed/expanded sidebar
+    const newWidth = event.clientX - 260;
     if (newWidth >= minWidth && newWidth <= maxWidth) {
       leftPanelWidth = newWidth;
     }
@@ -55,7 +64,6 @@
     if (!isResizing) return;
     isResizing = false;
 
-    // Restore standard cursor & selection behavior
     document.body.style.userSelect = "";
     document.body.style.cursor = "";
 
@@ -441,7 +449,7 @@
               activeSurveyId = survey._id;
               clearFilters();
             }}
-            class="min-w-[130px] lg:w-full text-left border px-3 py-2 rounded-xl transition-all duration-150 flex flex-col gap-0.5 active:scale-[0.98] group shrink-0 {activeSurveyId === survey._id ? 'bg-cyan-600/10 border-cyan-500 text-white shadow-sm' : 'bg-slate-950/40 border-slate-800/80 hover:border-slate-700 text-slate-400'}"
+            class="min-w-[130px] lg:w-full text-left border px-3 py-2 rounded-xl transition-all duration-200 flex flex-col gap-0.5 active:scale-[0.98] hover:scale-[1.01] group shrink-0 {activeSurveyId === survey._id ? 'bg-cyan-600/10 border-cyan-500 text-white shadow-sm ring-1 ring-cyan-500/30' : 'bg-slate-950/40 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/60 text-slate-400'}"
           >
             <span class="text-xs font-bold transition-colors truncate {activeSurveyId === survey._id ? 'text-cyan-400' : 'text-slate-300 group-hover:text-cyan-400'}">
               {survey.title}
@@ -473,14 +481,14 @@
             {@const isSelected = selectedDevices.includes(devId)}
             <button
               on:click={() => toggleDeviceFilter(devId)}
-              class="w-full px-2 py-1 rounded-lg text-[9px] font-mono font-bold transition-all border flex items-center justify-between shadow-xs active:scale-95 truncate {isSelected ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}"
+              class="w-full px-2 py-1.5 rounded-lg text-[9px] font-mono font-bold transition-all border flex items-center justify-between shadow-xs active:scale-95 hover:scale-[1.02] truncate {isSelected ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300 ring-1 ring-emerald-500/30' : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white'}"
               title={devId}
             >
               <span class="truncate pr-0.5 flex items-center space-x-1">
                 <svg class="w-3 h-3 fill-current inline-block" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
                 <span>{devId}</span>
               </span>
-              {#if isSelected}<span class="shrink-0 text-emerald-400">✓</span>{/if}
+              {#if isSelected}<span class="shrink-0 text-emerald-400 font-bold">✓</span>{/if}
             </button>
           {/each}
         {/if}
@@ -502,30 +510,14 @@
       <div class="space-y-1">
         <span class="text-[9px] text-slate-500 font-bold uppercase block">Quick Ranges</span>
         <div class="grid grid-cols-4 gap-1">
-          <button
-            on:click={() => applyDatePreset('ALL')}
-            class="py-1 px-0.5 rounded-md text-[9px] font-bold transition-all border {activePreset === 'ALL' ? 'bg-cyan-600 border-cyan-500 text-white shadow-xs' : 'bg-slate-950 border-slate-800 text-slate-400'}"
-          >
-            All
-          </button>
-          <button
-            on:click={() => applyDatePreset('TODAY')}
-            class="py-1 px-0.5 rounded-md text-[9px] font-bold transition-all border {activePreset === 'TODAY' ? 'bg-cyan-600 border-cyan-500 text-white shadow-xs' : 'bg-slate-950 border-slate-800 text-slate-400'}"
-          >
-            Today
-          </button>
-          <button
-            on:click={() => applyDatePreset('7DAYS')}
-            class="py-1 px-0.5 rounded-md text-[9px] font-bold transition-all border {activePreset === '7DAYS' ? 'bg-cyan-600 border-cyan-500 text-white shadow-xs' : 'bg-slate-950 border-slate-800 text-slate-400'}"
-          >
-            7 Days
-          </button>
-          <button
-            on:click={() => applyDatePreset('30DAYS')}
-            class="py-1 px-0.5 rounded-md text-[9px] font-bold transition-all border {activePreset === '30DAYS' ? 'bg-cyan-600 border-cyan-500 text-white shadow-xs' : 'bg-slate-950 border-slate-800 text-slate-400'}"
-          >
-            30 Days
-          </button>
+          {#each [['ALL', 'All'], ['TODAY', 'Today'], ['7DAYS', '7 Days'], ['30DAYS', '30 Days']] as [presetKey, presetLabel]}
+            <button
+              on:click={() => applyDatePreset(presetKey)}
+              class="py-1 px-0.5 rounded-md text-[9px] font-bold transition-all border hover:scale-105 active:scale-95 {activePreset === presetKey ? 'bg-cyan-600 border-cyan-500 text-white shadow-xs ring-1 ring-cyan-500/30' : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200'}"
+            >
+              {presetLabel}
+            </button>
+          {/each}
         </div>
       </div>
 
@@ -538,7 +530,7 @@
             type="date"
             bind:value={startDate}
             on:change={() => (activePreset = 'CUSTOM')}
-            class="w-full bg-slate-950 border border-slate-800 text-[11px] text-slate-200 px-2 py-1 rounded-md focus:outline-none focus:border-cyan-500 cursor-pointer"
+            class="w-full bg-slate-950 border border-slate-800 text-[11px] text-slate-200 px-2 py-1 rounded-md focus:outline-none focus:border-cyan-500 cursor-pointer transition-all hover:border-slate-700"
           />
         </div>
         <div class="space-y-0.5">
@@ -548,7 +540,7 @@
             type="date"
             bind:value={endDate}
             on:change={() => (activePreset = 'CUSTOM')}
-            class="w-full bg-slate-950 border border-slate-800 text-[11px] text-slate-200 px-2 py-1 rounded-md focus:outline-none focus:border-cyan-500 cursor-pointer"
+            class="w-full bg-slate-950 border border-slate-800 text-[11px] text-slate-200 px-2 py-1 rounded-md focus:outline-none focus:border-cyan-500 cursor-pointer transition-all hover:border-slate-700"
           />
         </div>
       </div>
@@ -561,7 +553,7 @@
     class="hidden lg:flex w-4 cursor-col-resize items-center justify-center shrink-0 group transition-colors z-20 hover:bg-cyan-500/10 active:bg-cyan-500/20"
     title="Drag left/right to resize panels"
   >
-    <div class="w-1.5 h-14 rounded-full bg-slate-700/80 group-hover:bg-cyan-500 group-active:bg-cyan-400 transition-colors shadow-sm"></div>
+    <div class="w-1.5 h-16 rounded-full bg-slate-700/80 group-hover:bg-cyan-500 group-hover:shadow-md group-hover:shadow-cyan-500/30 group-active:bg-cyan-400 transition-all"></div>
   </div>
 
   <!-- RIGHT MAIN ANALYTICS WORKSPACE -->
@@ -585,7 +577,7 @@
         <!-- LOW RATING NOTIFICATION BELL BUTTON -->
         <button
           on:click={() => (isNotificationOpen = !isNotificationOpen)}
-          class="relative bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/60 p-2 rounded-lg transition-all active:scale-95 flex items-center justify-center shadow-xs text-amber-400"
+          class="relative bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/60 p-2 rounded-lg transition-all active:scale-95 hover:scale-105 flex items-center justify-center shadow-xs text-amber-400"
           title="View Low Rating Notifications"
         >
           <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.83-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
@@ -602,14 +594,14 @@
         <div class="bg-slate-950 p-0.5 border border-slate-800 rounded-lg flex items-center space-x-1">
           <button
             on:click={() => (activeViewMode = "analytics")}
-            class="px-2.5 py-1 rounded-md text-[11px] font-bold transition-all flex items-center space-x-1.5 {activeViewMode === 'analytics' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'}"
+            class="px-2.5 py-1 rounded-md text-[11px] font-bold transition-all flex items-center space-x-1.5 hover:scale-105 active:scale-95 {activeViewMode === 'analytics' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'}"
           >
             <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
             <span>Analytics</span>
           </button>
           <button
             on:click={() => (activeViewMode = "table")}
-            class="px-2.5 py-1 rounded-md text-[11px] font-bold transition-all flex items-center space-x-1.5 {activeViewMode === 'table' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'}"
+            class="px-2.5 py-1 rounded-md text-[11px] font-bold transition-all flex items-center space-x-1.5 hover:scale-105 active:scale-95 {activeViewMode === 'table' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'}"
           >
             <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M4 3h16c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2zm0 4h16V5H4v2zm0 4h5V9H4v2zm7 0h9V9h-9v2zm-7 4h5v-2H4v2zm7 0h9v-2h-9v2zm-7 4h5v-2H4v2zm7 0h9v-2h-9v2z"/></svg>
             <span>Log Matrix</span>
@@ -619,7 +611,7 @@
         <button
           on:click={() => exportToExcel()}
           disabled={filteredResponses.length === 0}
-          class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] py-1.5 px-2.5 rounded-lg transition-all active:scale-[0.98] flex items-center space-x-1 disabled:opacity-20"
+          class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] py-1.5 px-2.5 rounded-lg transition-all hover:scale-105 active:scale-95 flex items-center space-x-1 disabled:opacity-20"
         >
           <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
           <span>Export CSV</span>
@@ -628,7 +620,7 @@
         <button
           on:click={clearAllSurveyResponses}
           disabled={filteredResponses.length === 0}
-          class="bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 text-rose-300 font-bold text-[11px] py-1.5 px-2.5 rounded-lg transition-all active:scale-[0.98] disabled:opacity-20 flex items-center space-x-1"
+          class="bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 text-rose-300 font-bold text-[11px] py-1.5 px-2.5 rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-20 flex items-center space-x-1"
           title="Delete all submission logs for this form"
         >
           <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
@@ -637,7 +629,7 @@
       </div>
     </div>
 
-    <!-- MAIN GRID CARDS (DYNAMIC COLUMNS BASED ON PANEL WIDTH) -->
+    <!-- MAIN GRID CARDS WITH INTERACTIVE HOVER TOOLTIPS AND GLOW EFFECTS -->
     <div class="flex-1 overflow-y-auto mt-3 custom-scrollbar pr-1 box-border">
       {#if !selectedSurveyObj || filteredResponses.length === 0}
         <div class="border-2 border-dashed border-slate-800 rounded-2xl p-8 text-center text-slate-500 text-xs">
@@ -646,71 +638,110 @@
 
       {:else if activeViewMode === "analytics"}
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4 pb-4">
-          {#each displayedQuestions as question}
+          {#each displayedQuestions as question, qIdx}
             {@const stats = getQuestionAnalytics(question, filteredResponses)}
             {@const isPieEligible = isPieChartType(question.type)}
+            {@const activeHoveredSlice = hoveredSliceMap[qIdx]}
             
             <div 
               on:click={() => openQuestionModal(question)}
-              class="bg-slate-950/60 hover:bg-slate-950/90 border border-slate-800 hover:border-cyan-500/50 rounded-xl p-3.5 sm:p-4 space-y-3 shadow-xs cursor-pointer transition-all duration-200 group"
+              class="bg-slate-950/60 hover:bg-slate-950/95 border border-slate-800 hover:border-cyan-500/60 hover:shadow-xl hover:shadow-cyan-950/20 rounded-xl p-3.5 sm:p-4 space-y-3 shadow-xs cursor-pointer transition-all duration-300 group relative overflow-visible"
             >
               <div class="flex items-start justify-between gap-2 border-b border-slate-800/60 pb-2">
                 <div class="space-y-0.5">
                   <span class="text-[9px] font-bold text-cyan-400 uppercase font-mono tracking-wider flex items-center space-x-1">
                     <span>Field #{selectedSurveyObj.questions.findIndex(q => cleanString(q.questionText) === cleanString(question.questionText)) + 1} • {question.type}</span>
-                    <span class="text-slate-500 text-[9px] hidden sm:inline flex items-center space-x-0.5">
+                    <span class="text-slate-500 text-[9px] hidden sm:inline-flex items-center space-x-0.5 group-hover:text-cyan-300 transition-colors">
                       <svg class="w-3 h-3 fill-current inline-block ml-1" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
                       <span>Click to enlarge</span>
                     </span>
                   </span>
                   <h4 class="text-xs sm:text-sm font-bold text-white group-hover:text-cyan-100 transition-colors leading-snug">{question.questionText}</h4>
                 </div>
-                <span class="text-[10px] font-bold bg-slate-900 px-2 py-0.5 rounded text-slate-400 border border-slate-800 shrink-0">
+                <span class="text-[10px] font-bold bg-slate-900 px-2 py-0.5 rounded text-slate-400 border border-slate-800 shrink-0 group-hover:border-cyan-500/40 group-hover:text-cyan-300 transition-all">
                   {stats.total} {stats.total === 1 ? 'entry' : 'entries'}
                 </span>
               </div>
 
               {#if isPieEligible}
-                <div class="flex flex-row items-center gap-3 sm:gap-4 pt-0.5">
-                  <div class="relative shrink-0 flex items-center justify-center">
+                <div class="flex flex-row items-center gap-3 sm:gap-4 pt-0.5 relative">
+                  
+                  <!-- DONUT CHART WITH HOVER HIGHLIGHT SCALE -->
+                  <div class="relative shrink-0 flex items-center justify-center group/chart">
                     <div
-                      class="w-24 h-24 sm:w-28 sm:h-28 rounded-full shadow-md transition-all duration-300 border border-slate-800/60"
+                      class="w-24 h-24 sm:w-28 sm:h-28 rounded-full shadow-md transition-all duration-300 border border-slate-800/60 hover:scale-105 hover:shadow-lg hover:shadow-cyan-500/10 cursor-pointer"
                       style="background: {stats.conicGradient};"
                     ></div>
-                    <div class="absolute w-10 h-10 sm:w-12 sm:h-12 bg-slate-950 rounded-full border border-slate-800 flex items-center justify-center">
-                      <span class="text-[9px] font-mono font-bold text-slate-400">{stats.total} Logs</span>
+                    <div class="absolute w-10 h-10 sm:w-12 sm:h-12 bg-slate-950 rounded-full border border-slate-800 flex flex-col items-center justify-center transition-transform group-hover/chart:scale-110">
+                      {#if activeHoveredSlice}
+                        <span class="text-[9px] font-mono font-bold text-cyan-400 animate-fade">{activeHoveredSlice.percentage}%</span>
+                      {:else}
+                        <span class="text-[9px] font-mono font-bold text-slate-400">{stats.total} Logs</span>
+                      {/if}
                     </div>
                   </div>
 
+                  <!-- INTERACTIVE BREAKDOWN LEGEND LIST -->
                   <div class="flex-1 space-y-1 w-full">
                     {#each stats.breakdowns as item}
-                      <div class="flex items-center justify-between text-[11px] bg-slate-900/80 border border-slate-800/60 px-2.5 py-1 rounded-md">
+                      {@const isHovered = activeHoveredSlice?.label === item.label}
+                      
+                      <div 
+                        on:mouseenter={(e) => { e.stopPropagation(); setHoveredSlice(qIdx, item); }}
+                        on:mouseleave={(e) => { e.stopPropagation(); clearHoveredSlice(qIdx); }}
+                        class="flex items-center justify-between text-[11px] px-2.5 py-1 rounded-md transition-all duration-200 border cursor-pointer relative {isHovered ? 'bg-slate-800/90 border-cyan-500 shadow-md translate-x-1 scale-[1.02]' : 'bg-slate-900/80 border-slate-800/60 hover:bg-slate-850 hover:border-slate-700'}"
+                      >
                         <div class="flex items-center space-x-1.5 truncate pr-1">
-                          <span class="w-2 h-2 rounded-full shrink-0" style="background-color: {item.color};"></span>
-                          <span class="text-slate-200 font-medium truncate text-[10px] sm:text-[11px]">{item.label}</span>
+                          <span class="w-2.5 h-2.5 rounded-full shrink-0 transition-transform {isHovered ? 'scale-125 ring-2 ring-white/20' : ''}" style="background-color: {item.color};"></span>
+                          <span class="text-slate-200 font-medium truncate text-[10px] sm:text-[11px] {isHovered ? 'text-white font-bold' : ''}">{item.label}</span>
                         </div>
-                        <span class="font-mono text-cyan-400 font-bold text-[10px] shrink-0">
+                        <span class="font-mono font-bold text-[10px] shrink-0 {isHovered ? 'text-cyan-300' : 'text-cyan-400'}">
                           {item.percentage}% <span class="text-slate-500 text-[9px]">({item.count})</span>
                         </span>
+
+                        <!-- FLOATING HOVER TOOLTIP DETAIL -->
+                        {#if isHovered}
+                          <div class="absolute -top-9 right-2 bg-slate-950 text-white text-[10px] font-mono px-2.5 py-1 rounded-lg border border-cyan-500/80 shadow-xl z-30 pointer-events-none animate-fade flex items-center space-x-1.5">
+                            <span class="w-2 h-2 rounded-full" style="background-color: {item.color};"></span>
+                            <span class="font-bold text-cyan-400">{item.label}:</span>
+                            <span>{item.count} responses ({item.percentage}%)</span>
+                          </div>
+                        {/if}
                       </div>
                     {/each}
                   </div>
                 </div>
 
               {:else}
+                <!-- INTERACTIVE BAR PROGRESS METRICS WITH HOVER EFFECTS -->
                 <div class="space-y-2">
                   {#each stats.breakdowns as item}
-                    <div class="space-y-0.5">
+                    {@const isHovered = activeHoveredSlice?.label === item.label}
+                    
+                    <div 
+                      on:mouseenter={(e) => { e.stopPropagation(); setHoveredSlice(qIdx, item); }}
+                      on:mouseleave={(e) => { e.stopPropagation(); clearHoveredSlice(qIdx); }}
+                      class="space-y-0.5 p-1 rounded-lg transition-all duration-200 cursor-pointer relative {isHovered ? 'bg-slate-900/90 ring-1 ring-cyan-500/40' : ''}"
+                    >
                       <div class="flex items-center justify-between text-[11px]">
-                        <span class="text-slate-300 font-semibold truncate max-w-[160px] sm:max-w-[200px]">{item.label}</span>
-                        <span class="font-mono text-cyan-400 font-bold text-[10px]">{item.percentage}% <span class="text-slate-500 text-[9px]">({item.count})</span></span>
+                        <span class="text-slate-300 font-semibold truncate max-w-[160px] sm:max-w-[200px] {isHovered ? 'text-white font-bold' : ''}">{item.label}</span>
+                        <span class="font-mono font-bold text-[10px] {isHovered ? 'text-cyan-300' : 'text-cyan-400'}">{item.percentage}% <span class="text-slate-500 text-[9px]">({item.count})</span></span>
                       </div>
-                      <div class="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800/80">
+                      
+                      <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800/80">
                         <div
-                          class="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500"
+                          class="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500 {isHovered ? 'from-cyan-400 to-emerald-400 shadow-md shadow-cyan-500/20' : ''}"
                           style="width: {item.percentage}%"
                         ></div>
                       </div>
+
+                      <!-- FLOATING TOOLTIP FOR BAR CHARTS -->
+                      {#if isHovered}
+                        <div class="absolute -top-8 right-2 bg-slate-950 text-white text-[10px] font-mono px-2.5 py-1 rounded-lg border border-cyan-500/80 shadow-xl z-30 pointer-events-none animate-fade flex items-center space-x-1.5">
+                          <span class="font-bold text-cyan-400">{item.label}:</span>
+                          <span>{item.count} submissions ({item.percentage}%)</span>
+                        </div>
+                      {/if}
                     </div>
                   {/each}
                 </div>
@@ -721,7 +752,8 @@
         </div>
 
       {:else}
-        <div class="border border-slate-800 rounded-xl bg-slate-950/40 box-border overflow-x-auto mb-3">
+        <!-- LOG MATRIX TABLE WITH INTERACTIVE ROW HOVER -->
+        <div class="border border-slate-800 rounded-xl bg-slate-950/40 box-border overflow-x-auto mb-3 shadow-inner">
           <table class="w-full border-collapse text-left text-xs text-slate-300 whitespace-nowrap min-w-full">
             <thead class="bg-slate-900 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 sticky top-0 z-10 shadow-xs">
               <tr>
@@ -736,32 +768,32 @@
             </thead>
             <tbody class="divide-y divide-slate-800/60">
               {#each filteredResponses as response}
-                <tr class="hover:bg-slate-950/60 transition-all">
+                <tr class="hover:bg-cyan-950/20 hover:border-cyan-500/40 transition-all group">
                   <td class="p-2 border-r border-slate-800/40 text-center">
                     <button
                       on:click={() => deleteSingleResponse(response._id)}
-                      class="text-slate-500 hover:text-rose-400 bg-slate-900 hover:bg-rose-950/40 border border-slate-800 p-1 rounded-md transition-all"
+                      class="text-slate-500 hover:text-rose-400 bg-slate-900 hover:bg-rose-950/40 border border-slate-800 p-1.5 rounded-md transition-all active:scale-95"
                       title="Delete entry"
                     >
                       <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
                     </button>
                   </td>
-                  <td class="p-2.5 font-mono text-cyan-400 font-semibold border-r border-slate-800/40 truncate max-w-[90px]">
+                  <td class="p-2.5 font-mono text-cyan-400 font-semibold border-r border-slate-800/40 truncate max-w-[90px] group-hover:text-cyan-300">
                     {response._id ? response._id.slice(-6) : 'Log'}
                   </td>
                   <td class="p-2.5 border-r border-slate-800/40">
-                    <span class="text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 font-mono font-bold px-1.5 py-0.5 rounded text-[10px] flex items-center space-x-1 w-fit">
+                    <span class="text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 font-mono font-bold px-1.5 py-0.5 rounded text-[10px] flex items-center space-x-1 w-fit group-hover:border-emerald-500/60">
                       <svg class="w-3 h-3 fill-current inline-block" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
                       <span>{response.deviceId || 'Tablet-A'}</span>
                     </span>
                   </td>
-                  <td class="p-2.5 text-slate-400 border-r border-slate-800/40 font-mono text-[10px]">
+                  <td class="p-2.5 text-slate-400 border-r border-slate-800/40 font-mono text-[10px] group-hover:text-slate-200">
                     {new Date(response.timestamp).toLocaleString()}
                   </td>
                   {#each displayedQuestions as question}
                     {@const answerVal = (response.answers || []).find((a) => cleanString(a.questionText) === cleanString(question.questionText))?.value || 'N/A'}
                     <td class="p-2.5 border-r border-slate-800/40 text-slate-200">
-                      <span class="text-slate-300 bg-slate-950/80 border border-slate-800 px-2 py-0.5 rounded">
+                      <span class="text-slate-300 bg-slate-950/80 border border-slate-800 px-2 py-0.5 rounded group-hover:border-slate-700 font-medium">
                         {answerVal}
                       </span>
                     </td>
@@ -798,7 +830,7 @@
 
         <button
           on:click={() => (isNotificationOpen = false)}
-          class="text-slate-400 hover:text-white bg-slate-950 border border-slate-800 p-2 rounded-lg transition-all active:scale-95"
+          class="text-slate-400 hover:text-white bg-slate-950 border border-slate-800 p-2 rounded-lg transition-all active:scale-95 hover:bg-slate-800"
         >
           ✕
         </button>
@@ -843,7 +875,7 @@
               <div class="pt-0.5">
                 <button
                   on:click={() => toggleExpandAlert(alert.responseId)}
-                  class="w-full bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-800 px-3 py-2 rounded-lg text-xs font-bold font-mono transition-all flex items-center justify-between"
+                  class="w-full bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-800 px-3 py-2 rounded-lg text-xs font-bold font-mono transition-all flex items-center justify-between active:scale-[0.99]"
                 >
                   <span>{isExpanded ? "▼ Hide Full Submission" : "▶ Inspect Full Submission"}</span>
                   <span class="text-[10px] text-cyan-400 font-mono">{alert.allAnswers.length} Fields</span>
@@ -875,7 +907,7 @@
       <div class="pt-2 border-t border-slate-800 text-center shrink-0">
         <button
           on:click={() => (isNotificationOpen = false)}
-          class="w-full bg-slate-950 hover:bg-slate-800 text-slate-300 font-bold text-xs py-2.5 rounded-lg border border-slate-800 transition-all shadow-md"
+          class="w-full bg-slate-950 hover:bg-slate-800 text-slate-300 font-bold text-xs py-2.5 rounded-lg border border-slate-800 transition-all shadow-md active:scale-95"
         >
           Close Drawer
         </button>
@@ -907,7 +939,7 @@
 
       <button 
         on:click={closeQuestionModal} 
-        class="text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-700/80 h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold transition-all shadow-lg shrink-0"
+        class="text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-700/80 h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold transition-all shadow-lg shrink-0 active:scale-95"
         title="Exit Focus View"
       >
         ✕
@@ -932,30 +964,14 @@
           <div class="space-y-1">
             <span class="text-[10px] font-bold text-slate-400 uppercase">Quick Date Ranges</span>
             <div class="grid grid-cols-4 gap-1">
-              <button
-                on:click={() => applyDatePreset('ALL')}
-                class="py-1.5 rounded-lg text-xs font-bold transition-all border {activePreset === 'ALL' ? 'bg-cyan-600 border-cyan-500 text-white shadow-sm' : 'bg-slate-950 border-slate-800 text-slate-400'}"
-              >
-                All
-              </button>
-              <button
-                on:click={() => applyDatePreset('TODAY')}
-                class="py-1.5 rounded-lg text-xs font-bold transition-all border {activePreset === 'TODAY' ? 'bg-cyan-600 border-cyan-500 text-white shadow-sm' : 'bg-slate-950 border-slate-800 text-slate-400'}"
-              >
-                Today
-              </button>
-              <button
-                on:click={() => applyDatePreset('7DAYS')}
-                class="py-1.5 rounded-lg text-xs font-bold transition-all border {activePreset === '7DAYS' ? 'bg-cyan-600 border-cyan-500 text-white shadow-sm' : 'bg-slate-950 border-slate-800 text-slate-400'}"
-              >
-                7 Days
-              </button>
-              <button
-                on:click={() => applyDatePreset('30DAYS')}
-                class="py-1.5 rounded-lg text-xs font-bold transition-all border {activePreset === '30DAYS' ? 'bg-cyan-600 border-cyan-500 text-white shadow-sm' : 'bg-slate-950 border-slate-800 text-slate-400'}"
-              >
-                30 Days
-              </button>
+              {#each [['ALL', 'All'], ['TODAY', 'Today'], ['7DAYS', '7 Days'], ['30DAYS', '30 Days']] as [presetKey, presetLabel]}
+                <button
+                  on:click={() => applyDatePreset(presetKey)}
+                  class="py-1.5 rounded-lg text-xs font-bold transition-all border hover:scale-105 active:scale-95 {activePreset === presetKey ? 'bg-cyan-600 border-cyan-500 text-white shadow-sm' : 'bg-slate-950 border-slate-800 text-slate-400'}"
+                >
+                  {presetLabel}
+                </button>
+              {/each}
             </div>
           </div>
 
@@ -1007,7 +1023,7 @@
 
             <div class="flex-1 w-full space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
               {#each modalStats.breakdowns as item}
-                <div class="flex items-center justify-between text-xs bg-slate-950/80 border border-slate-800/80 px-3 py-2 rounded-xl shadow-xs">
+                <div class="flex items-center justify-between text-xs bg-slate-950/80 border border-slate-800/80 px-3 py-2 rounded-xl shadow-xs hover:border-slate-700 transition-all">
                   <div class="flex items-center space-x-2 truncate pr-2">
                     <span class="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs" style="background-color: {item.color};"></span>
                     <span class="text-slate-100 font-bold truncate">{item.label}</span>
@@ -1023,7 +1039,7 @@
         {:else}
           <div class="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-2 justify-center flex flex-col">
             {#each modalStats.breakdowns as item}
-              <div class="space-y-1 bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+              <div class="space-y-1 bg-slate-950/60 p-3 rounded-xl border border-slate-800 hover:border-slate-700 transition-all">
                 <div class="flex items-center justify-between text-xs">
                   <span class="text-slate-100 font-bold truncate max-w-xs">{item.label}</span>
                   <span class="font-mono text-cyan-400 font-bold text-xs">{item.percentage}% <span class="text-slate-500 text-[10px]">({item.count})</span></span>
