@@ -178,6 +178,7 @@
 
     const targetName = newDeviceName.trim();
 
+    // Optimistic UI update
     responses = responses.map((r) => {
       if ((r.deviceId || "Tablet-A") === oldDeviceId) {
         return { ...r, deviceId: targetName };
@@ -186,14 +187,17 @@
     });
 
     try {
-      await fetch(`${API_BASE}/responses/rename-device`, {
+      const res = await fetch(`${API_BASE}/responses/rename-device`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ oldDeviceId, newDeviceId: targetName }),
       });
+      if (!res.ok) {
+        console.warn("Backend update error, refreshing state...");
+      }
       await onRefreshData();
     } catch (err) {
-      console.warn("Local state updated successfully.");
+      console.warn("Network error during rename sync:", err);
     }
   }
 
@@ -473,7 +477,7 @@
   }
 </script>
 
-<!-- RECTANGLE SHORT POP-UP TOOLTIP FLOATING ON MOUSE HOVER -->
+<!-- RECTANGLE HOVER POPUP TOOLTIP -->
 {#if activeHoveredSlice}
   <div 
     class="fixed z-50 pointer-events-none bg-slate-950/95 text-white border border-cyan-500/80 px-3 py-2 rounded-xl shadow-2xl backdrop-blur-md font-mono text-xs flex items-center space-x-2.5 transition-all duration-75 transform -translate-x-1/2 -translate-y-12"
@@ -545,7 +549,7 @@
             <div class="flex items-center space-x-1 group/item">
               <button
                 on:click={() => toggleDeviceFilter(devId)}
-                class="w-full px-2 py-1.5 rounded-lg text-[9px] font-mono font-bold transition-all border flex items-center justify-between shadow-xs active:scale-95 hover:scale-[1.02] truncate {isSelected ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300 ring-1 ring-emerald-500/30' : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white'}"
+                class="w-full px-2 py-1.5 rounded-lg text-[9px] font-mono font-bold transition-all border flex items-center justify-between shadow-xs active:scale-95 truncate {isSelected ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300 ring-1 ring-emerald-500/30' : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white'}"
                 title={devId}
               >
                 <span class="truncate pr-0.5 flex items-center space-x-1">
@@ -555,6 +559,7 @@
                 {#if isSelected}<span class="shrink-0 text-emerald-400 font-bold">✓</span>{/if}
               </button>
 
+              <!-- ADMIN RETROACTIVE DEVICE RENAME BUTTON -->
               <button
                 on:click={() => renameDeviceGlobally(devId)}
                 class="opacity-0 group-hover/item:opacity-100 bg-slate-800 hover:bg-cyan-600 text-slate-300 hover:text-white p-1 rounded transition-all text-[8px] shrink-0"
@@ -579,6 +584,7 @@
         {/if}
       </div>
 
+      <!-- QUICK PRESET BUTTONS -->
       <div class="space-y-1">
         <span class="text-[9px] text-slate-500 font-bold uppercase block">Quick Ranges</span>
         <div class="grid grid-cols-4 gap-1">
@@ -593,6 +599,7 @@
         </div>
       </div>
 
+      <!-- DATE ONLY INPUTS -->
       <div class="grid grid-cols-2 lg:grid-cols-1 gap-1.5 pt-0.5">
         <div class="space-y-0.5">
           <label for="start-date" class="text-[9px] text-slate-500 font-bold uppercase">From Date</label>
@@ -644,6 +651,7 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-1.5">
+        <!-- LOW RATING NOTIFICATION BELL BUTTON -->
         <button
           on:click={() => (isNotificationOpen = !isNotificationOpen)}
           class="relative bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/60 p-2 rounded-lg transition-all active:scale-95 hover:scale-105 flex items-center justify-center shadow-xs text-amber-400"
@@ -1015,6 +1023,8 @@
 
     <!-- MAIN FOCUS WORKSPACE -->
     <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 my-4 overflow-hidden box-border">
+      
+      <!-- LEFT: FILTER CONTROL PANEL -->
       <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-4 shrink-0 shadow-xl">
         <div class="space-y-3">
           <div class="flex items-center justify-between border-b border-slate-800 pb-2">
@@ -1070,7 +1080,9 @@
         </div>
       </div>
 
+      <!-- RIGHT: ENLARGED CHART -->
       <div class="lg:col-span-2 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between overflow-hidden shadow-xl">
+        
         {#if isPie}
           <div class="flex-1 flex flex-col md:flex-row items-center justify-center gap-6 overflow-hidden">
             <div class="relative shrink-0 flex items-center justify-center">
@@ -1124,6 +1136,7 @@
       </div>
     </div>
 
+    <!-- BOTTOM ACTION BAR -->
     <div class="pt-3 border-t border-slate-800 flex items-center justify-between shrink-0 gap-3">
       <button
         on:click={closeQuestionModal}
