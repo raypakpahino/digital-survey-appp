@@ -33,7 +33,6 @@
     const paramDeviceId = urlParams.get("deviceId");
     const isDirectLink = urlParams.has("id") && (hash.startsWith("#/kiosk") || window.location.search.includes("id="));
 
-    // Force reset active survey on initial kiosk tab open UNLESS opened via direct shared URL link
     if (!isDirectLink) {
       activeSurveyId = "";
     }
@@ -48,6 +47,16 @@
       }
     }
   });
+
+  function unlockDeviceIdEdit() {
+    const pass = prompt("Admin authorization required to modify Terminal Device ID:");
+    if (pass === "admin" || pass === "1234") {
+      tempDeviceId = deviceId;
+      isEditingDeviceId = true;
+    } else if (pass !== null) {
+      alert("Unauthorized access key.");
+    }
+  }
 
   function saveCustomDeviceId() {
     if (tempDeviceId.trim()) {
@@ -64,11 +73,11 @@
   }
 
   const satisfactionScale = [
-    { label: "ANGRY", emoji: "🤬", color: "hover:bg-rose-500/20 hover:border-rose-500 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/40" },
-    { label: "SAD", emoji: "😞", color: "hover:bg-orange-500/20 hover:border-orange-500 text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900/40" },
-    { label: "NEUTRAL", emoji: "😐", color: "hover:bg-amber-500/20 hover:border-amber-500 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/40" },
-    { label: "HAPPY", emoji: "😊", color: "hover:bg-emerald-500/20 hover:border-emerald-500 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40" },
-    { label: "DELIGHTED", emoji: "🤩", color: "hover:bg-cyan-500/20 hover:border-cyan-500 text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/20 border-cyan-200 dark:border-cyan-900/40" }
+    { label: "ANGRY", emoji: "🤬", color: "hover:bg-rose-500/10 hover:border-rose-500 text-rose-700 bg-rose-50 border-rose-200" },
+    { label: "SAD", emoji: "😞", color: "hover:bg-orange-500/10 hover:border-orange-500 text-orange-700 bg-orange-50 border-orange-200" },
+    { label: "NEUTRAL", emoji: "😐", color: "hover:bg-amber-500/10 hover:border-amber-500 text-amber-700 bg-amber-50 border-amber-200" },
+    { label: "HAPPY", emoji: "😊", color: "hover:bg-emerald-500/10 hover:border-emerald-500 text-emerald-700 bg-emerald-50 border-emerald-200" },
+    { label: "DELIGHTED", emoji: "🤩", color: "hover:bg-cyan-500/10 hover:border-cyan-500 text-cyan-700 bg-cyan-50 border-cyan-200" }
   ];
 
   function handleSelectOption(value) {
@@ -155,123 +164,101 @@
   });
 </script>
 
-<div class="w-full h-full flex flex-col items-center p-3 sm:p-5 text-slate-800 dark:text-slate-100 font-sans box-border overflow-y-auto custom-scrollbar">
+<!-- STRICT LIGHT MODE ENFORCEMENT WITH SODEXO COLOR PALETTE -->
+<div class="w-full h-full flex flex-col items-center p-3 sm:p-6 bg-[#f8fafc] text-slate-800 font-sans box-border overflow-y-auto custom-scrollbar relative selection:bg-cyan-100">
   
-  <!-- PERFECTLY CENTERED HEADER BAR -->
-  <header class="w-full max-w-5xl h-14 px-5 sm:px-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-between shrink-0 shadow-sm my-0 py-0 transition-all">
-    
-    <!-- LEFT: BRAND & FORM IDENTITY -->
-    <div class="flex items-center space-x-3 min-w-0">
-      <div class="h-2.5 w-2.5 rounded-full bg-cyan-500 animate-pulse shadow-sm shrink-0"></div>
-      <span class="text-xs sm:text-sm font-black font-mono tracking-widest text-navy-950 dark:text-slate-200 uppercase truncate leading-none">
-        {surveyTitle || "Feedback Terminal"}
-      </span>
-    </div>
+  <!-- HEADER BAR: SHOWN ONLY DURING FORM SELECTION OR UNLESS ACTIVE FORM IS RUNNING FOR CLIENTS -->
+  {#if !activeSurveyId || !surveyTitle || questions.length === 0}
+    <header class="w-full max-w-5xl h-14 px-5 bg-white border border-slate-200/80 rounded-2xl flex items-center justify-between shrink-0 shadow-sm transition-all z-10">
+      <div class="flex items-center space-x-3 min-w-0">
+        <div class="h-2.5 w-2.5 rounded-full bg-cyan-600 animate-pulse shadow-sm shrink-0"></div>
+        <span class="text-xs sm:text-sm font-black font-mono tracking-widest text-[#1a2b6c] uppercase truncate leading-none">
+          {surveyTitle || "Feedback Terminal"}
+        </span>
+      </div>
 
-    <!-- RIGHT: DEVICE & PROGRESS PILLS -->
-    <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
-      
-      {#if isEditingDeviceId}
-        <div class="flex items-center space-x-1.5 bg-slate-50 dark:bg-slate-950 border border-cyan-500 rounded-full px-2.5 py-1">
-          <input
-            type="text"
-            bind:value={tempDeviceId}
-            placeholder="Tablet-A"
-            class="bg-transparent text-xs text-navy-950 dark:text-white px-1 py-0 font-mono focus:outline-none w-20"
-          />
-          <button 
-            on:click={saveCustomDeviceId} 
-            class="bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full transition-all"
-            style="background-color: #1a2b6c !important; color: #ffffff !important; font-weight: 800 !important;"
-          >
-            Save
-          </button>
-        </div>
-      {:else}
-        <button
-          on:click={() => { tempDeviceId = deviceId; isEditingDeviceId = true; }}
-          class="bg-slate-100 dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 text-cyan-700 dark:text-cyan-400 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-full text-[11px] font-mono font-bold tracking-wider flex items-center space-x-1.5 shadow-xs active:scale-95 transition-all"
-          title="Click to set this tablet's Site/Device Name"
-        >
-          <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
-          <span>{deviceId}</span>
-        </button>
-      {/if}
-
-      {#if activeSurveyId && !isSubmitted && questions.length > 0}
-        <div class="bg-slate-100 dark:bg-slate-950 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-800 text-[11px] font-bold text-cyan-700 dark:text-cyan-400 font-mono tracking-wide hidden sm:flex items-center justify-center">
-          QUESTION {currentQuestionIndex + 1} OF {questions.length}
-        </div>
-        
-        <!-- CHANGE FORM BUTTON WITH PROFESSIONAL REFRESH VECTOR SVG -->
-        <button
-          on:click={() => {
-            resetTerminal();
-            onSelectSurvey("");
-          }}
-          class="text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-navy-950 dark:hover:text-white bg-slate-100 dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-full transition-all shrink-0 active:scale-95 shadow-xs flex items-center space-x-1.5"
-        >
-          <svg class="w-3.5 h-3.5 fill-current text-cyan-600 dark:text-cyan-400" viewBox="0 0 24 24">
-            <path d="M12 4V1L8 5l4 4V6c3.31 0 7 2.69 7 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C20.54 15.02 21 13.57 21 12c0-4.97-4.03-9-9-9zm0 14c-3.31 0-7-2.69-7-6 0-1.01.25-1.97.7-2.8L4.24 7.74C3.46 8.98 3 10.43 3 12c0 4.97 4.03 9 9 9v3l4-4-4-4v3z"/>
-          </svg>
-          <span>Change Form</span>
-        </button>
-      {/if}
-    </div>
-  </header>
-
-  <!-- MAIN BODY WORKSPACE -->
-  <main class="w-full max-w-5xl flex-1 flex flex-col justify-start pt-6 sm:pt-8">
-    {#if !activeSurveyId || !surveyTitle || questions.length === 0}
-      <div in:scale={{ duration: 300, start: 0.96 }} class="w-full max-w-3xl mx-auto bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl backdrop-blur-xl">
-        <div class="text-center space-y-2 border-b border-slate-200 dark:border-slate-800/80 pb-4">
-          <div class="h-12 w-12 rounded-2xl bg-cyan-100 dark:bg-cyan-600/20 border border-cyan-300 dark:border-cyan-500/40 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold text-2xl mx-auto mb-1 shadow-md">
-            <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+      <div class="flex items-center space-x-2 shrink-0">
+        {#if isEditingDeviceId}
+          <div class="flex items-center space-x-1.5 bg-slate-50 border border-cyan-500 rounded-full px-2.5 py-1">
+            <input
+              type="text"
+              bind:value={tempDeviceId}
+              placeholder="Tablet-A"
+              class="bg-transparent text-xs text-[#1a2b6c] px-1 py-0 font-mono focus:outline-none w-20 font-bold"
+            />
+            <button 
+              on:click={saveCustomDeviceId} 
+              class="bg-[#1a2b6c] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full transition-all hover:bg-blue-900"
+            >
+              Save
+            </button>
           </div>
-          <h1 class="text-xl sm:text-3xl font-black tracking-tight text-navy-950 dark:text-white">Select Survey Form</h1>
-          <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-            Choose an active form sequence below to launch Live Kiosk Terminal Mode on <span class="text-cyan-600 dark:text-cyan-400 font-mono font-bold">{deviceId}</span>.
+        {:else}
+          <button
+            on:dblclick={unlockDeviceIdEdit}
+            class="bg-slate-100 hover:bg-slate-200 text-[#1a2b6c] border border-slate-200 px-3 py-1.5 rounded-full text-[11px] font-mono font-bold tracking-wider flex items-center space-x-1.5 shadow-xs transition-all cursor-default"
+            title="Double-click (Admin) to configure device name"
+          >
+            <svg class="w-3.5 h-3.5 fill-current text-cyan-600" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+            <span>{deviceId}</span>
+          </button>
+        {/if}
+      </div>
+    </header>
+  {/if}
+
+  <!-- MAIN KIOSK BODY WORKSPACE (RESPONSIVE PORTRAIT & LANDSCAPE LAYOUTS) -->
+  <main class="w-full max-w-5xl flex-1 flex flex-col justify-center py-4 sm:py-6 z-10">
+    {#if !activeSurveyId || !surveyTitle || questions.length === 0}
+      <!-- SELECTION LAUNCHER MENU -->
+      <div in:scale={{ duration: 300, start: 0.96 }} class="w-full max-w-3xl mx-auto bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-10 space-y-6 shadow-xl relative overflow-hidden">
+        
+        <div class="text-center space-y-2 border-b border-slate-100 pb-5">
+          <div class="h-14 w-14 rounded-2xl bg-[#1a2b6c] text-white flex items-center justify-center font-bold text-2xl mx-auto mb-2 shadow-lg shadow-[#1a2b6c]/20">
+            <svg class="w-7 h-7 fill-current" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-[#1a2b6c]">Select Survey Form</h1>
+          <p class="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+            Choose an active form sequence below to launch Live Kiosk Mode on <span class="text-cyan-700 font-mono font-bold bg-cyan-50 border border-cyan-200 px-2 py-0.5 rounded-full">{deviceId}</span>.
           </p>
         </div>
 
         {#if surveys.length === 0}
-          <div class="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center text-xs sm:text-sm text-slate-400 dark:text-slate-500">
+          <div class="border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center text-xs sm:text-sm text-slate-400">
             No active forms available in system storage. Please create a form first in the Form Designer.
           </div>
         {:else}
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 max-h-[26rem] overflow-y-auto custom-scrollbar pr-1">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[28rem] overflow-y-auto custom-scrollbar pr-1">
             {#each surveys.filter(s => !s.isDraft && !String(s._id).startsWith("DRAFT-")) as survey}
               <button
                 on:click={() => {
                   resetTerminal();
                   onSelectSurvey(survey._id);
                 }}
-                class="text-left bg-slate-50 dark:bg-slate-950/80 hover:bg-white dark:hover:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/60 rounded-2xl p-4 transition-all duration-200 flex flex-col justify-between group active:scale-[0.98] shadow-sm min-h-[7rem] space-y-3"
+                class="text-left bg-slate-50 hover:bg-white border border-slate-200 hover:border-cyan-500 border-t-4 border-t-[#1a2b6c] rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between group active:scale-[0.98] shadow-sm hover:shadow-md space-y-4 hover:-translate-y-0.5"
               >
-                <div class="space-y-1">
+                <div class="space-y-1.5">
                   <div class="flex items-center justify-between">
-                    <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-sky-800 bg-sky-100 border border-sky-200 dark:text-cyan-400 dark:bg-cyan-950/60 dark:border-cyan-800/40 px-2 py-0.5 rounded">
-                      Active Form
+                    <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center space-x-1">
+                      <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span>Live Ready</span>
                     </span>
-                    <span class="text-[11px] font-mono text-slate-600 dark:text-slate-400 font-bold">
+                    <span class="text-[11px] font-mono text-slate-500 font-bold">
                       {survey.questions?.length || 0} Fields
                     </span>
                   </div>
-                  <h3 class="text-sm sm:text-base font-bold text-navy-950 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-300 transition-colors truncate pt-0.5">
+                  <h3 class="text-base font-bold text-[#1a2b6c] group-hover:text-cyan-700 transition-colors truncate pt-1">
                     {survey.title || "Untitled Form"}
                   </h3>
                 </div>
 
-                <div class="flex items-center justify-between pt-1.5 border-t border-slate-200 dark:border-slate-900">
-                  <span class="text-[11px] text-slate-600 dark:text-slate-400 font-medium group-hover:text-slate-900 dark:group-hover:text-slate-200 transition-colors">Tap to start terminal</span>
-                  
-                  <!-- SOLID NAVY FILL IN LIGHT MODE, CYAN IN DARK MODE -->
+                <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <span class="text-[11px] text-slate-500 font-medium group-hover:text-slate-800 transition-colors">Tap to start terminal</span>
                   <span 
-                    class="text-[11px] font-bold px-3.5 py-1 rounded-xl shadow-xs transition-all flex items-center space-x-1"
-                    style="background-color: #1a2b6c !important; color: #ffffff !important;"
+                    class="text-xs font-bold px-4 py-1.5 rounded-xl shadow-xs transition-all flex items-center space-x-1.5 group-hover:scale-105 bg-[#1a2b6c] text-white"
                   >
-                    <span style="color: #ffffff !important; font-weight: 800 !important; background-color: transparent !important;">Launch</span>
-                    <span style="color: #ffffff !important; font-weight: 800 !important; background-color: transparent !important;">→</span>
+                    <span>Launch</span>
+                    <span class="transform group-hover:translate-x-1 transition-transform">➔</span>
                   </span>
                 </div>
               </button>
@@ -281,63 +268,61 @@
       </div>
 
     {:else if isSubmitted}
-      <div in:scale={{ duration: 400, start: 0.95 }} class="text-center space-y-5 py-6 sm:py-10">
-        <div class="h-16 w-16 bg-emerald-100 dark:bg-emerald-950 border border-emerald-300 dark:border-emerald-800 rounded-full flex items-center justify-center mx-auto text-emerald-600 dark:text-emerald-400 shadow-lg">
+      <!-- SUBMISSION CONFIRMATION -->
+      <div in:scale={{ duration: 400, start: 0.95 }} class="text-center space-y-5 py-8 sm:py-12 bg-white border border-slate-200/90 rounded-3xl p-8 shadow-xl max-w-2xl mx-auto">
+        <div class="h-16 w-16 bg-emerald-100 border border-emerald-300 rounded-full flex items-center justify-center mx-auto text-emerald-600 shadow-sm">
           <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
         </div>
-        <h2 class="text-2xl sm:text-4xl font-black tracking-tight bg-gradient-to-r from-emerald-500 via-cyan-600 to-blue-600 dark:from-emerald-400 dark:via-cyan-400 dark:to-blue-500 bg-clip-text text-transparent">
+        <h2 class="text-2xl sm:text-4xl font-black tracking-tight text-[#1a2b6c]">
           Thank You!
         </h2>
-        <p class="text-xs sm:text-base text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-          Your responses have been securely logged. Resetting in 
-          <span class="text-cyan-600 dark:text-cyan-400 font-mono font-bold text-base sm:text-lg px-1">{countdownSeconds}s</span>...
+        <p class="text-xs sm:text-base text-slate-600 max-w-md mx-auto leading-relaxed">
+          Your feedback has been securely registered. Terminal resets in 
+          <span class="text-cyan-700 font-mono font-bold text-base sm:text-lg px-1">{countdownSeconds}s</span>...
         </p>
-        <button 
-          on:click={resetTerminal}
-          class="mt-3 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800 px-6 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-md">
-          Restart Now ➔
-        </button>
       </div>
 
     {:else}
-      <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="space-y-4 sm:space-y-6">
+      <!-- ACTIVE QUESTIONNAIRE WORKSPACE -->
+      <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="space-y-6 sm:space-y-8 bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-10 shadow-xl max-w-3xl mx-auto w-full">
         
-        <div class="text-center space-y-1.5 sm:space-y-2">
+        <div class="text-center space-y-2 sm:space-y-3">
           <div class="flex items-center justify-center space-x-2">
-            <span class="text-[10px] sm:text-[11px] font-bold text-slate-400 dark:text-slate-500 tracking-widest uppercase font-mono">Feedback Request</span>
+            <span class="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-widest uppercase font-mono">QUESTION {currentQuestionIndex + 1} OF {questions.length}</span>
             {#if currentQuestion.isRequired}
-              <span class="text-rose-600 dark:text-rose-400 font-bold text-[10px] bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 px-2 py-0.5 rounded">* Required Field</span>
+              <span class="text-rose-600 font-bold text-[10px] bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">* Required Field</span>
             {/if}
           </div>
 
+          <!-- QUESTION HEADER IMAGE (FRAME REFINED FOR PERFECT FIT) -->
           {#if currentQuestion.questionImage}
-            <div class="max-w-lg mx-auto h-40 sm:h-52 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-lg mb-3">
-              <img src={currentQuestion.questionImage} alt={currentQuestion.questionText} class="w-full h-full object-cover" />
+            <div class="max-w-md mx-auto aspect-[16/9] w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 shadow-inner my-3 flex items-center justify-center p-2">
+              <img src={currentQuestion.questionImage} alt={currentQuestion.questionText} class="w-full h-full object-contain rounded-xl" />
             </div>
           {/if}
 
-          <h1 class="text-xl sm:text-3xl md:text-4xl font-black tracking-tight text-navy-950 dark:text-white leading-tight max-w-3xl mx-auto px-2">
+          <h1 class="text-xl sm:text-3xl font-black tracking-tight text-[#1a2b6c] leading-tight max-w-2xl mx-auto px-2">
             {currentQuestion.questionText}
           </h1>
 
           {#if validationError}
-            <div class="text-xs font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 px-3.5 py-1.5 rounded-xl inline-block mt-1 animate-pulse">
+            <div class="text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-3.5 py-1.5 rounded-xl inline-block mt-1 animate-pulse">
               ⚠️ {validationError}
             </div>
           {/if}
         </div>
 
-        <div class="w-full pt-1">
+        <div class="w-full pt-2">
           {#if getNormalizedType(currentQuestion.type) === 'smiley'}
             <div class="grid grid-cols-5 gap-2 sm:gap-4 max-w-2xl mx-auto px-1">
               {#each satisfactionScale as option}
                 <button 
                   on:click={() => handleSelectOption(`${option.emoji} ${option.label}`)}
-                  class="flex flex-col items-center justify-center p-2.5 py-4 sm:p-5 rounded-2xl border transition-all duration-200 group active:scale-95 backdrop-blur-xs shadow-sm {option.color}">
+                  class="flex flex-col items-center justify-center p-3 py-5 sm:p-6 rounded-2xl border transition-all duration-200 group active:scale-95 shadow-xs {option.color}">
                   <span class="text-3xl sm:text-5xl transform group-hover:scale-110 transition-transform duration-200 select-none filter drop-shadow-xs">
                     {option.emoji}
                   </span>
-                  <span class="hidden sm:block mt-2 text-[9px] sm:text-[10px] font-black tracking-widest uppercase font-mono opacity-70 group-hover:opacity-100">
+                  <span class="hidden sm:block mt-2.5 text-[10px] font-black tracking-widest uppercase font-mono opacity-80 group-hover:opacity-100">
                     {option.label}
                   </span>
                 </button>
@@ -346,7 +331,7 @@
 
           {:else if getNormalizedType(currentQuestion.type) === 'stars'}
             <div 
-              class="flex items-center justify-center space-x-2 sm:space-x-4 max-w-lg mx-auto"
+              class="flex items-center justify-center space-x-3 sm:space-x-5 max-w-lg mx-auto py-2"
               on:mouseleave={() => hoveredStarIndex = 0}
             >
               {#each [1, 2, 3, 4, 5] as starValue}
@@ -363,8 +348,8 @@
             </div>
 
           {:else if getNormalizedType(currentQuestion.type) === 'multiple-choice'}
-            <div class="max-w-xl mx-auto space-y-3 px-2">
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div class="max-w-2xl mx-auto space-y-4 px-2">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {#if currentQuestion.options && currentQuestion.options.length > 0}
                   {#each currentQuestion.options as option}
                     {@const imgUrl = currentQuestion.enableOptionImages && currentQuestion.optionImages ? currentQuestion.optionImages[option] : ''}
@@ -378,22 +363,23 @@
                           handleSelectOption(option);
                         }
                       }}
-                      class="w-full text-left bg-white dark:bg-slate-900 border rounded-xl p-3 transition-all shadow-xs active:scale-[0.99] flex flex-col justify-between group {currentQuestion.allowMultiple && isSelected ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-950/20 text-cyan-800 dark:text-cyan-300' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-800 dark:text-slate-100'}"
+                      class="w-full text-left bg-slate-50 border rounded-2xl p-3.5 transition-all shadow-xs active:scale-[0.98] flex flex-col justify-between group {currentQuestion.allowMultiple && isSelected ? 'border-cyan-600 bg-cyan-50 text-cyan-900' : 'border-slate-200 hover:border-cyan-400 text-slate-800'}"
                     >
+                      <!-- PERFECT IMAGE FRAMING FOR CHOICE PICTURES -->
                       {#if imgUrl}
-                        <div class="w-full h-24 mb-2 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center">
-                          <img src={imgUrl} alt={option} class="w-full h-full object-cover" />
+                        <div class="w-full aspect-square mb-3 rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center p-2 shadow-inner">
+                          <img src={imgUrl} alt={option} class="w-full h-full object-contain rounded-lg" />
                         </div>
                       {/if}
 
                       <div class="flex items-center justify-between w-full">
-                        <span class="text-sm sm:text-base font-bold group-hover:text-cyan-600 dark:group-hover:text-cyan-300 transition-colors">{option}</span>
+                        <span class="text-sm sm:text-base font-bold group-hover:text-cyan-700 transition-colors">{option}</span>
                         {#if currentQuestion.allowMultiple}
-                          <div class="w-5 h-5 rounded border flex items-center justify-center transition-all {isSelected ? 'bg-cyan-600 border-cyan-500 text-white font-bold text-xs' : 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-950'}">
+                          <div class="w-5 h-5 rounded-md border flex items-center justify-center transition-all {isSelected ? 'bg-cyan-600 border-cyan-600 text-white font-bold text-xs' : 'border-slate-300 bg-white'}">
                             {#if isSelected}✓{/if}
                           </div>
                         {:else}
-                          <span class="text-slate-400 dark:text-slate-600 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 font-extrabold text-sm transition-colors">➔</span>
+                          <span class="text-slate-400 group-hover:text-cyan-600 font-extrabold text-sm transition-colors">➔</span>
                         {/if}
                       </div>
                     </button>
@@ -404,31 +390,29 @@
               {#if currentQuestion.allowMultiple}
                 <button
                   on:click={advanceStep}
-                  class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-5 text-xs sm:text-sm rounded-xl transition-all shadow-md active:scale-[0.98] mt-3 flex items-center justify-center space-x-2"
-                  style="background-color: #1a2b6c !important; color: #ffffff !important;"
+                  class="w-full bg-[#1a2b6c] hover:bg-blue-900 text-white font-bold py-3.5 px-5 text-sm rounded-xl transition-all shadow-md active:scale-[0.98] mt-4 flex items-center justify-center space-x-2"
                 >
-                  <span style="color: #ffffff !important; background-color: transparent !important;">Confirm & Continue</span>
-                  <span style="color: #ffffff !important; background-color: transparent !important;">➔</span>
+                  <span>Confirm & Continue</span>
+                  <span>➔</span>
                 </button>
               {/if}
             </div>
 
           {:else}
-            <!-- SHORT ANSWER TEXT AREA -->
-            <form on:submit|preventDefault={advanceStep} class="max-w-lg mx-auto space-y-3 px-2">
+            <!-- SHORT ANSWER TEXT INPUT -->
+            <form on:submit|preventDefault={advanceStep} class="max-w-lg mx-auto space-y-4 px-2">
               <input 
                 type="text" 
                 bind:value={selectedValue}
                 on:input={() => (validationError = "")}
                 placeholder={currentQuestion.isRequired ? "Type your response here (Required)..." : "Type your response here..."}
-                class="w-full bg-white dark:bg-slate-900 border text-navy-950 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 rounded-xl p-3.5 text-sm sm:text-base outline-none transition-all shadow-inner {validationError ? 'border-rose-500 focus:border-rose-400' : 'border-slate-200 dark:border-slate-800 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20'}"
+                class="w-full bg-slate-50 border text-[#1a2b6c] placeholder-slate-400 rounded-xl p-4 text-sm sm:text-base outline-none transition-all shadow-inner {validationError ? 'border-rose-500 focus:border-rose-400' : 'border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20'}"
               />
               <button 
                 type="submit"
-                class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-5 text-xs sm:text-sm rounded-xl transition-all shadow-md active:scale-[0.98]"
-                style="background-color: #1a2b6c !important; color: #ffffff !important;"
+                class="w-full bg-[#1a2b6c] hover:bg-blue-900 text-white font-bold py-3.5 px-5 text-sm rounded-xl transition-all shadow-md active:scale-[0.98]"
               >
-                <span style="color: #ffffff !important; background-color: transparent !important;">Submit Field Input ➔</span>
+                Submit Response ➔
               </button>
             </form>
           {/if}
@@ -439,12 +423,12 @@
   </main>
 
   <!-- FOOTER -->
-  <footer class="w-full max-w-5xl border-t border-slate-200 dark:border-slate-800/80 pt-3 flex flex-col md:flex-row items-center justify-between text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500 font-mono tracking-wider font-semibold gap-2 shrink-0">
+  <footer class="w-full max-w-5xl border-t border-slate-200/80 pt-3 flex flex-col md:flex-row items-center justify-between text-[10px] sm:text-[11px] text-slate-400 font-mono tracking-wider font-semibold gap-2 shrink-0 z-10">
     <span>🔒 Secure Enterprise Client Terminal</span>
     {#if activeSurveyId && !isSubmitted && questions.length > 0}
-      <div class="w-full md:w-48 h-1 bg-slate-200 dark:bg-slate-900 rounded-full overflow-hidden border border-slate-200 dark:border-slate-800">
+      <div class="w-full md:w-48 h-1.5 bg-slate-200 rounded-full overflow-hidden border border-slate-200">
         <div 
-          class="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-300 rounded-full" 
+          class="h-full bg-[#1a2b6c] transition-all duration-300 rounded-full" 
           style="width: {((currentQuestionIndex + 1) / questions.length) * 100}%">
         </div>
       </div>
@@ -458,5 +442,4 @@
   .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; }
 </style>
