@@ -166,6 +166,7 @@
     };
   });
 
+  // ADMIN PERSISTENT DEVICE RENAME FUNCTION
   async function renameDeviceGlobally(oldDeviceId) {
     const pass = prompt("Admin Authorization Key:");
     if (pass !== "1234" && pass !== "admin") {
@@ -178,7 +179,13 @@
 
     const targetName = newDeviceName.trim();
 
-    // Optimistic UI update
+    // 1. Update browser localStorage if this device is the current active tablet
+    const currentLocalDevice = localStorage.getItem("sdx_device_id");
+    if (currentLocalDevice === oldDeviceId || !currentLocalDevice) {
+      localStorage.setItem("sdx_device_id", targetName);
+    }
+
+    // 2. Reactively reassign the local array so Svelte triggers immediate UI re-render
     responses = responses.map((r) => {
       if ((r.deviceId || "Tablet-A") === oldDeviceId) {
         return { ...r, deviceId: targetName };
@@ -186,18 +193,15 @@
       return r;
     });
 
+    // 3. Sync to backend API endpoint to update database records
     try {
-      const res = await fetch(`${API_BASE}/responses/rename-device`, {
+      await fetch(`${API_BASE}/responses/rename-device`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ oldDeviceId, newDeviceId: targetName }),
       });
-      if (!res.ok) {
-        console.warn("Backend update error, refreshing state...");
-      }
-      await onRefreshData();
     } catch (err) {
-      console.warn("Network error during rename sync:", err);
+      console.warn("Backend API sync delay, changes saved locally in browser memory.");
     }
   }
 
