@@ -29,7 +29,7 @@ const connectDB = async () => {
     return;
   }
   
-  if (!MONGO_URI || MONGO_URI.includes('127.0.0.1')) {
+  if (!MONGO_URI || (process.env.NODE_ENV === 'production' && MONGO_URI.includes('127.0.0.1'))) {
     throw new Error("MONGO_URI is missing or pointing to localhost in production!");
   }
 
@@ -63,6 +63,41 @@ app.get('/api/health', (req, res) => {
     databaseConnected: dbState === 1,
     dbStateCode: dbState
   });
+});
+
+// PERMANENTLY RENAME DEVICE ACROSS ALL HISTORICAL LOGS
+app.post('/api/responses/rename-device', async (req, res) => {
+  try {
+    const { oldDeviceId, newDeviceId } = req.body;
+
+    if (!oldDeviceId || !newDeviceId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Both oldDeviceId and newDeviceId are required.' 
+      });
+    }
+
+    // Access Mongoose collection directly or via model instance
+    const db = mongoose.connection.db;
+    const result = await db.collection('responses').updateMany(
+      { $or: [{ deviceId: oldDeviceId }, { deviceId: { $exists: false } }] },
+      { $set: { deviceId: newDeviceId.trim() } }
+    );
+
+    console.log(`✅ Updated ${result.modifiedCount} response records from "${oldDeviceId}" to "${newDeviceId.trim()}"`);
+
+    return res.status(200).json({
+      success: true,
+      message: `Device updated to ${newDeviceId.trim()}`,
+      modifiedCount: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('❌ Error renaming device in database:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: `Internal database update error: ${error.message}` 
+    });
+  }
 });
 
 // Mount API routes
