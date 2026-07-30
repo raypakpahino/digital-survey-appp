@@ -20,10 +20,12 @@
   let autoResetTimer;
   let countdownSeconds = 4;
 
-  // TABLET IDENTIFIER STATE
+  // TABLET IDENTIFIER & ADMIN CONFIGURATION STATE
   let deviceId = "Tablet-A";
   let isEditingDeviceId = false;
   let tempDeviceId = "";
+
+  const presetDevices = ["Tablet-A", "Tablet-B", "Tablet-C", "Charisse's Phone", "Ray's LOQ"];
 
   $: currentQuestion = questions[currentQuestionIndex] || null;
 
@@ -48,14 +50,10 @@
     }
   });
 
-  function unlockDeviceIdEdit() {
-    const pass = prompt("Admin authorization required to modify Terminal Device ID:");
-    if (pass === "admin" || pass === "1234") {
-      tempDeviceId = deviceId;
-      isEditingDeviceId = true;
-    } else if (pass !== null) {
-      alert("Unauthorized access key.");
-    }
+  function selectDevice(newId) {
+    deviceId = newId;
+    localStorage.setItem("sdx_device_id", newId);
+    isEditingDeviceId = false;
   }
 
   function saveCustomDeviceId() {
@@ -167,9 +165,9 @@
 <!-- STRICT LIGHT MODE ENFORCEMENT WITH SODEXO COLOR PALETTE -->
 <div class="w-full h-full flex flex-col items-center p-3 sm:p-6 bg-[#f8fafc] text-slate-800 font-sans box-border overflow-y-auto custom-scrollbar relative selection:bg-cyan-100">
   
-  <!-- HEADER BAR: SHOWN ONLY DURING FORM SELECTION OR UNLESS ACTIVE FORM IS RUNNING FOR CLIENTS -->
+  <!-- HEADER BAR (VISIBLE ONLY WHEN NO FORM IS ACTIVE OR ADMIN IS SELECTING) -->
   {#if !activeSurveyId || !surveyTitle || questions.length === 0}
-    <header class="w-full max-w-5xl h-14 px-5 bg-white border border-slate-200/80 rounded-2xl flex items-center justify-between shrink-0 shadow-sm transition-all z-10">
+    <header class="w-full max-w-5xl h-14 px-5 bg-white border border-slate-200/90 rounded-2xl flex items-center justify-between shrink-0 shadow-sm transition-all z-10">
       <div class="flex items-center space-x-3 min-w-0">
         <div class="h-2.5 w-2.5 rounded-full bg-cyan-600 animate-pulse shadow-sm shrink-0"></div>
         <span class="text-xs sm:text-sm font-black font-mono tracking-widest text-[#1a2b6c] uppercase truncate leading-none">
@@ -177,40 +175,21 @@
         </span>
       </div>
 
+      <!-- ACTIVE DEVICE BADGE -->
       <div class="flex items-center space-x-2 shrink-0">
-        {#if isEditingDeviceId}
-          <div class="flex items-center space-x-1.5 bg-slate-50 border border-cyan-500 rounded-full px-2.5 py-1">
-            <input
-              type="text"
-              bind:value={tempDeviceId}
-              placeholder="Tablet-A"
-              class="bg-transparent text-xs text-[#1a2b6c] px-1 py-0 font-mono focus:outline-none w-20 font-bold"
-            />
-            <button 
-              on:click={saveCustomDeviceId} 
-              class="bg-[#1a2b6c] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full transition-all hover:bg-blue-900"
-            >
-              Save
-            </button>
-          </div>
-        {:else}
-          <button
-            on:dblclick={unlockDeviceIdEdit}
-            class="bg-slate-100 hover:bg-slate-200 text-[#1a2b6c] border border-slate-200 px-3 py-1.5 rounded-full text-[11px] font-mono font-bold tracking-wider flex items-center space-x-1.5 shadow-xs transition-all cursor-default"
-            title="Double-click (Admin) to configure device name"
-          >
-            <svg class="w-3.5 h-3.5 fill-current text-cyan-600" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
-            <span>{deviceId}</span>
-          </button>
-        {/if}
+        <span class="text-[10px] font-mono font-extrabold uppercase tracking-wider text-slate-400 hidden sm:inline">Assigned Site:</span>
+        <span class="bg-cyan-50 border border-cyan-200 text-cyan-800 font-mono font-bold text-xs px-3 py-1 rounded-full flex items-center space-x-1.5 shadow-xs">
+          <svg class="w-3.5 h-3.5 fill-current text-cyan-600" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+          <span>{deviceId}</span>
+        </span>
       </div>
     </header>
   {/if}
 
-  <!-- MAIN KIOSK BODY WORKSPACE (RESPONSIVE PORTRAIT & LANDSCAPE LAYOUTS) -->
+  <!-- MAIN KIOSK BODY WORKSPACE -->
   <main class="w-full max-w-5xl flex-1 flex flex-col justify-center py-4 sm:py-6 z-10">
     {#if !activeSurveyId || !surveyTitle || questions.length === 0}
-      <!-- SELECTION LAUNCHER MENU -->
+      <!-- SELECTION LAUNCHER MENU WITH ADMIN DEVICE IDENTIFIER BAR -->
       <div in:scale={{ duration: 300, start: 0.96 }} class="w-full max-w-3xl mx-auto bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-10 space-y-6 shadow-xl relative overflow-hidden">
         
         <div class="text-center space-y-2 border-b border-slate-100 pb-5">
@@ -223,12 +202,58 @@
           </p>
         </div>
 
+        <!-- ADMIN DEVICE NAME SELECTOR / EDITOR BAR -->
+        <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-mono font-extrabold uppercase tracking-widest text-slate-500 flex items-center space-x-1">
+              <svg class="w-3.5 h-3.5 fill-current text-cyan-600" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+              <span>Admin Device Identifier:</span>
+            </span>
+            <span class="text-[10px] font-mono text-slate-400">Identify this physical tablet</span>
+          </div>
+
+          {#if isEditingDeviceId}
+            <div class="flex items-center space-x-2 pt-1">
+              <input
+                type="text"
+                bind:value={tempDeviceId}
+                placeholder="Enter Site / Tablet Name..."
+                class="flex-1 bg-white border border-cyan-500 text-xs font-mono text-[#1a2b6c] px-3 py-2 rounded-xl focus:outline-none font-bold"
+              />
+              <button
+                on:click={saveCustomDeviceId}
+                class="bg-[#1a2b6c] hover:bg-blue-900 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-xs"
+              >
+                Set Device
+              </button>
+            </div>
+          {:else}
+            <div class="flex flex-wrap items-center gap-1.5 pt-1">
+              {#each presetDevices as devOption}
+                <button
+                  on:click={() => selectDevice(devOption)}
+                  class="px-2.5 py-1 rounded-xl text-xs font-mono font-bold transition-all border {deviceId === devOption ? 'bg-[#1a2b6c] border-[#1a2b6c] text-white shadow-xs' : 'bg-white border-slate-200 text-slate-600 hover:border-cyan-500'}"
+                >
+                  {devOption}
+                </button>
+              {/each}
+
+              <button
+                on:click={() => { tempDeviceId = deviceId; isEditingDeviceId = true; }}
+                class="px-3 py-1 rounded-xl text-xs font-mono font-bold transition-all border border-dashed border-cyan-500 text-cyan-700 bg-cyan-50 hover:bg-cyan-100"
+              >
+                + Custom ID
+              </button>
+            </div>
+          {/if}
+        </div>
+
         {#if surveys.length === 0}
           <div class="border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center text-xs sm:text-sm text-slate-400">
             No active forms available in system storage. Please create a form first in the Form Designer.
           </div>
         {:else}
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[28rem] overflow-y-auto custom-scrollbar pr-1">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[22rem] overflow-y-auto custom-scrollbar pr-1">
             {#each surveys.filter(s => !s.isDraft && !String(s._id).startsWith("DRAFT-")) as survey}
               <button
                 on:click={() => {
@@ -294,7 +319,7 @@
             {/if}
           </div>
 
-          <!-- QUESTION HEADER IMAGE (FRAME REFINED FOR PERFECT FIT) -->
+          <!-- QUESTION HEADER IMAGE -->
           {#if currentQuestion.questionImage}
             <div class="max-w-md mx-auto aspect-[16/9] w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 shadow-inner my-3 flex items-center justify-center p-2">
               <img src={currentQuestion.questionImage} alt={currentQuestion.questionText} class="w-full h-full object-contain rounded-xl" />
@@ -365,7 +390,6 @@
                       }}
                       class="w-full text-left bg-slate-50 border rounded-2xl p-3.5 transition-all shadow-xs active:scale-[0.98] flex flex-col justify-between group {currentQuestion.allowMultiple && isSelected ? 'border-cyan-600 bg-cyan-50 text-cyan-900' : 'border-slate-200 hover:border-cyan-400 text-slate-800'}"
                     >
-                      <!-- PERFECT IMAGE FRAMING FOR CHOICE PICTURES -->
                       {#if imgUrl}
                         <div class="w-full aspect-square mb-3 rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center p-2 shadow-inner">
                           <img src={imgUrl} alt={option} class="w-full h-full object-contain rounded-lg" />
