@@ -20,8 +20,10 @@
   let autoResetTimer;
   let countdownSeconds = 4;
 
-  // TABLET IDENTIFIER STATE (CONFIGURED BY ADMIN VIA URL OR LOCALSTORAGE ONLY)
-  let deviceId = "Tablet-A";
+  // DEVICE IDENTIFIER & ADMIN CONFIGURATION STATE
+  let deviceId = "Unassigned Tablet";
+  let isEditingDeviceId = false;
+  let tempDeviceId = "";
 
   $: currentQuestion = questions[currentQuestionIndex] || null;
 
@@ -35,7 +37,6 @@
       activeSurveyId = "";
     }
 
-    // Set device ID strictly from URL or stored local configuration
     if (paramDeviceId) {
       deviceId = paramDeviceId;
       localStorage.setItem("sdx_device_id", paramDeviceId);
@@ -46,6 +47,25 @@
       }
     }
   });
+
+  // ADMIN SECURITY PROMPT TO RENAME TABLET
+  function handleAdminUnlock() {
+    const pass = prompt("Admin authorization required to rename this terminal tablet:");
+    if (pass === "admin" || pass === "1234") {
+      tempDeviceId = deviceId;
+      isEditingDeviceId = true;
+    } else if (pass !== null) {
+      alert("Invalid Admin Key. Device name remains locked.");
+    }
+  }
+
+  function saveCustomDeviceId() {
+    if (tempDeviceId.trim()) {
+      deviceId = tempDeviceId.trim();
+      localStorage.setItem("sdx_device_id", deviceId);
+    }
+    isEditingDeviceId = false;
+  }
 
   $: if (currentQuestionIndex !== undefined) {
     selectedValue = "";
@@ -145,10 +165,10 @@
   });
 </script>
 
-<!-- STRICT SODEXO LIGHT MODE KIOSK TERMINAL -->
+<!-- SODEXO ENTERPRISE CLIENT TERMINAL -->
 <div class="w-full h-full flex flex-col items-center p-3 sm:p-6 bg-[#f8fafc] text-slate-800 font-sans box-border overflow-y-auto custom-scrollbar relative selection:bg-cyan-100">
   
-  <!-- HEADER BAR (STATIC READ-ONLY STATUS BADGES) -->
+  <!-- HEADER BAR (VISIBLE ONLY DURING SELECTION OR WHEN NO ACTIVE FORM IS RUNNING) -->
   {#if !activeSurveyId || !surveyTitle || questions.length === 0}
     <header class="w-full max-w-5xl h-14 px-5 bg-white border border-slate-200/90 rounded-2xl flex items-center justify-between shrink-0 shadow-sm transition-all z-10">
       <div class="flex items-center space-x-3 min-w-0">
@@ -158,13 +178,34 @@
         </span>
       </div>
 
-      <!-- READ-ONLY DEVICE ID BADGE (NO EDITING CONTROLS FOR USERS) -->
+      <!-- ADMIN PIN-PROTECTED DEVICE ID RENAME BADGE -->
       <div class="flex items-center space-x-2 shrink-0">
-        <span class="text-[10px] font-mono font-extrabold uppercase tracking-wider text-slate-400 hidden sm:inline">Assigned Tablet:</span>
-        <span class="bg-cyan-50 border border-cyan-200 text-cyan-800 font-mono font-bold text-xs px-3 py-1 rounded-full flex items-center space-x-1.5 shadow-xs">
-          <svg class="w-3.5 h-3.5 fill-current text-cyan-600" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
-          <span>{deviceId}</span>
-        </span>
+        {#if isEditingDeviceId}
+          <div class="flex items-center space-x-1.5 bg-cyan-50 border border-cyan-500 rounded-xl px-2 py-1 shadow-xs">
+            <input
+              type="text"
+              bind:value={tempDeviceId}
+              placeholder="e.g. google tablet"
+              class="bg-white text-xs font-mono text-[#1a2b6c] font-bold px-2 py-1 rounded-lg border border-cyan-300 focus:outline-none w-36 sm:w-48"
+            />
+            <button
+              on:click={saveCustomDeviceId}
+              class="bg-[#1a2b6c] hover:bg-blue-900 text-white font-bold text-[10px] px-3 py-1 rounded-lg transition-all"
+            >
+              Save ID
+            </button>
+          </div>
+        {:else}
+          <button
+            on:click={handleAdminUnlock}
+            class="bg-slate-100 hover:bg-cyan-50 text-[#1a2b6c] border border-slate-200 hover:border-cyan-300 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold tracking-wider flex items-center space-x-2 shadow-xs transition-all active:scale-95"
+            title="Admin: Click to rename this physical tablet (requires Admin PIN)"
+          >
+            <svg class="w-3.5 h-3.5 fill-current text-cyan-600" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+            <span>{deviceId}</span>
+            <span class="text-[9px] text-cyan-600 bg-cyan-100 px-1.5 py-0.5 rounded-full font-sans font-semibold">Rename</span>
+          </button>
+        {/if}
       </div>
     </header>
   {/if}
