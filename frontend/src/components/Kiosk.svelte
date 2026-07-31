@@ -27,7 +27,7 @@
   let passError = "";
   let inputDeviceName = "";
 
-  const ADMIN_PIN = "1234"; // Default Admin PIN
+  const ADMIN_PIN = "1234";
 
   $: currentQuestion = questions[currentQuestionIndex] || null;
 
@@ -167,23 +167,19 @@
   });
 </script>
 
-<!-- DYNAMIC KIOSK CONTAINER: COVERS FULLSCREEN ONLY WHEN ACTIVE SURVEY IS LAUNCHED -->
-<div class="{activeSurveyId && surveyTitle && questions.length > 0 ? 'fixed inset-0 z-50 bg-[#f8fafc]' : 'w-full h-full bg-[#f8fafc]'} text-slate-800 font-sans box-border overflow-y-auto custom-scrollbar flex flex-col items-center justify-between p-4 sm:p-8">
+<!-- DYNAMIC WRAPPER: FULLSCREEN PURE LIGHT MODE ONLY WHEN SURVEY IS ACTIVE -->
+<div class="{activeSurveyId && surveyTitle && questions.length > 0 ? 'fixed inset-0 z-50 bg-[#f8fafc] text-slate-800 p-4 sm:p-8' : 'w-full h-full text-slate-800 dark:text-slate-100 p-2 sm:p-4'} font-sans box-border overflow-y-auto custom-scrollbar flex flex-col items-center justify-between">
   
   {#if !isTerminalUnlocked}
     <!-- ADMIN SECURITY GATEWAY MODAL -->
-    <div in:scale={{ duration: 300, start: 0.95 }} class="w-full max-w-md mx-auto my-auto bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl text-center">
-      <!-- SODEXO LOGO -->
-      <div class="h-14 flex items-center justify-center mx-auto">
-        <svg class="h-10 w-auto" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <text x="10" y="42" font-family="'Segoe UI', sans-serif" font-weight="900" font-size="38" fill="#1a2b6c" letter-spacing="-1">sodexo</text>
-          <path d="M125 15 L135 5 L145 15 Z" fill="#e31b23" />
-        </svg>
+    <div in:scale={{ duration: 300, start: 0.95 }} class="w-full max-w-md mx-auto my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl text-center">
+      <div class="h-14 w-14 bg-[#1a2b6c] text-white rounded-2xl flex items-center justify-center mx-auto shadow-md">
+        <svg class="w-7 h-7 fill-current" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
       </div>
 
       <div class="space-y-1">
-        <h2 class="text-xl font-black text-[#1a2b6c]">Terminal Admin Gate</h2>
-        <p class="text-xs text-slate-500">Admin PIN is required to set the tablet site name and unlock terminal access.</p>
+        <h2 class="text-xl font-black text-[#1a2b6c] dark:text-white">Terminal Admin Gate</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Admin PIN is required to set the tablet site name and unlock terminal access.</p>
       </div>
 
       <form on:submit|preventDefault={verifyAndUnlockTerminal} class="space-y-4 text-left">
@@ -194,7 +190,7 @@
             type="password"
             bind:value={adminPasscode}
             placeholder="Enter Admin PIN..."
-            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#1a2b6c] font-mono focus:outline-none focus:border-[#e31b23] font-bold"
+            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm text-[#1a2b6c] dark:text-white font-mono focus:outline-none focus:border-[#e31b23] font-bold"
           />
         </div>
 
@@ -205,7 +201,7 @@
             type="text"
             bind:value={inputDeviceName}
             placeholder="e.g. google tablet"
-            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#1a2b6c] font-bold focus:outline-none focus:border-[#e31b23]"
+            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm text-[#1a2b6c] dark:text-white font-bold focus:outline-none focus:border-[#e31b23]"
           />
         </div>
 
@@ -225,19 +221,20 @@
   {:else}
     <!-- HEADER BAR: SHOWN ONLY ON SELECTION LAUNCHER SCREEN -->
     {#if !activeSurveyId || !surveyTitle || questions.length === 0}
-      <header class="w-full max-w-5xl h-14 px-5 sm:px-6 bg-white border border-slate-200 rounded-2xl flex items-center justify-between shrink-0 shadow-sm transition-all mb-4">
+      <header class="w-full max-w-5xl h-14 px-5 sm:px-6 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl flex items-center justify-between shrink-0 shadow-sm transition-all mb-4">
         <div class="flex items-center space-x-3 min-w-0">
           <div class="h-2.5 w-2.5 rounded-full bg-[#e31b23] animate-pulse shadow-sm shrink-0"></div>
-          <span class="text-xs sm:text-sm font-black font-mono tracking-widest text-[#1a2b6c] uppercase truncate leading-none">
+          <span class="text-xs sm:text-sm font-black font-mono tracking-widest text-[#1a2b6c] dark:text-slate-200 uppercase truncate leading-none">
             {surveyTitle || "Feedback Terminal"}
           </span>
         </div>
 
+        <!-- REFINED ASSIGNED TABLET BADGE WITH CLEAR SPACING AND HIGH-CONTRAST ICON -->
         <div class="flex items-center space-x-2 shrink-0">
           <span class="text-[10px] font-mono font-extrabold uppercase tracking-wider text-slate-400 hidden sm:inline">Assigned Tablet:</span>
-          <span class="bg-rose-50 border border-rose-200 text-[#e31b23] font-mono font-bold text-xs px-3 py-1 rounded-full flex items-center space-x-1.5 shadow-xs">
-            <svg class="w-3.5 h-3.5 fill-current text-[#e31b23]" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
-            <span>{deviceId}</span>
+          <span class="bg-[#1a2b6c]/10 dark:bg-slate-800 border border-[#1a2b6c]/20 dark:border-slate-700 text-[#1a2b6c] dark:text-cyan-400 font-mono font-bold text-xs px-3.5 py-1.5 rounded-full flex items-center space-x-2 shadow-xs">
+            <svg class="w-4 h-4 fill-current text-[#1a2b6c] dark:text-cyan-400 shrink-0" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+            <span class="truncate max-w-[140px]">{deviceId}</span>
           </span>
         </div>
       </header>
@@ -247,24 +244,23 @@
     <main class="w-full max-w-5xl flex-1 flex flex-col justify-center my-auto py-2">
       {#if !activeSurveyId || !surveyTitle || questions.length === 0}
         <!-- SELECTION LAUNCHER MENU -->
-        <div in:scale={{ duration: 300, start: 0.96 }} class="w-full max-w-3xl mx-auto bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 space-y-6 shadow-xl relative overflow-hidden">
+        <div in:scale={{ duration: 300, start: 0.96 }} class="w-full max-w-3xl mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-10 space-y-6 shadow-xl relative overflow-hidden">
           
-          <!-- OFFICIAL SODEXO LOGO HEADER -->
-          <div class="text-center space-y-2 border-b border-slate-100 pb-5">
-            <div class="h-14 flex items-center justify-center mx-auto mb-1">
-              <svg class="h-12 w-auto" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <text x="10" y="42" font-family="'Segoe UI', sans-serif" font-weight="900" font-size="38" fill="#1a2b6c" letter-spacing="-1">sodexo</text>
-                <path d="M125 15 L135 5 L145 15 Z" fill="#e31b23" />
+          <!-- KIOSK TABLET SUB-MENU VECTOR LOGO -->
+          <div class="text-center space-y-3 border-b border-slate-100 dark:border-slate-800 pb-5">
+            <div class="h-16 w-16 bg-[#1a2b6c] dark:bg-cyan-600/20 text-white dark:text-cyan-400 rounded-2xl border border-[#1a2b6c] dark:border-cyan-500/30 flex items-center justify-center mx-auto shadow-lg shadow-[#1a2b6c]/20">
+              <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24">
+                <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
               </svg>
             </div>
-            <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-[#1a2b6c]">Select Survey Form</h1>
-            <p class="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-              Choose an active form sequence below to launch Live Kiosk Terminal Mode on <span class="text-rose-700 font-mono font-bold bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">{deviceId}</span>.
+            <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-[#1a2b6c] dark:text-white">Select Survey Form</h1>
+            <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+              Choose an active form sequence below to launch Live Kiosk Terminal Mode on <span class="text-[#1a2b6c] dark:text-cyan-400 font-mono font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-0.5 rounded-full">{deviceId}</span>.
             </p>
           </div>
 
           {#if surveys.length === 0}
-            <div class="border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center text-xs sm:text-sm text-slate-400">
+            <div class="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-10 text-center text-xs sm:text-sm text-slate-400">
               No active forms available in system storage. Please create a form first in the Form Designer.
             </div>
           {:else}
@@ -275,25 +271,25 @@
                     resetTerminal();
                     onSelectSurvey(survey._id);
                   }}
-                  class="text-left bg-slate-50 hover:bg-white border border-slate-200 hover:border-[#e31b23] border-t-4 border-t-[#1a2b6c] rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between group active:scale-[0.98] shadow-sm hover:shadow-md space-y-4 hover:-translate-y-0.5"
+                  class="text-left bg-slate-50 dark:bg-slate-950/80 hover:bg-white dark:hover:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-[#e31b23] dark:hover:border-cyan-500 border-t-4 border-t-[#1a2b6c] rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between group active:scale-[0.98] shadow-sm hover:shadow-md space-y-4 hover:-translate-y-0.5"
                 >
                   <div class="space-y-1.5">
                     <div class="flex items-center justify-between">
-                      <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center space-x-1">
+                      <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-full flex items-center space-x-1">
                         <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                         <span>Live Ready</span>
                       </span>
-                      <span class="text-[11px] font-mono text-slate-500 font-bold">
+                      <span class="text-[11px] font-mono text-slate-500 dark:text-slate-400 font-bold">
                         {survey.questions?.length || 0} Fields
                       </span>
                     </div>
-                    <h3 class="text-base font-bold text-[#1a2b6c] group-hover:text-[#e31b23] transition-colors truncate pt-1">
+                    <h3 class="text-base font-bold text-[#1a2b6c] dark:text-white group-hover:text-[#e31b23] dark:group-hover:text-cyan-400 transition-colors truncate pt-1">
                       {survey.title || "Untitled Form"}
                     </h3>
                   </div>
 
-                  <div class="flex items-center justify-between pt-2 border-t border-slate-100">
-                    <span class="text-[11px] text-slate-500 font-medium group-hover:text-slate-800 transition-colors">Tap to start terminal</span>
+                  <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-900">
+                    <span class="text-[11px] text-slate-500 dark:text-slate-400 font-medium group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">Tap to start terminal</span>
                     <span class="text-xs font-bold px-4 py-1.5 rounded-xl shadow-xs transition-all flex items-center space-x-1.5 group-hover:scale-105 bg-[#1a2b6c] group-hover:bg-[#e31b23] text-white">
                       <span>Launch</span>
                       <span class="transform group-hover:translate-x-1 transition-transform">➔</span>
@@ -474,7 +470,7 @@
       {/if}
     </main>
 
-    <footer class="w-full max-w-5xl border-t border-slate-200 pt-3 flex flex-col md:flex-row items-center justify-between text-[10px] sm:text-[11px] text-slate-400 font-mono tracking-wider font-semibold gap-2 shrink-0">
+    <footer class="w-full max-w-5xl border-t border-slate-200 dark:border-slate-800 pt-3 flex flex-col md:flex-row items-center justify-between text-[10px] sm:text-[11px] text-slate-400 font-mono tracking-wider font-semibold gap-2 shrink-0">
       <span>🔒 Secure Enterprise Client Terminal</span>
       <span>System v2.4.0</span>
     </footer>
