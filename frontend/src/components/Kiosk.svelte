@@ -277,7 +277,6 @@
                 >
                   <div class="space-y-1.5">
                     <div class="flex items-center justify-between">
-                      <!-- FORCED EXPLICIT GREEN INDICATOR DOT -->
                       <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 bg-emerald-100/90 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700 px-2.5 py-1 rounded-full flex items-center space-x-1.5">
                         <span class="h-2 w-2 rounded-full inline-block animate-pulse shrink-0" style="background-color: #10b981 !important;"></span>
                         <span>LIVE READY</span>
@@ -452,6 +451,7 @@
               </div>
 
             {:else}
+              <!-- SHORT ANSWER TEXT INPUT WITH HIGH-CONTRAST BOLD SUBMIT BUTTON TEXT -->
               <form on:submit|preventDefault={advanceStep} class="max-w-lg mx-auto space-y-4 px-2">
                 <input 
                   type="text" 
@@ -462,9 +462,10 @@
                 />
                 <button 
                   type="submit"
-                  class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold py-3.5 px-5 text-sm rounded-xl transition-all shadow-md active:scale-[0.98]"
+                  class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold py-3.5 px-5 text-sm sm:text-base rounded-xl transition-all shadow-md active:scale-[0.98] flex items-center justify-center space-x-2"
+                  style="color: #ffffff !important; font-weight: 800 !important; background-color: #1a2b6c !important;"
                 >
-                  Submit Response ➔
+                  <span style="color: #ffffff !important; font-weight: 800 !important;">Submit Response ➔</span>
                 </button>
               </form>
             {/if}
