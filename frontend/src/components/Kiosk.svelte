@@ -232,11 +232,12 @@
           </span>
         </div>
 
+        <!-- HIGH-CONTRAST ASSIGNED TABLET BADGE WITH PADDING -->
         <div class="flex items-center space-x-2 shrink-0">
           <span class="text-[10px] font-mono font-extrabold uppercase tracking-wider text-slate-400 hidden sm:inline">Assigned Tablet:</span>
-          <span class="bg-[#1a2b6c]/10 dark:bg-slate-800 border border-[#1a2b6c]/20 dark:border-slate-700 text-[#1a2b6c] dark:text-cyan-400 font-mono font-bold text-xs px-3.5 py-1.5 rounded-full flex items-center space-x-2 shadow-xs">
-            <svg class="w-4 h-4 fill-current text-[#1a2b6c] dark:text-cyan-400 shrink-0" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
-            <span class="truncate max-w-[140px]">{deviceId}</span>
+          <span class="bg-[#1a2b6c] text-white dark:bg-cyan-950 dark:text-cyan-300 dark:border dark:border-cyan-800 font-mono font-bold text-xs px-3.5 py-1.5 rounded-full flex items-center space-x-2 shadow-xs">
+            <svg class="w-3.5 h-3.5 fill-current text-white dark:text-cyan-400 shrink-0" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+            <span class="truncate max-w-[150px]">{deviceId}</span>
           </span>
         </div>
       </header>
@@ -277,9 +278,10 @@
                 >
                   <div class="space-y-1.5">
                     <div class="flex items-center justify-between">
-                      <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-full flex items-center space-x-1.5">
-                        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-                        <span>Live Ready</span>
+                      <!-- EXPLICIT GREEN INDICATOR DOT -->
+                      <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                        <span class="h-2 w-2 rounded-full bg-emerald-500 shrink-0 inline-block animate-pulse"></span>
+                        <span>LIVE READY</span>
                       </span>
                       <span class="text-[11px] font-mono text-slate-500 dark:text-slate-400 font-bold">
                         {survey.questions?.length || 0} Fields
