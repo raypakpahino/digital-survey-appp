@@ -232,7 +232,6 @@
           </span>
         </div>
 
-        <!-- HIGH-CONTRAST ASSIGNED TABLET BADGE WITH PADDING -->
         <div class="flex items-center space-x-2 shrink-0">
           <span class="text-[10px] font-mono font-extrabold uppercase tracking-wider text-slate-400 hidden sm:inline">Assigned Tablet:</span>
           <span class="bg-[#1a2b6c] text-white dark:bg-cyan-950 dark:text-cyan-300 dark:border dark:border-cyan-800 font-mono font-bold text-xs px-3.5 py-1.5 rounded-full flex items-center space-x-2 shadow-xs">
@@ -278,9 +277,9 @@
                 >
                   <div class="space-y-1.5">
                     <div class="flex items-center justify-between">
-                      <!-- EXPLICIT GREEN INDICATOR DOT -->
-                      <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700 px-2.5 py-1 rounded-full flex items-center gap-1.5">
-                        <span class="h-2 w-2 rounded-full bg-emerald-500 shrink-0 inline-block animate-pulse"></span>
+                      <!-- FORCED EXPLICIT GREEN INDICATOR DOT -->
+                      <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 bg-emerald-100/90 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700 px-2.5 py-1 rounded-full flex items-center space-x-1.5">
+                        <span class="h-2 w-2 rounded-full inline-block animate-pulse shrink-0" style="background-color: #10b981 !important;"></span>
                         <span>LIVE READY</span>
                       </span>
                       <span class="text-[11px] font-mono text-slate-500 dark:text-slate-400 font-bold">
