@@ -356,7 +356,7 @@
 
                 {#if isSidebarExpanded}
                   <div class="flex items-center space-x-2.5 min-w-0 truncate">
-                    <div class="h-8 w-8 rounded-xl bg-cyan-600 flex items-center justify-center font-extrabold text-white text-xs shadow-md shrink-0">
+                    <div class="h-8 w-8 rounded-xl bg-[#1a2b6c] border border-rose-500/40 flex items-center justify-center font-extrabold text-white text-xs shadow-md shrink-0">
                       DS
                     </div>
                     <span class="font-black text-sm tracking-tight text-white truncate">DigitalSurvey</span>
@@ -371,7 +371,7 @@
                 
                 <!-- 1. SURVEYS PORTAL -->
                 <button
-                  class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'surveys' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
+                  class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'surveys' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={async () => {
                     switchTab("surveys");
                     await refreshDataLedger();
@@ -388,7 +388,7 @@
 
                 <!-- 2. FORM DESIGNER -->
                 <button
-                  class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'builder' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
+                  class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'builder' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={() => switchTab("builder")}
                   disabled={surveysList.length === 0}
                   title="Form Designer"
@@ -403,7 +403,7 @@
 
                 <!-- 3. LIVE KIOSK MODE -->
                 <button
-                  class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'kiosk' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
+                  class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'kiosk' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={() => {
                     switchTab("kiosk");
                   }}
@@ -420,7 +420,7 @@
 
               <!-- 4. ANSWERS LOG -->
               <button
-                class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'answers' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
+                class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'answers' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                 on:click={async () => {
                   switchTab("answers");
                   await refreshDataLedger();
@@ -444,7 +444,7 @@
             </div>
           {:else}
             <div class="p-3 theme-border border-t bg-black/10 text-center">
-              <span class="h-2 w-2 rounded-full inline-block bg-cyan-500 animate-pulse" title="System Active"></span>
+              <span class="h-2 w-2 rounded-full inline-block bg-[#e31b23] animate-pulse" title="System Active"></span>
             </div>
           {/if}
 
@@ -459,11 +459,11 @@
       {#if !isDedicatedKioskMode}
         <header class="sticky top-0 z-30 w-full h-16 theme-bg-card theme-border border-b flex items-center justify-between px-4 sm:px-6 shrink-0 box-border transition-colors duration-300 theme-shadow">
           
-          <!-- Left Header Branding (ONLY RENDERS WHEN SIDEBAR IS COLLAPSED) -->
+          <!-- Left Header Branding -->
           <div class="flex items-center space-x-3 min-w-0">
             {#if !isSidebarExpanded}
               <div class="flex items-center space-x-2 shrink-0 transition-all duration-300">
-                <div class="h-7 w-7 rounded-lg bg-cyan-600 flex items-center justify-center font-extrabold text-xs text-white shadow-md">
+                <div class="h-7 w-7 rounded-lg bg-[#1a2b6c] flex items-center justify-center font-extrabold text-xs text-white shadow-md">
                   DS
                 </div>
                 <span class="font-bold text-sm tracking-tight theme-text-primary">DigitalSurvey</span>
@@ -494,7 +494,7 @@
             {#if currentUser}
               <div class="flex items-center space-x-2 theme-bg-inner theme-border border px-3 py-1.5 rounded-xl text-xs font-mono shadow-inner">
                 <span class="theme-text-secondary truncate">User: <strong class="theme-text-primary">{currentUser.username}</strong></span>
-                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase shrink-0 {currentUser.role === 'admin' ? 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30' : 'theme-bg-card theme-text-secondary'}">
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase shrink-0 {currentUser.role === 'admin' ? 'bg-[#1a2b6c]/20 text-[#1a2b6c] dark:text-cyan-400 border border-[#1a2b6c]/30' : 'theme-bg-card theme-text-secondary'}">
                   {currentUser.role}
                 </span>
               </div>
