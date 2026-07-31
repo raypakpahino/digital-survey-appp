@@ -27,7 +27,7 @@
   let passError = "";
   let inputDeviceName = "";
 
-  const ADMIN_PIN = "1234"; // Default Admin PIN
+  const ADMIN_PIN = "1234";
 
   $: currentQuestion = questions[currentQuestionIndex] || null;
 
@@ -80,7 +80,7 @@
     { label: "SAD", emoji: "😞", color: "hover:bg-orange-500/10 hover:border-orange-500 text-orange-700 bg-orange-50 border-orange-200" },
     { label: "NEUTRAL", emoji: "😐", color: "hover:bg-amber-500/10 hover:border-amber-500 text-amber-700 bg-amber-50 border-amber-200" },
     { label: "HAPPY", emoji: "😊", color: "hover:bg-emerald-500/10 hover:border-emerald-500 text-emerald-700 bg-emerald-50 border-emerald-200" },
-    { label: "DELIGHTED", emoji: "🤩", color: "hover:bg-cyan-500/10 hover:border-cyan-500 text-cyan-700 bg-cyan-50 border-cyan-200" }
+    { label: "DELIGHTED", emoji: "🤩", color: "hover:bg-rose-500/10 hover:border-rose-500 text-rose-700 bg-rose-50 border-rose-200" }
   ];
 
   function handleSelectOption(value) {
@@ -173,8 +173,12 @@
   {#if !isTerminalUnlocked}
     <!-- ADMIN SECURITY GATEWAY MODAL -->
     <div in:scale={{ duration: 300, start: 0.95 }} class="w-full max-w-md mx-auto my-auto bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl text-center">
-      <div class="h-16 w-16 bg-[#1a2b6c] text-white rounded-2xl flex items-center justify-center mx-auto shadow-md">
-        <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+      <!-- OFFICIAL SODEXO LOGO SVG -->
+      <div class="h-16 flex items-center justify-center mx-auto">
+        <svg class="h-12 w-auto" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="10" y="42" font-family="'Segoe UI', sans-serif" font-weight="900" font-size="38" fill="#1a2b6c" letter-spacing="-1">sodexo</text>
+          <path d="M125 15 L135 5 L145 15 Z" fill="#e31b23" />
+        </svg>
       </div>
 
       <div class="space-y-1">
@@ -190,7 +194,7 @@
             type="password"
             bind:value={adminPasscode}
             placeholder="Enter Admin PIN..."
-            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#1a2b6c] font-mono focus:outline-none focus:border-cyan-500 font-bold"
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#1a2b6c] font-mono focus:outline-none focus:border-[#e31b23] font-bold"
           />
         </div>
 
@@ -201,7 +205,7 @@
             type="text"
             bind:value={inputDeviceName}
             placeholder="e.g. google tablet"
-            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#1a2b6c] font-bold focus:outline-none focus:border-cyan-500"
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#1a2b6c] font-bold focus:outline-none focus:border-[#e31b23]"
           />
         </div>
 
@@ -211,7 +215,7 @@
 
         <button
           type="submit"
-          class="w-full bg-[#1a2b6c] hover:bg-blue-900 text-white font-bold py-3.5 px-4 rounded-xl text-xs transition-all shadow-md active:scale-95"
+          class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold py-3.5 px-4 rounded-xl text-xs transition-all shadow-md active:scale-95"
         >
           Unlock Terminal & Launch ➔
         </button>
@@ -219,11 +223,11 @@
     </div>
 
   {:else}
-    <!-- HEADER BAR: SHOWN ONLY ON SELECTION SCREEN (HIDDEN ONCE USER LAUNCHES FORM) -->
+    <!-- HEADER BAR: SHOWN ONLY ON SELECTION SCREEN -->
     {#if !activeSurveyId || !surveyTitle || questions.length === 0}
       <header class="w-full max-w-5xl h-14 px-5 sm:px-6 bg-white border border-slate-200 rounded-2xl flex items-center justify-between shrink-0 shadow-sm transition-all">
         <div class="flex items-center space-x-3 min-w-0">
-          <div class="h-2.5 w-2.5 rounded-full bg-cyan-600 animate-pulse shadow-sm shrink-0"></div>
+          <div class="h-2.5 w-2.5 rounded-full bg-[#e31b23] animate-pulse shadow-sm shrink-0"></div>
           <span class="text-xs sm:text-sm font-black font-mono tracking-widest text-[#1a2b6c] uppercase truncate leading-none">
             {surveyTitle || "Feedback Terminal"}
           </span>
@@ -231,8 +235,8 @@
 
         <div class="flex items-center space-x-2 shrink-0">
           <span class="text-[10px] font-mono font-extrabold uppercase tracking-wider text-slate-400 hidden sm:inline">Assigned Tablet:</span>
-          <span class="bg-cyan-50 border border-cyan-200 text-cyan-800 font-mono font-bold text-xs px-3 py-1 rounded-full flex items-center space-x-1.5 shadow-xs">
-            <svg class="w-3.5 h-3.5 fill-current text-cyan-600" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+          <span class="bg-rose-50 border border-rose-200 text-rose-800 font-mono font-bold text-xs px-3 py-1 rounded-full flex items-center space-x-1.5 shadow-xs">
+            <svg class="w-3.5 h-3.5 fill-current text-[#e31b23]" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
             <span>{deviceId}</span>
           </span>
         </div>
@@ -244,13 +248,18 @@
       {#if !activeSurveyId || !surveyTitle || questions.length === 0}
         <!-- SELECTION LAUNCHER MENU -->
         <div in:scale={{ duration: 300, start: 0.96 }} class="w-full max-w-3xl mx-auto bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 space-y-6 shadow-xl relative overflow-hidden">
+          
+          <!-- REPLACED BLUE BOX WITH OFFICIAL SODEXO BRAND LOGO VECTOR -->
           <div class="text-center space-y-2 border-b border-slate-100 pb-5">
-            <div class="h-14 w-14 rounded-2xl bg-[#1a2b6c] text-white flex items-center justify-center font-bold text-2xl mx-auto mb-2 shadow-lg shadow-[#1a2b6c]/20">
-              <svg class="w-7 h-7 fill-current" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+            <div class="h-16 flex items-center justify-center mx-auto mb-1">
+              <svg class="h-12 w-auto" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <text x="10" y="42" font-family="'Segoe UI', sans-serif" font-weight="900" font-size="38" fill="#1a2b6c" letter-spacing="-1">sodexo</text>
+                <path d="M125 15 L135 5 L145 15 Z" fill="#e31b23" />
+              </svg>
             </div>
             <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-[#1a2b6c]">Select Survey Form</h1>
             <p class="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-              Choose an active form sequence below to launch Live Kiosk Terminal Mode on <span class="text-cyan-700 font-mono font-bold bg-cyan-50 border border-cyan-200 px-2 py-0.5 rounded-full">{deviceId}</span>.
+              Choose an active form sequence below to launch Live Kiosk Terminal Mode on <span class="text-rose-700 font-mono font-bold bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">{deviceId}</span>.
             </p>
           </div>
 
@@ -266,7 +275,7 @@
                     resetTerminal();
                     onSelectSurvey(survey._id);
                   }}
-                  class="text-left bg-slate-50 hover:bg-white border border-slate-200 hover:border-cyan-500 border-t-4 border-t-[#1a2b6c] rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between group active:scale-[0.98] shadow-sm hover:shadow-md space-y-4 hover:-translate-y-0.5"
+                  class="text-left bg-slate-50 hover:bg-white border border-slate-200 hover:border-[#e31b23] border-t-4 border-t-[#1a2b6c] rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between group active:scale-[0.98] shadow-sm hover:shadow-md space-y-4 hover:-translate-y-0.5"
                 >
                   <div class="space-y-1.5">
                     <div class="flex items-center justify-between">
@@ -278,14 +287,14 @@
                         {survey.questions?.length || 0} Fields
                       </span>
                     </div>
-                    <h3 class="text-base font-bold text-[#1a2b6c] group-hover:text-cyan-700 transition-colors truncate pt-1">
+                    <h3 class="text-base font-bold text-[#1a2b6c] group-hover:text-[#e31b23] transition-colors truncate pt-1">
                       {survey.title || "Untitled Form"}
                     </h3>
                   </div>
 
                   <div class="flex items-center justify-between pt-2 border-t border-slate-100">
                     <span class="text-[11px] text-slate-500 font-medium group-hover:text-slate-800 transition-colors">Tap to start terminal</span>
-                    <span class="text-xs font-bold px-4 py-1.5 rounded-xl shadow-xs transition-all flex items-center space-x-1.5 group-hover:scale-105 bg-[#1a2b6c] text-white">
+                    <span class="text-xs font-bold px-4 py-1.5 rounded-xl shadow-xs transition-all flex items-center space-x-1.5 group-hover:scale-105 bg-[#1a2b6c] group-hover:bg-[#e31b23] text-white">
                       <span>Launch</span>
                       <span class="transform group-hover:translate-x-1 transition-transform">➔</span>
                     </span>
@@ -307,18 +316,18 @@
           </h2>
           <p class="text-xs sm:text-base text-slate-600 max-w-md mx-auto leading-relaxed">
             Your feedback has been securely registered. Terminal resets in 
-            <span class="text-cyan-700 font-mono font-bold text-base sm:text-lg px-1">{countdownSeconds}s</span>...
+            <span class="text-[#e31b23] font-mono font-bold text-base sm:text-lg px-1">{countdownSeconds}s</span>...
           </p>
         </div>
 
       {:else}
-        <!-- ACTIVE QUESTIONNAIRE WORKSPACE WITH INLINE PROGRESS BAR & COUNTER -->
+        <!-- ACTIVE QUESTIONNAIRE WORKSPACE -->
         <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="space-y-6 sm:space-y-8 bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-xl max-w-3xl mx-auto w-full">
           
           <!-- INLINE PROGRESS BAR AND QUESTION COUNTER -->
           <div class="space-y-2 pb-2 border-b border-slate-100">
             <div class="flex items-center justify-between text-xs font-mono font-bold">
-              <span class="text-cyan-700 bg-cyan-50 border border-cyan-200 px-3 py-1 rounded-full">
+              <span class="text-rose-800 bg-rose-50 border border-rose-200 px-3 py-1 rounded-full">
                 Question {currentQuestionIndex + 1} of {questions.length}
               </span>
               <span class="text-slate-400 font-semibold">
@@ -326,10 +335,9 @@
               </span>
             </div>
 
-            <!-- SODEXO BLUE PROGRESS TRACK -->
             <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
               <div 
-                class="h-full bg-gradient-to-r from-[#1a2b6c] to-cyan-600 transition-all duration-300 rounded-full"
+                class="h-full bg-gradient-to-r from-[#1a2b6c] to-[#e31b23] transition-all duration-300 rounded-full"
                 style="width: {((currentQuestionIndex + 1) / questions.length) * 100}%"
               ></div>
             </div>
@@ -342,7 +350,6 @@
               {/if}
             </div>
 
-            <!-- QUESTION HEADER IMAGE -->
             {#if currentQuestion.questionImage}
               <div class="max-w-md mx-auto aspect-[16/9] w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 shadow-inner my-3 flex items-center justify-center p-2">
                 <img src={currentQuestion.questionImage} alt={currentQuestion.questionText} class="w-full h-full object-contain rounded-xl" />
@@ -388,7 +395,7 @@
                     on:mouseenter={() => hoveredStarIndex = starValue}
                     on:click={() => handleSelectOption(`${starValue} Stars`)}
                     class="text-4xl sm:text-6xl transform hover:scale-125 active:scale-95 transition-all duration-150 outline-none select-none filter drop-shadow-xs focus:outline-none"
-                    style="color: {starValue <= (hoveredStarIndex || 0) ? '#f59e0b' : '#cbd5e1'}"
+                    style="color: {starValue <= (hoveredStarIndex || 0) ? '#e31b23' : '#cbd5e1'}"
                   >
                     {starValue <= (hoveredStarIndex || 0) ? '★' : '☆'}
                   </button>
@@ -411,7 +418,7 @@
                             handleSelectOption(option);
                           }
                         }}
-                        class="w-full text-left bg-slate-50 border rounded-2xl p-3.5 transition-all shadow-xs active:scale-[0.98] flex flex-col justify-between group {currentQuestion.allowMultiple && isSelected ? 'border-cyan-600 bg-cyan-50 text-cyan-900' : 'border-slate-200 hover:border-cyan-400 text-slate-800'}"
+                        class="w-full text-left bg-slate-50 border rounded-2xl p-3.5 transition-all shadow-xs active:scale-[0.98] flex flex-col justify-between group {currentQuestion.allowMultiple && isSelected ? 'border-[#e31b23] bg-rose-50 text-rose-900' : 'border-slate-200 hover:border-[#e31b23] text-slate-800'}"
                       >
                         {#if imgUrl}
                           <div class="w-full aspect-square mb-3 rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center p-2 shadow-inner">
@@ -420,13 +427,13 @@
                         {/if}
 
                         <div class="flex items-center justify-between w-full">
-                          <span class="text-sm sm:text-base font-bold group-hover:text-cyan-700 transition-colors">{option}</span>
+                          <span class="text-sm sm:text-base font-bold group-hover:text-[#e31b23] transition-colors">{option}</span>
                           {#if currentQuestion.allowMultiple}
-                            <div class="w-5 h-5 rounded-md border flex items-center justify-center transition-all {isSelected ? 'bg-cyan-600 border-cyan-600 text-white font-bold text-xs' : 'border-slate-300 bg-white'}">
+                            <div class="w-5 h-5 rounded-md border flex items-center justify-center transition-all {isSelected ? 'bg-[#e31b23] border-[#e31b23] text-white font-bold text-xs' : 'border-slate-300 bg-white'}">
                               {#if isSelected}✓{/if}
                             </div>
                           {:else}
-                            <span class="text-slate-400 group-hover:text-cyan-600 font-extrabold text-sm transition-colors">➔</span>
+                            <span class="text-slate-400 group-hover:text-[#e31b23] font-extrabold text-sm transition-colors">➔</span>
                           {/if}
                         </div>
                       </button>
@@ -437,7 +444,7 @@
                 {#if currentQuestion.allowMultiple}
                   <button
                     on:click={advanceStep}
-                    class="w-full bg-[#1a2b6c] hover:bg-blue-900 text-white font-bold py-3.5 px-5 text-sm rounded-xl transition-all shadow-md active:scale-[0.98] mt-4 flex items-center justify-center space-x-2"
+                    class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold py-3.5 px-5 text-sm rounded-xl transition-all shadow-md active:scale-[0.98] mt-4 flex items-center justify-center space-x-2"
                   >
                     <span>Confirm & Continue</span>
                     <span>➔</span>
@@ -452,11 +459,11 @@
                   bind:value={selectedValue}
                   on:input={() => (validationError = "")}
                   placeholder={currentQuestion.isRequired ? "Type your response here (Required)..." : "Type your response here..."}
-                  class="w-full bg-slate-50 border text-[#1a2b6c] placeholder-slate-400 rounded-xl p-4 text-sm sm:text-base outline-none transition-all shadow-inner {validationError ? 'border-rose-500 focus:border-rose-400' : 'border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20'}"
+                  class="w-full bg-slate-50 border text-[#1a2b6c] placeholder-slate-400 rounded-xl p-4 text-sm sm:text-base outline-none transition-all shadow-inner {validationError ? 'border-rose-500 focus:border-rose-400' : 'border-slate-200 focus:border-[#e31b23] focus:ring-2 focus:ring-rose-500/20'}"
                 />
                 <button 
                   type="submit"
-                  class="w-full bg-[#1a2b6c] hover:bg-blue-900 text-white font-bold py-3.5 px-5 text-sm rounded-xl transition-all shadow-md active:scale-[0.98]"
+                  class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold py-3.5 px-5 text-sm rounded-xl transition-all shadow-md active:scale-[0.98]"
                 >
                   Submit Response ➔
                 </button>
