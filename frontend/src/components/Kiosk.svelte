@@ -173,8 +173,11 @@
   {#if !isTerminalUnlocked}
     <!-- ADMIN SECURITY GATEWAY MODAL -->
     <div in:scale={{ duration: 300, start: 0.95 }} class="w-full max-w-md mx-auto my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl text-center">
-      <div class="h-14 w-14 bg-[#1a2b6c] text-white rounded-2xl flex items-center justify-center mx-auto shadow-md">
-        <svg class="w-7 h-7 fill-current" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+      <!-- KIOSK ICON -->
+      <div class="h-14 w-14 bg-[#1a2b6c] dark:bg-cyan-600/20 text-white dark:text-cyan-400 rounded-2xl border border-[#1a2b6c] dark:border-cyan-500/30 flex items-center justify-center mx-auto shadow-lg shadow-[#1a2b6c]/20">
+        <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24">
+          <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
+        </svg>
       </div>
 
       <div class="space-y-1">
@@ -229,7 +232,6 @@
           </span>
         </div>
 
-        <!-- REFINED ASSIGNED TABLET BADGE WITH CLEAR SPACING AND HIGH-CONTRAST ICON -->
         <div class="flex items-center space-x-2 shrink-0">
           <span class="text-[10px] font-mono font-extrabold uppercase tracking-wider text-slate-400 hidden sm:inline">Assigned Tablet:</span>
           <span class="bg-[#1a2b6c]/10 dark:bg-slate-800 border border-[#1a2b6c]/20 dark:border-slate-700 text-[#1a2b6c] dark:text-cyan-400 font-mono font-bold text-xs px-3.5 py-1.5 rounded-full flex items-center space-x-2 shadow-xs">
@@ -275,8 +277,8 @@
                 >
                   <div class="space-y-1.5">
                     <div class="flex items-center justify-between">
-                      <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-full flex items-center space-x-1">
-                        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-full flex items-center space-x-1.5">
+                        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
                         <span>Live Ready</span>
                       </span>
                       <span class="text-[11px] font-mono text-slate-500 dark:text-slate-400 font-bold">
