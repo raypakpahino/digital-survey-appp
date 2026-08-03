@@ -12,14 +12,12 @@
   let saveContainerRef;
 
   // DRAGGABLE RESIZER STATE & DELTA MOVEMENT MECHANICS
-  let leftPanelWidth = 320; // default pixel width for toolbox sidebar
+  let leftPanelWidth = 320;
   let isResizing = false;
 
   function startResizing(event) {
     event.preventDefault();
     isResizing = true;
-    
-    // Lock text selection & enforce column cursor globally during drag
     document.body.style.userSelect = "none";
     document.body.style.cursor = "col-resize";
 
@@ -29,8 +27,6 @@
 
   function handleMouseMove(event) {
     if (!isResizing) return;
-    
-    // Delta calculation ensures accuracy whether main app sidebar is expanded or collapsed
     const minWidth = 220;
     const maxWidth = 500;
     const updatedWidth = leftPanelWidth + event.movementX;
@@ -43,8 +39,6 @@
   function stopResizing() {
     if (!isResizing) return;
     isResizing = false;
-
-    // Restore text selection & standard cursor
     document.body.style.userSelect = "";
     document.body.style.cursor = "";
 
@@ -109,7 +103,13 @@
         allowMultiple: false, 
         enableOptionImages: false, 
         options: defaultOptions,
-        optionImages: {}
+        optionImages: {},
+        // SKIP LOGIC INITIAL SCHEMA
+        skipLogic: {
+          enabled: false,
+          dependsOnIndex: null,
+          requiredValue: ""
+        }
       }
     ];
   }
@@ -189,19 +189,37 @@
     if (!qType) return "";
     return String(qType).toLowerCase().replace(/_/g, "-");
   }
+
+  // Get options for depended question in skip logic dropdown
+  function getDependedOptions(dependedIndex) {
+    if (dependedIndex === null || dependedIndex === undefined || !localQuestions[dependedIndex]) return [];
+    const targetQ = localQuestions[dependedIndex];
+    const type = getNormalizedType(targetQ.type);
+
+    if (type === 'smiley') {
+      return ["🤬 ANGRY", "😞 SAD", "😐 NEUTRAL", "😊 HAPPY", "🤩 DELIGHTED"];
+    }
+    if (type === 'stars') {
+      return ["1 Stars", "2 Stars", "3 Stars", "4 Stars", "5 Stars"];
+    }
+    if (type === 'multiple-choice') {
+      return targetQ.options || [];
+    }
+    return [];
+  }
 </script>
 
 <div
   class="w-full min-h-full flex flex-col lg:flex-row animate-fade overflow-visible box-border text-slate-800 dark:text-slate-100 pb-16 relative select-none"
 >
-  <!-- LEFT SIDEBAR: TOOLBOX (RESIZABLE & STICKY ON DESKTOP) -->
+  <!-- LEFT SIDEBAR: TOOLBOX -->
   <div
     class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 shrink-0 flex flex-col justify-between shadow-md h-fit lg:sticky lg:top-4 box-border self-start z-10 transition-none"
     style="width: {leftPanelWidth}px;"
   >
     <div class="space-y-6">
       <div>
-        <h3 class="text-sm font-bold text-navy-950 dark:text-white uppercase tracking-wider">
+        <h3 class="text-sm font-bold text-[#1a2b6c] dark:text-white uppercase tracking-wider">
           Form Components
         </h3>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
@@ -213,19 +231,17 @@
         {#each availableComponents as comp}
           <button
             on:click={() => dropComponent(comp.type)}
-            class="w-full text-left bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/60 hover:border-cyan-500/40 p-3.5 rounded-xl flex items-center space-x-3.5 transition-all group active:scale-[0.98]"
+            class="w-full text-left bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/60 hover:border-[#e31b23] p-3.5 rounded-xl flex items-center space-x-3.5 transition-all group active:scale-[0.98]"
           >
             <div
-              class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 h-10 w-10 rounded-xl flex items-center justify-center group-hover:bg-cyan-50 dark:group-hover:bg-cyan-950/30 group-hover:border-cyan-300 dark:group-hover:border-cyan-900/40 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-all shadow-xs shrink-0 text-slate-600 dark:text-slate-300"
+              class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 h-10 w-10 rounded-xl flex items-center justify-center group-hover:bg-rose-50 dark:group-hover:bg-rose-950/30 group-hover:border-[#e31b23] group-hover:text-[#e31b23] transition-all shadow-xs shrink-0 text-slate-600 dark:text-slate-300"
             >
               <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
                 <path d={comp.svgPath}/>
               </svg>
             </div>
             <div>
-              <p
-                class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-all"
-              >
+              <p class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-[#e31b23] transition-all">
                 {comp.label}
               </p>
               <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-normal">
@@ -238,13 +254,8 @@
     </div>
 
     <div class="pt-6 border-t border-slate-200 dark:border-slate-800/80 mt-6 hidden lg:block">
-      <div
-        class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/40 p-4 rounded-xl text-center shadow-inner"
-      >
-        <span
-          class="text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-widest uppercase block"
-          >Interactive Canvas</span
-        >
+      <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/40 p-4 rounded-xl text-center shadow-inner">
+        <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-widest uppercase block">Interactive Canvas</span>
         <p class="text-[11px] text-slate-500 mt-1 leading-normal">
           Requires manual verification commitment before loading onto terminals.
         </p>
@@ -252,45 +263,36 @@
     </div>
   </div>
 
-  <!-- INTERACTIVE RESIZER DIVIDER HANDLE -->
+  <!-- INTERACTIVE RESIZER HANDLE -->
   <div
     on:mousedown={startResizing}
-    class="hidden lg:flex w-4 cursor-col-resize items-center justify-center shrink-0 group transition-colors z-20 hover:bg-cyan-500/10 active:bg-cyan-500/20"
+    class="hidden lg:flex w-4 cursor-col-resize items-center justify-center shrink-0 group transition-colors z-20 hover:bg-rose-500/10 active:bg-rose-500/20"
     title="Drag left/right to resize panels"
   >
-    <div class="w-1.5 h-16 rounded-full bg-slate-300 dark:bg-slate-700/80 group-hover:bg-cyan-500 group-active:bg-cyan-400 transition-colors shadow-sm"></div>
+    <div class="w-1.5 h-16 rounded-full bg-slate-300 dark:bg-slate-700/80 group-hover:bg-[#e31b23] transition-colors shadow-sm"></div>
   </div>
 
-  <!-- RIGHT: EXPANDABLE DESIGN CANVAS WORKSPACE -->
-  <div
-    class="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 sm:p-8 flex flex-col shadow-md h-auto overflow-visible box-border min-w-0"
-  >
+  <!-- RIGHT: DESIGN CANVAS WORKSPACE -->
+  <div class="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 sm:p-8 flex flex-col shadow-md h-auto overflow-visible box-border min-w-0">
+    
     <!-- TOP CONTROL BAR -->
-    <div
-      class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0 shadow-inner"
-    >
-      <div
-        class="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3"
-      >
-        <label
-          for="survey-selector"
-          class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap"
-        >
+    <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0 shadow-inner">
+      <div class="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <label for="survey-selector" class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
           Target Schema:
         </label>
         <select
           id="survey-selector"
           value={activeSurveyId}
           on:change={(e) => onSelectSurvey(e.target.value)}
-          class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-cyan-700 dark:text-cyan-400 font-bold text-xs rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyan-500 transition-all w-full sm:w-auto flex-1 cursor-pointer"
+          class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[#1a2b6c] dark:text-cyan-400 font-bold text-xs rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#e31b23] transition-all w-full sm:w-auto flex-1 cursor-pointer"
         >
           {#if surveys.length === 0}
             <option value="" disabled>No surveys available</option>
           {:else}
             {#each surveys as survey}
               <option value={survey._id}>
-                {survey.title || "Untitled Form"} ({survey.questions?.length ||
-                  0} fields)
+                {survey.title || "Untitled Form"} ({survey.questions?.length || 0} fields)
               </option>
             {/each}
           {/if}
@@ -322,15 +324,12 @@
 
     <!-- Title Input Section -->
     <div class="space-y-2.5 shrink-0 mt-6">
-      <label
-        class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block"
-        for="form-heading">Form Name Header</label
-      >
+      <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block" for="form-heading">Form Name Header</label>
       <input
         id="form-heading"
         type="text"
         bind:value={localTitle}
-        class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-5 py-3.5 text-base text-navy-950 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all font-semibold shadow-inner"
+        class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-5 py-3.5 text-base text-[#1a2b6c] dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-[#e31b23] transition-all font-semibold shadow-inner"
         placeholder="Enter survey identity..."
       />
     </div>
@@ -338,65 +337,47 @@
     <hr class="border-slate-200 dark:border-slate-800/80 my-6 shrink-0" />
 
     <!-- Header Grid Tracker -->
-    <div
-      class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/40 pb-3 shrink-0"
-    >
-      <h3
-        class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"
-      >
-        Active Canvas Stack
-      </h3>
-      <span
-        class="text-xs font-bold bg-slate-50 dark:bg-slate-950 px-2.5 py-1 rounded-md text-cyan-600 dark:text-cyan-400 border border-slate-200 dark:border-slate-800"
-        >{localQuestions.length} Items</span
-      >
+    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/40 pb-3 shrink-0">
+      <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Canvas Stack</h3>
+      <span class="text-xs font-bold bg-slate-50 dark:bg-slate-950 px-2.5 py-1 rounded-md text-[#1a2b6c] dark:text-cyan-400 border border-slate-200 dark:border-slate-800">{localQuestions.length} Items</span>
     </div>
 
     <!-- EXPANDABLE FIELD CANVAS -->
     <div class="mt-6 box-border flex-1">
       {#if localQuestions.length === 0}
-        <div
-          class="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-16 text-center text-slate-400 dark:text-slate-500 text-sm leading-relaxed mt-2"
-        >
-          Canvas is completely empty. Click components from the left toolbox bar
-          to assemble your form configuration layout.
+        <div class="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-16 text-center text-slate-400 dark:text-slate-500 text-sm leading-relaxed mt-2">
+          Canvas is completely empty. Click components from the left toolbox bar to assemble your form configuration layout.
         </div>
       {:else}
         <div class="flex flex-col gap-6">
           {#each localQuestions as question, index}
             {@const normType = getNormalizedType(question.type)}
 
-            <div
-              class="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 p-6 rounded-2xl space-y-5 group hover:border-slate-300 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-950 transition-all duration-200 shadow-xs relative"
-            >
+            <div class="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 p-6 rounded-2xl space-y-5 group hover:border-slate-300 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-950 transition-all duration-200 shadow-xs relative">
+              
               <!-- Card Header -->
               <div class="flex items-start justify-between gap-4">
                 <div class="flex-1 space-y-3">
                   <div class="flex items-center space-x-2.5">
-                    <span
-                      class="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 h-6 w-6 rounded-lg text-xs font-mono border border-slate-200 dark:border-slate-800 flex items-center justify-center font-bold shadow-inner"
-                      >{index + 1}</span
-                    >
-                    <span
-                      class="text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-md bg-white dark:bg-slate-900 text-cyan-600 dark:text-cyan-400 border border-slate-200 dark:border-slate-800 tracking-wider font-mono"
-                      >{question.type}</span
-                    >
+                    <span class="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 h-6 w-6 rounded-lg text-xs font-mono border border-slate-200 dark:border-slate-800 flex items-center justify-center font-bold shadow-inner">{index + 1}</span>
+                    <span class="text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-md bg-white dark:bg-slate-900 text-[#1a2b6c] dark:text-cyan-400 border border-slate-200 dark:border-slate-800 tracking-wider font-mono">{question.type}</span>
                     {#if question.isRequired}
-                      <span class="text-[9px] uppercase font-bold px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60 tracking-wider font-mono">
-                        REQUIRED
-                      </span>
+                      <span class="text-[9px] uppercase font-bold px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60 tracking-wider font-mono">REQUIRED</span>
+                    {/if}
+                    {#if question.skipLogic?.enabled}
+                      <span class="text-[9px] uppercase font-bold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 tracking-wider font-mono">CONDITIONAL SKIP</span>
                     {/if}
                   </div>
 
                   <input
                     type="text"
                     bind:value={question.questionText}
-                    class="w-full bg-transparent border-b border-transparent text-navy-950 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-0 focus:border-slate-300 dark:focus:border-slate-700 py-1 text-base font-semibold transition-all"
+                    class="w-full bg-transparent border-b border-transparent text-[#1a2b6c] dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-0 focus:border-slate-300 dark:focus:border-slate-700 py-1 text-base font-semibold transition-all"
                   />
 
                   <!-- FILE UPLOADER: HEADER IMAGE -->
                   <div class="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 pt-2">
-                    <span class="text-[11px] font-mono font-bold text-cyan-600 dark:text-cyan-400 shrink-0 flex items-center space-x-1">
+                    <span class="text-[11px] font-mono font-bold text-[#1a2b6c] dark:text-cyan-400 shrink-0 flex items-center space-x-1">
                       <svg class="w-3.5 h-3.5 fill-current inline-block mr-1" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
                       <span>Header Image:</span>
                     </span>
@@ -417,12 +398,7 @@
                       <label class="cursor-pointer bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-xl text-xs font-mono font-semibold flex items-center space-x-2 transition-all w-fit active:scale-95 shadow-xs">
                         <svg class="w-4 h-4 fill-current text-slate-500" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>
                         <span>Choose Picture File</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          on:change={(e) => handleQuestionImageUpload(e, question)}
-                          class="hidden"
-                        />
+                        <input type="file" accept="image/*" on:change={(e) => handleQuestionImageUpload(e, question)} class="hidden" />
                       </label>
                     {/if}
                   </div>
@@ -438,13 +414,8 @@
 
               <!-- Options Subgrid for Multiple Choice -->
               {#if normType === "multiple-choice"}
-                <div
-                  class="pl-0 sm:pl-2 pt-4 border-t border-slate-200 dark:border-slate-900/80 mt-2 space-y-3"
-                >
-                  <span
-                    class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block"
-                    >Configure Choice Options:</span
-                  >
+                <div class="pl-0 sm:pl-2 pt-4 border-t border-slate-200 dark:border-slate-900/80 mt-2 space-y-3">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Configure Choice Options:</span>
                   <div class="grid grid-cols-1 gap-3">
                     {#each question.options as option, optIndex}
                       <div class="bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
@@ -453,18 +424,17 @@
                             type="text"
                             bind:value={question.options[optIndex]}
                             placeholder={`Option ${optIndex + 1}`}
-                            class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-navy-950 dark:text-slate-200 px-3 py-2 focus:outline-none focus:border-cyan-500 w-full font-medium"
+                            class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-[#1a2b6c] dark:text-slate-200 px-3 py-2 focus:outline-none focus:border-[#e31b23] w-full font-medium"
                           />
                           <button
                             on:click={() => removeOption(index, optIndex)}
                             class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 text-sm px-2 font-bold transition-all"
-                            >✕</button
-                          >
+                          >✕</button>
                         </div>
 
                         {#if question.enableOptionImages}
                           <div class="flex items-center space-x-3 pl-2 pt-1">
-                            <span class="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 shrink-0 flex items-center space-x-1">
+                            <span class="text-[10px] font-mono text-[#1a2b6c] dark:text-cyan-400 shrink-0 flex items-center space-x-1">
                               <svg class="w-3.5 h-3.5 fill-current inline-block mr-1" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
                               <span>Option Picture:</span>
                             </span>
@@ -472,24 +442,13 @@
                             {#if question.optionImages && question.optionImages[option]}
                               <div class="flex items-center space-x-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-1.5 rounded-lg">
                                 <img src={question.optionImages[option]} alt="Option Preview" class="h-7 w-7 object-cover rounded-md border border-slate-300 dark:border-slate-700" />
-                                <button
-                                  type="button"
-                                  on:click={() => removeOptionImage(question, option)}
-                                  class="text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:underline"
-                                >
-                                  Remove
-                                </button>
+                                <button type="button" on:click={() => removeOptionImage(question, option)} class="text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:underline">Remove</button>
                               </div>
                             {:else}
                               <label class="cursor-pointer bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold flex items-center space-x-1.5 transition-all w-fit active:scale-95">
                                 <svg class="w-3.5 h-3.5 fill-current text-slate-500" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>
                                 <span>Browse File</span>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  on:change={(e) => handleOptionImageUpload(e, question, option)}
-                                  class="hidden"
-                                />
+                                <input type="file" accept="image/*" on:change={(e) => handleOptionImageUpload(e, question, option)} class="hidden" />
                               </label>
                             {/if}
                           </div>
@@ -499,7 +458,7 @@
 
                     <button
                       on:click={() => addOption(index)}
-                      class="border border-dashed border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-50 dark:bg-slate-900/20 hover:bg-slate-100 dark:hover:bg-slate-900/40 text-slate-600 dark:text-slate-400 hover:text-navy-950 dark:hover:text-slate-200 rounded-xl text-xs font-bold py-2.5 transition-all shadow-xs flex items-center justify-center space-x-1"
+                      class="border border-dashed border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-50 dark:bg-slate-900/20 hover:bg-slate-100 dark:hover:bg-slate-900/40 text-slate-600 dark:text-slate-400 hover:text-[#1a2b6c] dark:hover:text-slate-200 rounded-xl text-xs font-bold py-2.5 transition-all shadow-xs flex items-center justify-center space-x-1"
                     >
                       <span>+ Insert Option</span>
                     </button>
@@ -509,7 +468,6 @@
 
               <!-- TOGGLES SECTION -->
               <div class="pt-4 border-t border-slate-200 dark:border-slate-900/80 space-y-3 max-w-md">
-                
                 {#if normType === 'multiple-choice'}
                   <!-- 1. ENABLE IMAGES -->
                   <div class="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60">
@@ -520,11 +478,9 @@
                         question.enableOptionImages = !question.enableOptionImages;
                         if (!question.optionImages) question.optionImages = {};
                       }}
-                      class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.enableOptionImages ? 'bg-cyan-600 border-cyan-500' : 'bg-slate-200 dark:bg-slate-800'}"
+                      class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.enableOptionImages ? 'bg-[#1a2b6c] border-[#1a2b6c]' : 'bg-slate-200 dark:bg-slate-800'}"
                     >
-                      <div
-                        class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out {question.enableOptionImages ? 'translate-x-6' : 'translate-x-0'}"
-                      ></div>
+                      <div class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out {question.enableOptionImages ? 'translate-x-6' : 'translate-x-0'}"></div>
                     </button>
                   </div>
 
@@ -534,11 +490,9 @@
                     <button
                       type="button"
                       on:click={() => (question.allowMultiple = !question.allowMultiple)}
-                      class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.allowMultiple ? 'bg-cyan-600 border-cyan-500' : 'bg-slate-200 dark:bg-slate-800'}"
+                      class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.allowMultiple ? 'bg-[#1a2b6c] border-[#1a2b6c]' : 'bg-slate-200 dark:bg-slate-800'}"
                     >
-                      <div
-                        class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out {question.allowMultiple ? 'translate-x-6' : 'translate-x-0'}"
-                      ></div>
+                      <div class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out {question.allowMultiple ? 'translate-x-6' : 'translate-x-0'}"></div>
                     </button>
                   </div>
                 {/if}
@@ -549,13 +503,71 @@
                   <button
                     type="button"
                     on:click={() => (question.isRequired = !question.isRequired)}
-                    class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.isRequired ? 'bg-cyan-600 border-cyan-500' : 'bg-slate-200 dark:bg-slate-800'}"
+                    class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.isRequired ? 'bg-[#1a2b6c] border-[#1a2b6c]' : 'bg-slate-200 dark:bg-slate-800'}"
                   >
-                    <div
-                      class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out {question.isRequired ? 'translate-x-6' : 'translate-x-0'}"
-                    ></div>
+                    <div class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out {question.isRequired ? 'translate-x-6' : 'translate-x-0'}"></div>
                   </button>
                 </div>
+
+                <!-- 4. CONDITIONAL SKIP LOGIC TOGGLE & CONTROLS (ENABLED FROM Q2 ONWARDS) -->
+                {#if index > 0}
+                  <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60 space-y-3">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center space-x-2">
+                        <span class="text-amber-500 font-bold text-xs">🔀</span>
+                        <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Enable Skip Logic Rule</span>
+                      </div>
+                      <button
+                        type="button"
+                        on:click={() => {
+                          if (!question.skipLogic) question.skipLogic = { enabled: false, dependsOnIndex: 0, requiredValue: "" };
+                          question.skipLogic.enabled = !question.skipLogic.enabled;
+                          if (question.skipLogic.enabled && question.skipLogic.dependsOnIndex === null) {
+                            question.skipLogic.dependsOnIndex = 0;
+                          }
+                          localQuestions = localQuestions;
+                        }}
+                        class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.skipLogic?.enabled ? 'bg-amber-600 border-amber-600' : 'bg-slate-200 dark:bg-slate-800'}"
+                      >
+                        <div class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out {question.skipLogic?.enabled ? 'translate-x-6' : 'translate-x-0'}"></div>
+                      </button>
+                    </div>
+
+                    {#if question.skipLogic?.enabled}
+                      <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-2.5">
+                        <span class="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide block">Show Question #{index + 1} ONLY IF:</span>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <label class="text-[9px] font-bold text-slate-400 block mb-1">Previous Question</label>
+                            <select
+                              bind:value={question.skipLogic.dependsOnIndex}
+                              on:change={() => { question.skipLogic.requiredValue = ""; localQuestions = localQuestions; }}
+                              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-[#1a2b6c] dark:text-slate-200 rounded-lg p-2 focus:outline-none focus:border-amber-500"
+                            >
+                              {#each localQuestions.slice(0, index) as prevQ, pIdx}
+                                <option value={pIdx}>Question {pIdx + 1}: {prevQ.questionText.slice(0, 24)}...</option>
+                              {/each}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label class="text-[9px] font-bold text-slate-400 block mb-1">Answer Equals</label>
+                            <select
+                              bind:value={question.skipLogic.requiredValue}
+                              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-[#1a2b6c] dark:text-slate-200 rounded-lg p-2 focus:outline-none focus:border-amber-500"
+                            >
+                              <option value="">Select Trigger Value...</option>
+                              {#each getDependedOptions(question.skipLogic.dependsOnIndex) as optionValue}
+                                <option value={optionValue}>{optionValue}</option>
+                              {/each}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    {/if}
+                  </div>
+                {/if}
 
               </div>
 
@@ -565,7 +577,7 @@
       {/if}
     </div>
 
-    <!-- CANVAS FOOTER (SITS AT THE VERY BOTTOM OF THE BUILDER) -->
+    <!-- CANVAS FOOTER -->
     <div
       bind:this={saveContainerRef}
       class="pt-6 mt-8 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-end shrink-0 bg-white dark:bg-slate-900 py-4"
@@ -573,7 +585,7 @@
       <button
         on:click={triggerExplicitSave}
         disabled={localQuestions.length === 0 || !localTitle.trim()}
-        class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs py-3.5 px-6 rounded-xl transition-all shadow-md shadow-cyan-600/10 flex items-center space-x-2 active:scale-[0.98] disabled:opacity-25 disabled:cursor-not-allowed"
+        class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold text-xs py-3.5 px-6 rounded-xl transition-all shadow-md flex items-center space-x-2 active:scale-[0.98] disabled:opacity-25 disabled:cursor-not-allowed"
       >
         <svg class="w-4 h-4 fill-current text-white" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
         <span>Save & Deploy Schema</span>
@@ -586,7 +598,7 @@
 {#if localQuestions.length >= 2}
   <button
     on:click={scrollToSave}
-    class="fixed bottom-6 right-6 z-40 bg-[#1a2b6c] dark:bg-cyan-600 hover:bg-[#121e52] dark:hover:bg-cyan-500 text-white font-bold text-xs py-3 px-5 rounded-full shadow-2xl flex items-center space-x-2 transition-all active:scale-95 border border-white/20"
+    class="fixed bottom-6 right-6 z-40 bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold text-xs py-3 px-5 rounded-full shadow-2xl flex items-center space-x-2 transition-all active:scale-95 border border-white/20"
     style="color: #ffffff !important;"
     title="Jump straight to Save button"
   >

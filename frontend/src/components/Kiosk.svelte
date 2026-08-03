@@ -100,6 +100,32 @@
     }
   }
 
+  // CONDITIONAL EVALUATION FUNCTION
+  function shouldShowQuestion(qIndex) {
+    if (qIndex === 0) return true;
+    const q = questions[qIndex];
+    if (!q || !q.skipLogic || !q.skipLogic.enabled) return true;
+
+    const { dependsOnIndex, requiredValue } = q.skipLogic;
+    if (dependsOnIndex === null || dependsOnIndex === undefined || !requiredValue) return true;
+
+    const dependedQuestion = questions[dependsOnIndex];
+    if (!dependedQuestion) return true;
+
+    const recordedAnswer = answersAccumulator.find(a => a.questionText === dependedQuestion.questionText);
+    if (!recordedAnswer) return false;
+
+    return String(recordedAnswer.value).toLowerCase().trim() === String(requiredValue).toLowerCase().trim();
+  }
+
+  function findNextValidQuestionIndex(startIndex) {
+    let nextIdx = startIndex;
+    while (nextIdx < questions.length && !shouldShowQuestion(nextIdx)) {
+      nextIdx += 1;
+    }
+    return nextIdx;
+  }
+
   function advanceStep() {
     if (!currentQuestion) return;
 
@@ -125,8 +151,10 @@
     hoveredStarIndex = 0;
     validationError = "";
 
-    if (currentQuestionIndex < questions.length - 1) {
-      currentQuestionIndex += 1;
+    const nextIndex = findNextValidQuestionIndex(currentQuestionIndex + 1);
+
+    if (nextIndex < questions.length) {
+      currentQuestionIndex = nextIndex;
     } else {
       isSubmitted = true;
       onSubmitResponse(answersAccumulator, deviceId);
@@ -173,7 +201,6 @@
   {#if !isTerminalUnlocked}
     <!-- ADMIN SECURITY GATEWAY MODAL -->
     <div in:scale={{ duration: 300, start: 0.95 }} class="w-full max-w-md mx-auto my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl text-center">
-      <!-- KIOSK ICON -->
       <div class="h-14 w-14 bg-[#1a2b6c] dark:bg-cyan-600/20 text-white dark:text-cyan-400 rounded-2xl border border-[#1a2b6c] dark:border-cyan-500/30 flex items-center justify-center mx-auto shadow-lg shadow-[#1a2b6c]/20">
         <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24">
           <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
@@ -248,7 +275,6 @@
         <!-- SELECTION LAUNCHER MENU -->
         <div in:scale={{ duration: 300, start: 0.96 }} class="w-full max-w-3xl mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-10 space-y-6 shadow-xl relative overflow-hidden">
           
-          <!-- KIOSK TABLET SUB-MENU VECTOR LOGO -->
           <div class="text-center space-y-3 border-b border-slate-100 dark:border-slate-800 pb-5">
             <div class="h-16 w-16 bg-[#1a2b6c] dark:bg-cyan-600/20 text-white dark:text-cyan-400 rounded-2xl border border-[#1a2b6c] dark:border-cyan-500/30 flex items-center justify-center mx-auto shadow-lg shadow-[#1a2b6c]/20">
               <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24">
@@ -451,7 +477,6 @@
               </div>
 
             {:else}
-              <!-- SHORT ANSWER TEXT INPUT WITH HIGH-CONTRAST BOLD SUBMIT BUTTON TEXT -->
               <form on:submit|preventDefault={advanceStep} class="max-w-lg mx-auto space-y-4 px-2">
                 <input 
                   type="text" 
