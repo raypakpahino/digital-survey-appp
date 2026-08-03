@@ -8,7 +8,13 @@ const QuestionSchema = new mongoose.Schema({
   allowMultiple: { type: Boolean, default: false },
   enableOptionImages: { type: Boolean, default: false },
   options: [{ type: String }],
-  optionImages: { type: mongoose.Schema.Types.Mixed, default: {} }
+  optionImages: { type: mongoose.Schema.Types.Mixed, default: {} },
+  // EXPLICIT SCHEMA FOR CONDITIONAL SKIP LOGIC
+  skipLogic: {
+    enabled: { type: Boolean, default: false },
+    dependsOnIndex: { type: Number, default: 0 },
+    requiredValue: { type: String, default: '' }
+  }
 }, { _id: true });
 
 const SurveySchema = new mongoose.Schema({

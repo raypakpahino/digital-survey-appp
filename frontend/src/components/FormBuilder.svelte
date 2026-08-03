@@ -309,7 +309,6 @@
 
       <div class="flex items-center space-x-2">
         {#if localQuestions.length > 0}
-          <!-- HIGH-CONTRAST TOP JUMP BUTTON -->
           <button
             type="button"
             on:click={scrollToSave}
@@ -610,8 +609,7 @@
   </div>
 </div>
 
-<!-- HIGH-CONTRAST FLOATING QUICK JUMP BUTTON -->
-<!-- AFTER (ICON-ONLY SVG ARROW) -->
+<!-- ICON-ONLY CIRCULAR FLOATING JUMP BUTTON -->
 {#if localQuestions.length >= 2}
   <button
     type="button"

@@ -4,7 +4,7 @@ import Response from '../models/Response.js';
 
 const router = express.Router();
 
-// Helper to sanitize incoming survey question fields safely
+// Helper to sanitize incoming survey question fields safely (UPDATED TO KEEP SKIP LOGIC)
 const sanitizeQuestions = (questions) => {
   if (!Array.isArray(questions)) return [];
   return questions.map((q) => ({
@@ -16,7 +16,17 @@ const sanitizeQuestions = (questions) => {
     allowMultiple: Boolean(q.allowMultiple),
     enableOptionImages: Boolean(q.enableOptionImages),
     options: Array.isArray(q.options) ? q.options : [],
-    optionImages: q.optionImages && typeof q.optionImages === 'object' ? q.optionImages : {}
+    optionImages: q.optionImages && typeof q.optionImages === 'object' ? q.optionImages : {},
+    // PRESERVE CONDITIONAL SKIP LOGIC OBJECT
+    skipLogic: q.skipLogic ? {
+      enabled: Boolean(q.skipLogic.enabled),
+      dependsOnIndex: Number(q.skipLogic.dependsOnIndex) || 0,
+      requiredValue: String(q.skipLogic.requiredValue || '')
+    } : {
+      enabled: false,
+      dependsOnIndex: 0,
+      requiredValue: ''
+    }
   }));
 };
 
@@ -77,7 +87,7 @@ router.delete('/surveys/:id', async (req, res) => {
 });
 
 // ==========================================
-// RESPONSE ROUTES (REQUIRED FOR ANSWERS LOG)
+// RESPONSE ROUTES
 // ==========================================
 
 // 5. POST A NEW KIOSK RESPONSE (WITH DEVICE ID)
