@@ -611,18 +611,18 @@
 </div>
 
 <!-- HIGH-CONTRAST FLOATING QUICK JUMP BUTTON -->
+<!-- AFTER (ICON-ONLY SVG ARROW) -->
 {#if localQuestions.length >= 2}
   <button
     type="button"
     on:click={scrollToSave}
-    class="fixed bottom-6 right-6 z-40 bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold text-xs py-3.5 px-5.5 rounded-full shadow-2xl hover:shadow-[#e31b23]/30 flex items-center space-x-2 transition-all duration-200 active:scale-95 hover:scale-105 border-2 border-white/30 dark:border-slate-800"
-    style="color: #ffffff !important;"
-    title="Jump straight to Save button"
+    class="fixed bottom-6 right-6 z-40 bg-[#1a2b6c] hover:bg-[#e31b23] text-white h-12 w-12 rounded-full shadow-2xl hover:shadow-[#e31b23]/40 flex items-center justify-center transition-all duration-200 active:scale-90 hover:scale-110 border-2 border-white/30 dark:border-slate-800 cursor-pointer"
+    title="Jump to Save"
+    aria-label="Jump to Save"
   >
-    <svg class="w-4 h-4 shrink-0 fill-current text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;">
+    <svg class="w-5 h-5 shrink-0 fill-current text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;">
       <path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/>
     </svg>
-    <span style="color: #ffffff !important; font-weight: 800 !important;">Jump to Save</span>
   </button>
 {/if}
 
