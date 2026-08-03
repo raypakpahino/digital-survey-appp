@@ -10,8 +10,9 @@
   let localTitle = "";
   let localQuestions = [];
   let saveContainerRef;
+  let lastLoadedSurveyId = "";
 
-  // DRAGGABLE RESIZER STATE & DELTA MOVEMENT MECHANICS
+  // DRAGGABLE RESIZER STATE
   let leftPanelWidth = 320;
   let isResizing = false;
 
@@ -46,18 +47,19 @@
     window.removeEventListener("mouseup", stopResizing);
   }
 
-  $: {
-    let dummy = activeSurveyId;
+  // SYNC PROPS TO LOCAL STATE ONLY WHEN SURVEY ID OR INITIAL DATA CHANGES
+  $: if (activeSurveyId !== lastLoadedSurveyId || localQuestions.length === 0) {
+    lastLoadedSurveyId = activeSurveyId;
     localTitle = surveyTitle || "";
     localQuestions = (questions || []).map((q) => ({
       ...q,
       skipLogic: q.skipLogic ? {
         enabled: Boolean(q.skipLogic.enabled),
-        dependsOnIndex: q.skipLogic.dependsOnIndex ?? null,
+        dependsOnIndex: q.skipLogic.dependsOnIndex ?? 0,
         requiredValue: q.skipLogic.requiredValue || ""
       } : {
         enabled: false,
-        dependsOnIndex: null,
+        dependsOnIndex: 0,
         requiredValue: ""
       }
     }));
@@ -117,7 +119,7 @@
         optionImages: {},
         skipLogic: {
           enabled: false,
-          dependsOnIndex: null,
+          dependsOnIndex: 0,
           requiredValue: ""
         }
       }
@@ -315,7 +317,7 @@
             style="color: #ffffff !important; background-color: #1a2b6c !important;"
             title="Scroll down to Save button"
           >
-            <svg class="w-4 h-4 fill-current text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
+            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24"><path fill="#ffffff" d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
             <span style="color: #ffffff !important; font-weight: 700 !important;">Jump to Save</span>
           </button>
         {/if}
@@ -521,20 +523,23 @@
                 {#if index > 0}
                   <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60 space-y-3">
                     <div class="flex items-center justify-between">
-                      <!-- CLEAN SVG SHUFFLE ICON (NO EMOJI) -->
                       <div class="flex items-center space-x-2">
-                        <svg class="w-4 h-4 fill-current text-[#1a2b6c] dark:text-cyan-400 shrink-0" viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.45 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+                        <!-- PURE VECTOR SVG ICON (NO EMOJI) -->
+                        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24"><path fill="#1a2b6c" d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.45 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
                         <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Enable Skip Logic Rule</span>
                       </div>
                       <button
                         type="button"
                         on:click={() => {
-                          if (!question.skipLogic) question.skipLogic = { enabled: false, dependsOnIndex: 0, requiredValue: "" };
-                          question.skipLogic.enabled = !question.skipLogic.enabled;
-                          if (question.skipLogic.enabled && (question.skipLogic.dependsOnIndex === null || question.skipLogic.dependsOnIndex === undefined)) {
-                            question.skipLogic.dependsOnIndex = 0;
+                          if (!question.skipLogic) {
+                            question.skipLogic = { enabled: true, dependsOnIndex: 0, requiredValue: "" };
+                          } else {
+                            question.skipLogic.enabled = !question.skipLogic.enabled;
+                            if (question.skipLogic.enabled && (question.skipLogic.dependsOnIndex === null || question.skipLogic.dependsOnIndex === undefined)) {
+                              question.skipLogic.dependsOnIndex = 0;
+                            }
                           }
-                          localQuestions = localQuestions;
+                          localQuestions = [...localQuestions];
                         }}
                         class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.skipLogic?.enabled ? 'bg-[#1a2b6c] border-[#1a2b6c]' : 'bg-slate-200 dark:bg-slate-800'}"
                       >
@@ -551,7 +556,7 @@
                             <label class="text-[9px] font-bold text-slate-400 block mb-1">Previous Question</label>
                             <select
                               bind:value={question.skipLogic.dependsOnIndex}
-                              on:change={() => { question.skipLogic.requiredValue = ""; localQuestions = localQuestions; }}
+                              on:change={() => { question.skipLogic.requiredValue = ""; localQuestions = [...localQuestions]; }}
                               class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-[#1a2b6c] dark:text-slate-200 rounded-lg p-2 focus:outline-none focus:border-[#e31b23]"
                             >
                               {#each localQuestions.slice(0, index) as prevQ, pIdx}
@@ -592,12 +597,13 @@
       class="pt-6 mt-8 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-end shrink-0 bg-white dark:bg-slate-900 py-4"
     >
       <button
+        type="button"
         on:click={triggerExplicitSave}
         disabled={localQuestions.length === 0 || !localTitle.trim()}
-        class="bg-[#e31b23] hover:bg-[#1a2b6c] text-white font-bold text-xs py-3.5 px-6 rounded-xl transition-all shadow-md flex items-center space-x-2 active:scale-[0.98] disabled:opacity-25 disabled:cursor-not-allowed"
-        style="color: #ffffff !important; font-weight: 700 !important; background-color: #e31b23 !important;"
+        class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold text-xs py-3.5 px-6 rounded-xl transition-all shadow-md flex items-center space-x-2 active:scale-[0.98] disabled:opacity-25 disabled:cursor-not-allowed"
+        style="color: #ffffff !important; font-weight: 700 !important; background-color: #1a2b6c !important;"
       >
-        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" style="fill: #ffffff !important;"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24"><path fill="#ffffff" d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
         <span style="color: #ffffff !important; font-weight: 700 !important;">Save & Deploy Schema</span>
       </button>
     </div>
@@ -607,12 +613,13 @@
 <!-- FLOATING QUICK JUMP BUTTON WITH EXPLICIT HIGH-CONTRAST BOLD WHITE TEXT -->
 {#if localQuestions.length >= 2}
   <button
+    type="button"
     on:click={scrollToSave}
-    class="fixed bottom-6 right-6 z-40 bg-[#e31b23] hover:bg-[#1a2b6c] text-white font-bold text-xs py-3 px-5 rounded-full shadow-2xl flex items-center space-x-2 transition-all active:scale-95 border border-white/20"
-    style="color: #ffffff !important; background-color: #e31b23 !important;"
+    class="fixed bottom-6 right-6 z-40 bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold text-xs py-3 px-5 rounded-full shadow-2xl flex items-center space-x-2 transition-all active:scale-95 border border-white/20"
+    style="color: #ffffff !important; background-color: #1a2b6c !important;"
     title="Jump straight to Save button"
   >
-    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" style="fill: #ffffff !important;"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
+    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24"><path fill="#ffffff" d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
     <span style="color: #ffffff !important; font-weight: 800 !important;">Jump to Save</span>
   </button>
 {/if}
