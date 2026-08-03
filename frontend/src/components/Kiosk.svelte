@@ -100,7 +100,7 @@
     }
   }
 
-  // CONDITIONAL EVALUATION FUNCTION
+  // FIXED CONDITIONAL EVALUATION FUNCTION (MATCHES WITH OR WITHOUT EMOJIS)
   function shouldShowQuestion(qIndex) {
     if (qIndex === 0) return true;
     const q = questions[qIndex];
@@ -115,7 +115,11 @@
     const recordedAnswer = answersAccumulator.find(a => a.questionText === dependedQuestion.questionText);
     if (!recordedAnswer) return false;
 
-    return String(recordedAnswer.value).toLowerCase().trim() === String(requiredValue).toLowerCase().trim();
+    // Clean emojis & non-alphanumeric chars to guarantee bulletproof matching
+    const cleanAnswer = String(recordedAnswer.value).toUpperCase().replace(/[^\w\s]/gi, '').trim();
+    const cleanTarget = String(requiredValue).toUpperCase().replace(/[^\w\s]/gi, '').trim();
+
+    return cleanAnswer.includes(cleanTarget) || cleanTarget.includes(cleanAnswer);
   }
 
   function findNextValidQuestionIndex(startIndex) {
@@ -195,7 +199,7 @@
   });
 </script>
 
-<!-- DYNAMIC WRAPPER: FULLSCREEN PURE LIGHT MODE ONLY WHEN SURVEY IS ACTIVE -->
+<!-- DYNAMIC WRAPPER -->
 <div class="{activeSurveyId && surveyTitle && questions.length > 0 ? 'fixed inset-0 z-50 bg-[#f8fafc] text-slate-800 p-4 sm:p-8' : 'w-full h-full text-slate-800 dark:text-slate-100 p-2 sm:p-4'} font-sans box-border overflow-y-auto custom-scrollbar flex flex-col items-center justify-between">
   
   {#if !isTerminalUnlocked}
@@ -249,7 +253,7 @@
     </div>
 
   {:else}
-    <!-- HEADER BAR: SHOWN ONLY ON SELECTION LAUNCHER SCREEN -->
+    <!-- HEADER BAR -->
     {#if !activeSurveyId || !surveyTitle || questions.length === 0}
       <header class="w-full max-w-5xl h-14 px-5 sm:px-6 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl flex items-center justify-between shrink-0 shadow-sm transition-all mb-4">
         <div class="flex items-center space-x-3 min-w-0">
@@ -348,7 +352,6 @@
         <!-- ACTIVE QUESTIONNAIRE WORKSPACE -->
         <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="space-y-6 sm:space-y-8 bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-xl max-w-3xl mx-auto w-full">
           
-          <!-- INLINE PROGRESS BAR AND QUESTION COUNTER -->
           <div class="space-y-2 pb-2 border-b border-slate-100">
             <div class="flex items-center justify-between text-xs font-mono font-bold">
               <span class="text-rose-800 bg-rose-50 border border-rose-200 px-3 py-1 rounded-full">
