@@ -500,7 +500,7 @@
     </main>
 
     <footer class="w-full max-w-5xl border-t border-slate-200 dark:border-slate-800 pt-3 flex flex-col md:flex-row items-center justify-between text-[10px] sm:text-[11px] text-slate-400 font-mono tracking-wider font-semibold gap-2 shrink-0">
-      <span>🔒 Secure Enterprise Client Terminal</svpan>
+      <span>🔒 Secure Enterprise Client Terminal</span>
       <span>System v2.4.0</span>
     </footer>
   {/if}
