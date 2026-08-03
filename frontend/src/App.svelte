@@ -1,5 +1,6 @@
 <script>
   import { onMount } from "svelte";
+  import { scale } from "svelte/transition";
   import Dashboard from "./components/Dashboard.svelte";
   import FormBuilder from "./components/FormBuilder.svelte";
   import Kiosk from "./components/Kiosk.svelte";
@@ -16,6 +17,10 @@
   let isDedicatedKioskMode = false;
   let isSidebarExpanded = true;
   let isDarkMode = true;
+
+  // SHARE HUB MODAL STATE (ROOT LEVEL TO COVER NAVBAR/SIDEBAR 100%)
+  let activeShareSurvey = null;
+  let showShareModal = false;
 
   // AUTHENTICATION STATE
   let currentUser = null; // { id, username, role }
@@ -38,7 +43,6 @@
       return;
     }
     
-    // Reset active survey state when manually navigating to Kiosk via sidebar
     if (tab === "kiosk" && !isDedicatedKioskMode) {
       activeSurveyId = "";
     }
@@ -81,7 +85,6 @@
   }
 
   onMount(async () => {
-    // Recover Theme Preference
     const savedTheme = localStorage.getItem('sdx_theme');
     if (savedTheme === 'light') {
       isDarkMode = false;
@@ -317,6 +320,31 @@
     activeSurveyId = id;
     switchTab("kiosk");
   }
+
+  function handleOpenShareModal(survey) {
+    activeShareSurvey = survey;
+    showShareModal = true;
+  }
+
+  function handleCloseShareModal() {
+    showShareModal = false;
+    activeShareSurvey = null;
+  }
+
+  function getKioskLink(surveyId) {
+    let host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      host = '10.136.33.33'; 
+    }
+    const port = window.location.port ? `:${window.location.port}` : '';
+    return `http://${host}${port}/#/kiosk?id=${surveyId}`;
+  }
+
+  function copyKioskLink(surveyId) {
+    const directLink = getKioskLink(surveyId);
+    navigator.clipboard.writeText(directLink);
+    alert("🚀 Network-accessible Kiosk Link copied to clipboard!");
+  }
 </script>
 
 {#if isAuthChecking}
@@ -335,13 +363,12 @@
   <!-- AUTHENTICATED PORTAL WORKSPACE -->
   <div class="flex h-screen w-screen max-w-full max-h-screen theme-bg-main theme-text-primary overflow-hidden m-0 p-0 fixed inset-0">
     
-    <!-- PROFESSIONAL COLLAPSIBLE SIDEBAR WITH ICON-RAIL MODE -->
+    <!-- PROFESSIONAL COLLAPSIBLE SIDEBAR -->
     {#if !isDedicatedKioskMode}
       <aside class="{isSidebarExpanded ? 'w-64' : 'w-20'} theme-bg-sidebar theme-border border-r flex flex-col justify-between shrink-0 h-full z-40 transition-all duration-300 overflow-hidden text-slate-100">
         <div class="flex flex-col h-full justify-between">
           <div>
             
-            <!-- HEADER TOGGLE & LOGO -->
             <div class="px-4 h-16 theme-border border-b flex items-center justify-between box-border shrink-0">
               <div class="flex items-center space-x-3 overflow-hidden">
                 <button
@@ -369,7 +396,6 @@
             <nav class="p-3 space-y-2">
               {#if currentUser?.role === "admin"}
                 
-                <!-- 1. SURVEYS PORTAL -->
                 <button
                   class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'surveys' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={async () => {
@@ -386,7 +412,6 @@
                   {/if}
                 </button>
 
-                <!-- 2. FORM DESIGNER -->
                 <button
                   class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'builder' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={() => switchTab("builder")}
@@ -401,7 +426,6 @@
                   {/if}
                 </button>
 
-                <!-- 3. LIVE KIOSK MODE -->
                 <button
                   class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'kiosk' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={() => {
@@ -418,7 +442,6 @@
                 </button>
               {/if}
 
-              <!-- 4. ANSWERS LOG -->
               <button
                 class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'answers' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                 on:click={async () => {
@@ -437,7 +460,6 @@
             </nav>
           </div>
 
-          <!-- FOOTER STATUS ITEM -->
           {#if isSidebarExpanded}
             <div class="p-4 theme-border border-t bg-black/10 text-[11px] text-slate-400 font-medium tracking-wide flex items-center justify-between">
               <span class="truncate">Target: <strong class="text-white">{activeSurvey?.title || "None"}</strong></span>
@@ -458,8 +480,6 @@
       <!-- STICKY TOP NAVIGATION BAR -->
       {#if !isDedicatedKioskMode}
         <header class="sticky top-0 z-30 w-full h-16 theme-bg-card theme-border border-b flex items-center justify-between px-4 sm:px-6 shrink-0 box-border transition-colors duration-300 theme-shadow">
-          
-          <!-- Left Header Branding -->
           <div class="flex items-center space-x-3 min-w-0">
             {#if !isSidebarExpanded}
               <div class="flex items-center space-x-2 shrink-0 transition-all duration-300">
@@ -471,10 +491,7 @@
             {/if}
           </div>
 
-          <!-- Right Header: Theme Switcher, User Pill & Sign Out -->
           <div class="flex items-center space-x-3 shrink-0">
-            
-            <!-- THEME TOGGLE BUTTON -->
             <button
               on:click={toggleTheme}
               class="relative flex items-center px-3 py-1.5 rounded-full theme-border border theme-bg-inner hover:opacity-80 transition-all duration-300 active:scale-95 shadow-inner cursor-pointer"
@@ -530,6 +547,7 @@
                 onDeleteSurvey={handleDeleteSurvey}
                 onEditSurvey={handleSelectAndEdit}
                 onTestSurvey={handleSelectAndTest}
+                onOpenShareModal={handleOpenShareModal}
               />
             </div>
           {:else if activeTab === "builder" && currentUser?.role === "admin"}
@@ -572,4 +590,49 @@
 
     </div>
   </div>
+
+  <!-- ROOT-LEVEL SHARE HUB MODAL OVERLAY (100% SCREEN COVERAGE ABOVE SIDEBAR & NAVBAR) -->
+  {#if showShareModal && activeShareSurvey}
+    {@const dynamicKioskUrl = getKioskLink(activeShareSurvey._id)}
+    <div class="fixed inset-0 z-[9999] w-screen h-screen bg-slate-900/20 dark:bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div 
+        in:scale={{ duration: 250, start: 0.95 }}
+        class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-sm rounded-3xl p-6 sm:p-8 text-center space-y-6 shadow-2xl relative overflow-hidden"
+      >
+        <button on:click={handleCloseShareModal} class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 h-8 w-8 rounded-full flex items-center justify-center text-xs transition-all active:scale-95">
+          ✕
+        </button>
+
+        <div class="space-y-1">
+          <span class="text-[10px] font-bold text-[#e31b23] dark:text-rose-400 tracking-widest uppercase block font-mono">Direct Form Access</span>
+          <h3 class="text-base sm:text-lg font-extrabold text-[#1a2b6c] dark:text-white truncate max-w-[280px] mx-auto">{activeShareSurvey.title}</h3>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl inline-block shadow-lg mx-auto border-4 border-slate-100 dark:border-slate-800">
+          <img 
+            src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={encodeURIComponent(dynamicKioskUrl)}&color=1a2b6c" 
+            alt="Survey Kiosk Link QR Code" 
+            class="h-44 w-44 block"
+          />
+        </div>
+
+        <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto px-2 leading-relaxed">
+          Scan this QR code to load this specific survey configuration directly in full-screen mode on any mobile or tablet device.
+        </p>
+
+        <div class="pt-2 border-t border-slate-100 dark:border-slate-800/60">
+          <button 
+            on:click={() => copyKioskLink(activeShareSurvey._id)} 
+            class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] font-bold py-3.5 px-4 text-xs rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center space-x-2"
+            style="color: #ffffff !important; font-weight: 700 !important; background-color: #1a2b6c !important;"
+          >
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" style="fill: #ffffff !important;">
+              <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
+            </svg>
+            <span style="color: #ffffff !important; font-weight: 700 !important;">Copy Direct Form Link</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
 {/if}

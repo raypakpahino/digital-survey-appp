@@ -1,42 +1,11 @@
 <script>
-  import { scale } from 'svelte/transition';
-
   export let surveys = [];
   export let responseCount = 0;
   export let onCreateSurvey = () => {};
   export let onDeleteSurvey = (id) => {};
   export let onEditSurvey = (id) => {};
   export let onTestSurvey = (id) => {};
-
-  let activeShareSurvey = null;
-  let showShareModal = false;
-
-  function getKioskLink(surveyId) {
-    let host = window.location.hostname;
-    
-    if (host === 'localhost' || host === '127.0.0.1') {
-      host = '10.136.33.33'; 
-    }
-    
-    const port = window.location.port ? `:${window.location.port}` : '';
-    return `http://${host}${port}/#/kiosk?id=${surveyId}`;
-  }
-
-  function openShareHub(survey) {
-    activeShareSurvey = survey;
-    showShareModal = true;
-  }
-
-  function closeShareHub() {
-    showShareModal = false;
-    activeShareSurvey = null;
-  }
-
-  function copyKioskLink(surveyId) {
-    const directLink = getKioskLink(surveyId);
-    navigator.clipboard.writeText(directLink);
-    alert("🚀 Network-accessible Kiosk Link copied to clipboard!");
-  }
+  export let onOpenShareModal = (survey) => {};
 </script>
 
 <div class="w-full space-y-8 animate-fade pb-12">
@@ -113,7 +82,6 @@
             <div class="flex flex-col gap-2 pt-2 border-t border-slate-200 dark:border-slate-800/60">
               <div class="grid grid-cols-2 gap-2">
                 
-                <!-- OPEN DESIGNER BUTTON -->
                 <button on:click={() => onEditSurvey(survey._id)} class="w-full text-center bg-slate-100 dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold py-2.5 px-4 text-xs rounded-xl border border-slate-200 dark:border-slate-800 transition-all flex items-center justify-center space-x-2">
                   <svg class="w-4 h-4 fill-current text-slate-600 dark:text-slate-300" viewBox="0 0 24 24">
                     <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
@@ -121,7 +89,6 @@
                   <span>Open Designer</span>
                 </button>
 
-                <!-- TEST KIOSK BUTTON -->
                 <button on:click={() => onTestSurvey(survey._id)} class="w-full text-center bg-slate-100 dark:bg-cyan-950/40 hover:bg-slate-200 dark:hover:bg-cyan-950/80 text-[#1a2b6c] dark:text-cyan-400 font-bold py-2.5 px-4 text-xs rounded-xl border border-slate-200 dark:border-cyan-950/80 transition-all flex items-center justify-center space-x-2">
                   <svg class="w-4 h-4 fill-current text-[#1a2b6c] dark:text-cyan-400" viewBox="0 0 24 24">
                     <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
@@ -131,8 +98,7 @@
 
               </div>
               
-              <!-- DEPLOY & SHARE FORM BUTTON -->
-              <button on:click={() => openShareHub(survey)} class="w-full bg-slate-100 dark:bg-slate-950 text-emerald-700 dark:text-emerald-400 font-bold py-2.5 px-4 text-xs rounded-xl border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/10 transition-all flex items-center justify-center space-x-2">
+              <button on:click={() => onOpenShareModal(survey)} class="w-full bg-slate-100 dark:bg-slate-950 text-emerald-700 dark:text-emerald-400 font-bold py-2.5 px-4 text-xs rounded-xl border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/10 transition-all flex items-center justify-center space-x-2">
                 <svg class="w-4 h-4 fill-current text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24">
                   <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/>
                 </svg>
@@ -145,49 +111,4 @@
       </div>
     {/if}
   </div>
-
-  <!-- SHARE HUB OVERLAY MODAL - ROOT LEVEL FULL-SCREEN FIXED COVERAGE (z-[9999]) -->
-  {#if showShareModal && activeShareSurvey}
-    {@const dynamicKioskUrl = getKioskLink(activeShareSurvey._id)}
-    <div class="fixed inset-0 z-[9999] w-screen h-screen bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4 m-0">
-      <div 
-        in:scale={{ duration: 250, start: 0.95 }}
-        class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-sm rounded-3xl p-6 sm:p-8 text-center space-y-6 shadow-2xl relative overflow-hidden"
-      >
-        <button on:click={closeShareHub} class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 h-8 w-8 rounded-full flex items-center justify-center text-xs transition-all active:scale-95">
-          ✕
-        </button>
-
-        <div class="space-y-1">
-          <span class="text-[10px] font-bold text-[#e31b23] dark:text-rose-400 tracking-widest uppercase block font-mono">Direct Form Access</span>
-          <h3 class="text-base sm:text-lg font-extrabold text-[#1a2b6c] dark:text-white truncate max-w-[280px] mx-auto">{activeShareSurvey.title}</h3>
-        </div>
-
-        <div class="bg-white p-4 rounded-2xl inline-block shadow-lg mx-auto border-4 border-slate-100 dark:border-slate-800">
-          <img 
-            src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={encodeURIComponent(dynamicKioskUrl)}&color=1a2b6c" 
-            alt="Survey Kiosk Link QR Code" 
-            class="h-44 w-44 block"
-          />
-        </div>
-
-        <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto px-2 leading-relaxed">
-          Scan this QR code to load this specific survey configuration directly in full-screen mode on any mobile or tablet device.
-        </p>
-
-        <div class="pt-2 border-t border-slate-100 dark:border-slate-800/60">
-          <button 
-            on:click={() => copyKioskLink(activeShareSurvey._id)} 
-            class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] font-bold py-3.5 px-4 text-xs rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center space-x-2"
-            style="color: #ffffff !important; font-weight: 700 !important; background-color: #1a2b6c !important;"
-          >
-            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" style="fill: #ffffff !important;">
-              <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
-            </svg>
-            <span style="color: #ffffff !important; font-weight: 700 !important;">Copy Direct Form Link</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  {/if}
 </div>
