@@ -18,12 +18,12 @@
   let isSidebarExpanded = true;
   let isDarkMode = true;
 
-  // SHARE HUB MODAL STATE (ROOT LEVEL TO COVER NAVBAR/SIDEBAR 100%)
+  // SHARE HUB MODAL STATE
   let activeShareSurvey = null;
   let showShareModal = false;
 
   // AUTHENTICATION STATE
-  let currentUser = null; // { id, username, role }
+  let currentUser = null;
   let isAuthChecking = true;
 
   function toggleTheme() {
@@ -80,6 +80,15 @@
         enableOptionImages: Boolean(q.enableOptionImages),
         options: q.options || [],
         optionImages: q.optionImages || {},
+        skipLogic: q.skipLogic ? {
+          enabled: Boolean(q.skipLogic.enabled),
+          dependsOnIndex: q.skipLogic.dependsOnIndex ?? null,
+          requiredValue: q.skipLogic.requiredValue || ""
+        } : {
+          enabled: false,
+          dependsOnIndex: null,
+          requiredValue: ""
+        }
       })),
     };
   }
@@ -591,10 +600,10 @@
     </div>
   </div>
 
-  <!-- ROOT-LEVEL SHARE HUB MODAL OVERLAY (100% SCREEN COVERAGE ABOVE SIDEBAR & NAVBAR) -->
+  <!-- ROOT-LEVEL SHARE HUB MODAL OVERLAY -->
   {#if showShareModal && activeShareSurvey}
     {@const dynamicKioskUrl = getKioskLink(activeShareSurvey._id)}
-    <div class="fixed inset-0 z-[9999] w-screen h-screen bg-slate-900/20 dark:bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="fixed inset-0 z-[9999] w-screen h-screen bg-slate-900/30 dark:bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4">
       <div 
         in:scale={{ duration: 250, start: 0.95 }}
         class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-sm rounded-3xl p-6 sm:p-8 text-center space-y-6 shadow-2xl relative overflow-hidden"

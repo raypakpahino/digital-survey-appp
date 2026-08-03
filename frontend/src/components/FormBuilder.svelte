@@ -49,7 +49,18 @@
   $: {
     let dummy = activeSurveyId;
     localTitle = surveyTitle || "";
-    localQuestions = JSON.parse(JSON.stringify(questions || []));
+    localQuestions = (questions || []).map((q) => ({
+      ...q,
+      skipLogic: q.skipLogic ? {
+        enabled: Boolean(q.skipLogic.enabled),
+        dependsOnIndex: q.skipLogic.dependsOnIndex ?? null,
+        requiredValue: q.skipLogic.requiredValue || ""
+      } : {
+        enabled: false,
+        dependsOnIndex: null,
+        requiredValue: ""
+      }
+    }));
   }
 
   const availableComponents = [
@@ -104,7 +115,6 @@
         enableOptionImages: false, 
         options: defaultOptions,
         optionImages: {},
-        // SKIP LOGIC INITIAL SCHEMA
         skipLogic: {
           enabled: false,
           dependsOnIndex: null,
@@ -190,7 +200,6 @@
     return String(qType).toLowerCase().replace(/_/g, "-");
   }
 
-  // Get options for depended question in skip logic dropdown
   function getDependedOptions(dependedIndex) {
     if (dependedIndex === null || dependedIndex === undefined || !localQuestions[dependedIndex]) return [];
     const targetQ = localQuestions[dependedIndex];
@@ -209,9 +218,7 @@
   }
 </script>
 
-<div
-  class="w-full min-h-full flex flex-col lg:flex-row animate-fade overflow-visible box-border text-slate-800 dark:text-slate-100 pb-16 relative select-none"
->
+<div class="w-full min-h-full flex flex-col lg:flex-row animate-fade overflow-visible box-border text-slate-800 dark:text-slate-100 pb-16 relative select-none">
   <!-- LEFT SIDEBAR: TOOLBOX -->
   <div
     class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 shrink-0 flex flex-col justify-between shadow-md h-fit lg:sticky lg:top-4 box-border self-start z-10 transition-none"
@@ -304,11 +311,12 @@
           <button
             type="button"
             on:click={scrollToSave}
-            class="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all shrink-0 flex items-center justify-center space-x-1.5 active:scale-95 shadow-xs"
+            class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white border border-[#1a2b6c] font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all shrink-0 flex items-center justify-center space-x-1.5 active:scale-95 shadow-xs"
+            style="color: #ffffff !important; background-color: #1a2b6c !important;"
             title="Scroll down to Save button"
           >
-            <svg class="w-4 h-4 fill-current text-slate-700 dark:text-slate-200" viewBox="0 0 24 24"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
-            <span>Jump to Save</span>
+            <svg class="w-4 h-4 fill-current text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
+            <span style="color: #ffffff !important; font-weight: 700 !important;">Jump to Save</span>
           </button>
         {/if}
 
@@ -509,12 +517,13 @@
                   </button>
                 </div>
 
-                <!-- 4. CONDITIONAL SKIP LOGIC TOGGLE & CONTROLS (ENABLED FROM Q2 ONWARDS) -->
+                <!-- 4. CONDITIONAL SKIP LOGIC TOGGLE & CONTROLS -->
                 {#if index > 0}
                   <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60 space-y-3">
                     <div class="flex items-center justify-between">
+                      <!-- CLEAN SVG SHUFFLE ICON (NO EMOJI) -->
                       <div class="flex items-center space-x-2">
-                        <span class="text-amber-500 font-bold text-xs">🔀</span>
+                        <svg class="w-4 h-4 fill-current text-[#1a2b6c] dark:text-cyan-400 shrink-0" viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.45 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
                         <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Enable Skip Logic Rule</span>
                       </div>
                       <button
@@ -522,12 +531,12 @@
                         on:click={() => {
                           if (!question.skipLogic) question.skipLogic = { enabled: false, dependsOnIndex: 0, requiredValue: "" };
                           question.skipLogic.enabled = !question.skipLogic.enabled;
-                          if (question.skipLogic.enabled && question.skipLogic.dependsOnIndex === null) {
+                          if (question.skipLogic.enabled && (question.skipLogic.dependsOnIndex === null || question.skipLogic.dependsOnIndex === undefined)) {
                             question.skipLogic.dependsOnIndex = 0;
                           }
                           localQuestions = localQuestions;
                         }}
-                        class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.skipLogic?.enabled ? 'bg-amber-600 border-amber-600' : 'bg-slate-200 dark:bg-slate-800'}"
+                        class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.skipLogic?.enabled ? 'bg-[#1a2b6c] border-[#1a2b6c]' : 'bg-slate-200 dark:bg-slate-800'}"
                       >
                         <div class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out {question.skipLogic?.enabled ? 'translate-x-6' : 'translate-x-0'}"></div>
                       </button>
@@ -535,7 +544,7 @@
 
                     {#if question.skipLogic?.enabled}
                       <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-2.5">
-                        <span class="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide block">Show Question #{index + 1} ONLY IF:</span>
+                        <span class="text-[10px] font-mono font-bold text-[#1a2b6c] dark:text-cyan-400 uppercase tracking-wide block">Show Question #{index + 1} ONLY IF:</span>
                         
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <div>
@@ -543,7 +552,7 @@
                             <select
                               bind:value={question.skipLogic.dependsOnIndex}
                               on:change={() => { question.skipLogic.requiredValue = ""; localQuestions = localQuestions; }}
-                              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-[#1a2b6c] dark:text-slate-200 rounded-lg p-2 focus:outline-none focus:border-amber-500"
+                              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-[#1a2b6c] dark:text-slate-200 rounded-lg p-2 focus:outline-none focus:border-[#e31b23]"
                             >
                               {#each localQuestions.slice(0, index) as prevQ, pIdx}
                                 <option value={pIdx}>Question {pIdx + 1}: {prevQ.questionText.slice(0, 24)}...</option>
@@ -555,7 +564,7 @@
                             <label class="text-[9px] font-bold text-slate-400 block mb-1">Answer Equals</label>
                             <select
                               bind:value={question.skipLogic.requiredValue}
-                              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-[#1a2b6c] dark:text-slate-200 rounded-lg p-2 focus:outline-none focus:border-amber-500"
+                              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-[#1a2b6c] dark:text-slate-200 rounded-lg p-2 focus:outline-none focus:border-[#e31b23]"
                             >
                               <option value="">Select Trigger Value...</option>
                               {#each getDependedOptions(question.skipLogic.dependsOnIndex) as optionValue}
@@ -577,7 +586,7 @@
       {/if}
     </div>
 
-    <!-- CANVAS FOOTER -->
+    <!-- CANVAS FOOTER WITH EXPLICIT HIGH-CONTRAST BOLD WHITE TEXT -->
     <div
       bind:this={saveContainerRef}
       class="pt-6 mt-8 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-end shrink-0 bg-white dark:bg-slate-900 py-4"
@@ -585,24 +594,25 @@
       <button
         on:click={triggerExplicitSave}
         disabled={localQuestions.length === 0 || !localTitle.trim()}
-        class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold text-xs py-3.5 px-6 rounded-xl transition-all shadow-md flex items-center space-x-2 active:scale-[0.98] disabled:opacity-25 disabled:cursor-not-allowed"
+        class="bg-[#e31b23] hover:bg-[#1a2b6c] text-white font-bold text-xs py-3.5 px-6 rounded-xl transition-all shadow-md flex items-center space-x-2 active:scale-[0.98] disabled:opacity-25 disabled:cursor-not-allowed"
+        style="color: #ffffff !important; font-weight: 700 !important; background-color: #e31b23 !important;"
       >
-        <svg class="w-4 h-4 fill-current text-white" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
-        <span>Save & Deploy Schema</span>
+        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" style="fill: #ffffff !important;"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+        <span style="color: #ffffff !important; font-weight: 700 !important;">Save & Deploy Schema</span>
       </button>
     </div>
   </div>
 </div>
 
-<!-- FLOATING QUICK JUMP BUTTON -->
+<!-- FLOATING QUICK JUMP BUTTON WITH EXPLICIT HIGH-CONTRAST BOLD WHITE TEXT -->
 {#if localQuestions.length >= 2}
   <button
     on:click={scrollToSave}
-    class="fixed bottom-6 right-6 z-40 bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold text-xs py-3 px-5 rounded-full shadow-2xl flex items-center space-x-2 transition-all active:scale-95 border border-white/20"
-    style="color: #ffffff !important;"
+    class="fixed bottom-6 right-6 z-40 bg-[#e31b23] hover:bg-[#1a2b6c] text-white font-bold text-xs py-3 px-5 rounded-full shadow-2xl flex items-center space-x-2 transition-all active:scale-95 border border-white/20"
+    style="color: #ffffff !important; background-color: #e31b23 !important;"
     title="Jump straight to Save button"
   >
-    <svg class="w-4 h-4 fill-current text-white" viewBox="0 0 24 24"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
+    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" style="fill: #ffffff !important;"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
     <span style="color: #ffffff !important; font-weight: 800 !important;">Jump to Save</span>
   </button>
 {/if}
