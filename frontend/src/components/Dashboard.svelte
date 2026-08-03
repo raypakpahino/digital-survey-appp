@@ -146,10 +146,10 @@
     {/if}
   </div>
 
-  <!-- SHARE HUB OVERLAY MODAL WITH DARK BLURRED BACKDROP & ANIMATION -->
+  <!-- SHARE HUB OVERLAY MODAL - ROOT LEVEL FULL-SCREEN FIXED COVERAGE (z-[9999]) -->
   {#if showShareModal && activeShareSurvey}
     {@const dynamicKioskUrl = getKioskLink(activeShareSurvey._id)}
-    <div class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 animate-fade">
+    <div class="fixed inset-0 z-[9999] w-screen h-screen bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4 m-0">
       <div 
         in:scale={{ duration: 250, start: 0.95 }}
         class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-sm rounded-3xl p-6 sm:p-8 text-center space-y-6 shadow-2xl relative overflow-hidden"
@@ -176,11 +176,15 @@
         </p>
 
         <div class="pt-2 border-t border-slate-100 dark:border-slate-800/60">
-          <button on:click={() => copyKioskLink(activeShareSurvey._id)} class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold py-3.5 px-4 text-xs rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center space-x-2">
-            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+          <button 
+            on:click={() => copyKioskLink(activeShareSurvey._id)} 
+            class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] font-bold py-3.5 px-4 text-xs rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center space-x-2"
+            style="color: #ffffff !important; font-weight: 700 !important; background-color: #1a2b6c !important;"
+          >
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" style="fill: #ffffff !important;">
               <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
             </svg>
-            <span>Copy Direct Form Link</span>
+            <span style="color: #ffffff !important; font-weight: 700 !important;">Copy Direct Form Link</span>
           </button>
         </div>
       </div>
