@@ -522,11 +522,7 @@
                 {#if index > 0}
                   <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60 space-y-3">
                     <div class="flex items-center justify-between">
-                      <div class="flex items-center space-x-2">
-                        <!-- CLEAN INLINE VECTOR SVG ICON (NO EMOJI OR SPECIAL OS FONTS) -->
-                        <svg class="w-4 h-4 text-[#1a2b6c] dark:text-cyan-400 shrink-0 fill-current" viewBox="0 0 24 24">
-                          <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.45 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
-                        </svg>
+                      <div class="flex items-center">
                         <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Enable Skip Logic Rule</span>
                       </div>
                       <button
