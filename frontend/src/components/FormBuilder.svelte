@@ -67,7 +67,7 @@
   const availableComponents = [
     {
       type: "smiley",
-      svgPath: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z",
+      svgPath: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z",
       label: "Smiley Matrix",
       desc: "CSAT smiley faces",
     },
@@ -309,14 +309,15 @@
 
       <div class="flex items-center space-x-2">
         {#if localQuestions.length > 0}
+          <!-- HIGH-CONTRAST TOP JUMP BUTTON -->
           <button
             type="button"
             on:click={scrollToSave}
-            class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white border border-[#1a2b6c] font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all shrink-0 flex items-center justify-center space-x-1.5 active:scale-95 shadow-xs"
-            style="color: #ffffff !important; background-color: #1a2b6c !important;"
+            class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all duration-200 shrink-0 flex items-center justify-center space-x-2 active:scale-95 shadow-md hover:shadow-lg hover:shadow-[#e31b23]/20 border border-[#1a2b6c] dark:border-slate-700"
+            style="color: #ffffff !important;"
             title="Scroll down to Save button"
           >
-            <svg class="w-4 h-4 shrink-0 fill-current text-white" viewBox="0 0 24 24"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
+            <svg class="w-4 h-4 shrink-0 fill-current text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
             <span style="color: #ffffff !important; font-weight: 700 !important;">Jump to Save</span>
           </button>
         {/if}
@@ -588,7 +589,7 @@
       {/if}
     </div>
 
-    <!-- CANVAS FOOTER WITH EXPLICIT HIGH-CONTRAST BOLD WHITE TEXT -->
+    <!-- HIGH-CONTRAST SAVE & DEPLOY BUTTON FOOTER -->
     <div
       bind:this={saveContainerRef}
       class="pt-6 mt-8 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-end shrink-0 bg-white dark:bg-slate-900 py-4"
@@ -597,26 +598,30 @@
         type="button"
         on:click={triggerExplicitSave}
         disabled={localQuestions.length === 0 || !localTitle.trim()}
-        class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold text-xs py-3.5 px-6 rounded-xl transition-all shadow-md flex items-center space-x-2 active:scale-[0.98] disabled:opacity-25 disabled:cursor-not-allowed"
-        style="color: #ffffff !important; font-weight: 700 !important; background-color: #1a2b6c !important;"
+        class="bg-[#1a2b6c] hover:bg-[#e31b23] dark:bg-[#e31b23] dark:hover:bg-[#1a2b6c] text-white font-extrabold text-xs py-3.5 px-7 rounded-xl transition-all duration-200 shadow-md hover:shadow-xl hover:shadow-[#e31b23]/25 flex items-center space-x-2.5 active:scale-[0.97] hover:scale-[1.02] disabled:opacity-25 disabled:cursor-not-allowed border border-transparent"
+        style="color: #ffffff !important;"
       >
-        <svg class="w-4 h-4 shrink-0 fill-current text-white" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
-        <span style="color: #ffffff !important; font-weight: 700 !important;">Save & Deploy Schema</span>
+        <svg class="w-4 h-4 shrink-0 fill-current text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;">
+          <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+        </svg>
+        <span style="color: #ffffff !important; font-weight: 800 !important; tracking-wide: 0.05em;">Save & Deploy Schema</span>
       </button>
     </div>
   </div>
 </div>
 
-<!-- FLOATING QUICK JUMP BUTTON WITH EXPLICIT HIGH-CONTRAST BOLD WHITE TEXT -->
+<!-- HIGH-CONTRAST FLOATING QUICK JUMP BUTTON -->
 {#if localQuestions.length >= 2}
   <button
     type="button"
     on:click={scrollToSave}
-    class="fixed bottom-6 right-6 z-40 bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold text-xs py-3 px-5 rounded-full shadow-2xl flex items-center space-x-2 transition-all active:scale-95 border border-white/20"
-    style="color: #ffffff !important; background-color: #1a2b6c !important;"
+    class="fixed bottom-6 right-6 z-40 bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold text-xs py-3.5 px-5.5 rounded-full shadow-2xl hover:shadow-[#e31b23]/30 flex items-center space-x-2 transition-all duration-200 active:scale-95 hover:scale-105 border-2 border-white/30 dark:border-slate-800"
+    style="color: #ffffff !important;"
     title="Jump straight to Save button"
   >
-    <svg class="w-4 h-4 shrink-0 fill-current text-white" viewBox="0 0 24 24"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
+    <svg class="w-4 h-4 shrink-0 fill-current text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;">
+      <path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/>
+    </svg>
     <span style="color: #ffffff !important; font-weight: 800 !important;">Jump to Save</span>
   </button>
 {/if}
