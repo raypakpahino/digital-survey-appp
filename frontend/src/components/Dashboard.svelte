@@ -14,9 +14,17 @@
       <h1 class="text-2xl font-bold tracking-tight text-[#1a2b6c] dark:text-white">Surveys & Forms Portal</h1>
       <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Design questionnaires, organize remote interactive deployment hubs, and manage historical entry structures.</p>
     </div>
-    <button on:click={onCreateSurvey} class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white px-5 py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-[#1a2b6c]/20 active:scale-[0.98] flex items-center space-x-2">
-      <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-      <span>Create New Form</span>
+    
+    <!-- HIGH-CONTRAST BOLD CREATE NEW FORM BUTTON -->
+    <button 
+      on:click={onCreateSurvey} 
+      class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white px-5 py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-[#1a2b6c]/20 active:scale-[0.98] flex items-center space-x-2"
+      style="color: #ffffff !important; font-weight: 700 !important; background-color: #1a2b6c !important;"
+    >
+      <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24" style="fill: #ffffff !important;">
+        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+      </svg>
+      <span style="color: #ffffff !important; font-weight: 700 !important;">Create New Form</span>
     </button>
   </div>
 
