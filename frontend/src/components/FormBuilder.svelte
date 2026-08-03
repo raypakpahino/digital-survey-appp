@@ -47,7 +47,6 @@
     window.removeEventListener("mouseup", stopResizing);
   }
 
-  // SYNC PROPS TO LOCAL STATE ONLY WHEN SURVEY ID OR INITIAL DATA CHANGES
   $: if (activeSurveyId !== lastLoadedSurveyId || localQuestions.length === 0) {
     lastLoadedSurveyId = activeSurveyId;
     localTitle = surveyTitle || "";
@@ -208,7 +207,7 @@
     const type = getNormalizedType(targetQ.type);
 
     if (type === 'smiley') {
-      return ["🤬 ANGRY", "😞 SAD", "😐 NEUTRAL", "😊 HAPPY", "🤩 DELIGHTED"];
+      return ["ANGRY", "SAD", "NEUTRAL", "HAPPY", "DELIGHTED"];
     }
     if (type === 'stars') {
       return ["1 Stars", "2 Stars", "3 Stars", "4 Stars", "5 Stars"];
@@ -317,7 +316,7 @@
             style="color: #ffffff !important; background-color: #1a2b6c !important;"
             title="Scroll down to Save button"
           >
-            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24"><path fill="#ffffff" d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
+            <svg class="w-4 h-4 shrink-0 fill-current text-white" viewBox="0 0 24 24"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
             <span style="color: #ffffff !important; font-weight: 700 !important;">Jump to Save</span>
           </button>
         {/if}
@@ -524,12 +523,10 @@
                   <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60 space-y-3">
                     <div class="flex items-center justify-between">
                       <div class="flex items-center space-x-2">
-                        <!-- PURE EMBEDDED VECTOR SVG ICON (NO EMOJI OR OS FONT) -->
-                        <div class="h-5 w-5 rounded-md bg-[#1a2b6c]/10 dark:bg-cyan-500/20 border border-[#1a2b6c]/20 dark:border-cyan-500/30 flex items-center justify-center shrink-0">
-                          <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
-                            <path fill="#1a2b6c" class="dark:fill-cyan-400" d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.45 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
-                          </svg>
-                        </div>
+                        <!-- CLEAN INLINE VECTOR SVG ICON (NO EMOJI OR SPECIAL OS FONTS) -->
+                        <svg class="w-4 h-4 text-[#1a2b6c] dark:text-cyan-400 shrink-0 fill-current" viewBox="0 0 24 24">
+                          <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.45 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
+                        </svg>
                         <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Enable Skip Logic Rule</span>
                       </div>
                       <button
@@ -607,7 +604,7 @@
         class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold text-xs py-3.5 px-6 rounded-xl transition-all shadow-md flex items-center space-x-2 active:scale-[0.98] disabled:opacity-25 disabled:cursor-not-allowed"
         style="color: #ffffff !important; font-weight: 700 !important; background-color: #1a2b6c !important;"
       >
-        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24"><path fill="#ffffff" d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+        <svg class="w-4 h-4 shrink-0 fill-current text-white" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
         <span style="color: #ffffff !important; font-weight: 700 !important;">Save & Deploy Schema</span>
       </button>
     </div>
@@ -623,7 +620,7 @@
     style="color: #ffffff !important; background-color: #1a2b6c !important;"
     title="Jump straight to Save button"
   >
-    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24"><path fill="#ffffff" d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
+    <svg class="w-4 h-4 shrink-0 fill-current text-white" viewBox="0 0 24 24"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
     <span style="color: #ffffff !important; font-weight: 800 !important;">Jump to Save</span>
   </button>
 {/if}
