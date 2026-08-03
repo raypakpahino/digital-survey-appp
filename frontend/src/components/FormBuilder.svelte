@@ -524,8 +524,12 @@
                   <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60 space-y-3">
                     <div class="flex items-center justify-between">
                       <div class="flex items-center space-x-2">
-                        <!-- PURE VECTOR SVG ICON (NO EMOJI) -->
-                        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24"><path fill="#1a2b6c" d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.45 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+                        <!-- PURE EMBEDDED VECTOR SVG ICON (NO EMOJI OR OS FONT) -->
+                        <div class="h-5 w-5 rounded-md bg-[#1a2b6c]/10 dark:bg-cyan-500/20 border border-[#1a2b6c]/20 dark:border-cyan-500/30 flex items-center justify-center shrink-0">
+                          <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
+                            <path fill="#1a2b6c" class="dark:fill-cyan-400" d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.45 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
+                          </svg>
+                        </div>
                         <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Enable Skip Logic Rule</span>
                       </div>
                       <button
