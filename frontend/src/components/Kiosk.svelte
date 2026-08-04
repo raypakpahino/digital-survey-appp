@@ -192,16 +192,13 @@
     return String(qType).toLowerCase().replace(/_/g, '-');
   }
 
-  // DYNAMIC GRID CLASS BUILDER (NEAT UNIFORM COLUMNS)
+  // ADAPTIVE PORTRAIT vs LANDSCAPE GRID MATH
   function getGridClass(optionCount) {
     if (optionCount <= 1) return 'grid-cols-1 max-w-md mx-auto';
-    if (optionCount === 2) return 'grid-cols-2 max-w-xl mx-auto';
-    if (optionCount === 3) return 'grid-cols-3 max-w-3xl mx-auto';
-    if (optionCount === 4) return 'grid-cols-4 max-w-4xl mx-auto';
-    if (optionCount === 5) return 'grid-cols-5 max-w-5xl mx-auto';
-    if (optionCount === 6) return 'grid-cols-3 max-w-3xl mx-auto';
-    if (optionCount <= 8) return 'grid-cols-4 max-w-4xl mx-auto';
-    return 'grid-cols-5 max-w-5xl mx-auto';
+    if (optionCount === 2) return 'grid-cols-1 portrait:grid-cols-1 landscape:grid-cols-2 max-w-2xl mx-auto';
+    if (optionCount === 3) return 'grid-cols-1 portrait:grid-cols-1 landscape:grid-cols-3 max-w-4xl mx-auto';
+    if (optionCount === 4) return 'grid-cols-1 portrait:grid-cols-2 landscape:grid-cols-4 max-w-5xl mx-auto';
+    return 'grid-cols-1 portrait:grid-cols-2 landscape:grid-cols-5 max-w-6xl mx-auto';
   }
 
   onDestroy(() => {
@@ -209,7 +206,7 @@
   });
 </script>
 
-<div class="fixed inset-0 w-screen h-screen min-h-[100dvh] max-h-[100dvh] min-w-[100vw] max-w-[100vw] bg-[#f8fafc] text-slate-800 p-3 sm:p-6 font-sans box-border overflow-hidden flex flex-col justify-between select-none">
+<div class="fixed inset-0 w-screen h-screen min-h-[100dvh] max-h-[100dvh] min-w-[100vw] max-w-[100vw] bg-[#f8fafc] text-slate-800 p-4 sm:p-6 font-sans box-border overflow-hidden flex flex-col justify-between select-none">
   
   {#if !isTerminalUnlocked}
     <!-- ADMIN SECURITY GATEWAY MODAL -->
@@ -255,7 +252,7 @@
         <button
           type="submit"
           class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-3.5 px-4 rounded-xl text-xs transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 border border-transparent"
-          style="color: #ffffff !important; font-weight: 800 !important;"
+          style="color: #ffffff !important; font-weight: 800 !important; background-color: #1a2b6c !important;"
         >
           <span style="color: #ffffff !important; font-weight: 800 !important;">Unlock Terminal & Launch ➔</span>
         </button>
@@ -286,7 +283,7 @@
     <!-- MAIN BODY WORKSPACE -->
     <main class="w-full flex-1 flex flex-col justify-center min-h-0 py-1 box-border">
       {#if !activeSurveyId || !surveyTitle || questions.length === 0}
-        <!-- SELECTION LAUNCHER MENU (CLEAN CENTERED CARD RESTORED) -->
+        <!-- SELECTION LAUNCHER MENU (HIGH CONTRAST BUTTON FIX) -->
         <div in:scale={{ duration: 300, start: 0.96 }} class="w-full max-w-3xl mx-auto bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col justify-between my-auto">
           
           <div class="text-center space-y-2 border-b border-slate-100 pb-4 shrink-0">
@@ -306,18 +303,18 @@
               No active forms available in system storage. Please create a form first in the Form Designer.
             </div>
           {:else}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[22rem] overflow-y-auto custom-scrollbar my-3 pr-1">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[24rem] overflow-y-auto custom-scrollbar my-3 pr-1">
               {#each surveys.filter(s => !s.isDraft && !String(s._id).startsWith("DRAFT-")) as survey}
                 <button
                   on:click={() => {
                     resetTerminal();
                     onSelectSurvey(survey._id);
                   }}
-                  class="text-left bg-slate-50 hover:bg-white border border-slate-200 hover:border-[#e31b23] border-t-4 border-t-[#1a2b6c] rounded-2xl p-4 transition-all duration-200 flex flex-col justify-between group active:scale-[0.98] shadow-xs hover:shadow-md space-y-3"
+                  class="text-left bg-slate-50 hover:bg-white border border-slate-200 hover:border-[#e31b23] border-t-4 border-t-[#1a2b6c] rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between group active:scale-[0.98] shadow-sm hover:shadow-md space-y-4"
                 >
-                  <div class="space-y-1">
+                  <div class="space-y-1.5">
                     <div class="flex items-center justify-between">
-                      <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center space-x-1">
+                      <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full flex items-center space-x-1">
                         <span class="h-1.5 w-1.5 rounded-full inline-block animate-pulse shrink-0" style="background-color: #10b981 !important;"></span>
                         <span>LIVE READY</span>
                       </span>
@@ -325,16 +322,17 @@
                         {survey.questions?.length || 0} Fields
                       </span>
                     </div>
-                    <h3 class="text-sm font-bold text-[#1a2b6c] group-hover:text-[#e31b23] transition-colors truncate pt-1">
+                    <h3 class="text-base font-bold text-[#1a2b6c] group-hover:text-[#e31b23] transition-colors truncate pt-1">
                       {survey.title || "Untitled Form"}
                     </h3>
                   </div>
 
-                  <div class="flex items-center justify-between pt-2 border-t border-slate-100">
-                    <span class="text-[10px] text-slate-500 font-medium group-hover:text-slate-800 transition-colors">Tap to start terminal</span>
-                    <span class="text-[11px] font-bold px-3 py-1 rounded-xl shadow-xs transition-all flex items-center space-x-1 group-hover:scale-105 bg-[#1a2b6c] group-hover:bg-[#e31b23] text-white" style="color: #ffffff !important;">
-                      <span>Launch</span>
-                      <span class="transform group-hover:translate-x-1 transition-transform">➔</span>
+                  <div class="flex items-center justify-between pt-3 border-t border-slate-200/80">
+                    <span class="text-[11px] text-slate-600 font-semibold group-hover:text-slate-900 transition-colors">Tap to start terminal</span>
+                    <!-- GUARANTEED HIGH CONTRAST VISIBLE LAUNCH BUTTON -->
+                    <span class="text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition-all flex items-center space-x-1.5 group-hover:scale-105 bg-[#1a2b6c] group-hover:bg-[#e31b23] text-white" style="color: #ffffff !important; background-color: #1a2b6c !important;">
+                      <span style="color: #ffffff !important; font-weight: 800 !important;">Launch</span>
+                      <span class="transform group-hover:translate-x-1 transition-transform" style="color: #ffffff !important;">➔</span>
                     </span>
                   </div>
                 </button>
@@ -359,7 +357,7 @@
         </div>
 
       {:else}
-        <!-- ACTIVE FORM FILLING CANVAS (NEAT, UNIFORM PROPORTIONS) -->
+        <!-- ACTIVE FORM FILLING CANVAS (ADAPTIVE PORTRAIT VERTICAL STACKING) -->
         <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="w-full max-w-5xl mx-auto h-full flex flex-col justify-between overflow-hidden box-border px-2 my-auto">
           
           <!-- TOP PROGRESS TRACKER -->
@@ -406,7 +404,7 @@
             {/if}
           </div>
 
-          <!-- DYNAMIC NEAT RESPONSE CANVAS (NATURAL HEIGHTS, CENTERED PROPORTIONS) -->
+          <!-- DYNAMIC NEAT RESPONSE CANVAS (TOP-TO-BOTTOM IN PORTRAIT, SIDE-BY-SIDE IN LANDSCAPE) -->
           <div class="w-full flex-1 flex flex-col justify-center min-h-0 box-border py-2 my-auto">
             
             {#if getNormalizedType(currentQuestion.type) === 'smiley'}
@@ -447,7 +445,7 @@
               {@const optCount = currentQuestion.options?.length || 0}
               
               <div class="w-full my-auto space-y-4">
-                <div class="grid {getGridClass(optCount)} gap-3 w-full items-center justify-center">
+                <div class="grid {getGridClass(optCount)} gap-3.5 w-full items-center justify-center">
                   {#if currentQuestion.options && optCount > 0}
                     {#each currentQuestion.options as option}
                       {@const imgUrl = currentQuestion.enableOptionImages && currentQuestion.optionImages ? currentQuestion.optionImages[option] : ''}
@@ -461,15 +459,15 @@
                             handleSelectOption(option);
                           }
                         }}
-                        class="w-full text-left bg-white border rounded-2xl p-3 sm:p-4 transition-all shadow-sm active:scale-[0.98] flex flex-col justify-between group h-auto {currentQuestion.allowMultiple && isSelected ? 'border-[#e31b23] bg-rose-50/50 text-rose-900 ring-2 ring-[#e31b23]/30' : 'border-slate-200 hover:border-[#e31b23] text-slate-800'}"
+                        class="w-full text-left bg-white border rounded-2xl p-3.5 sm:p-4 transition-all shadow-sm active:scale-[0.98] flex flex-row landscape:flex-col items-center justify-between group h-auto {currentQuestion.allowMultiple && isSelected ? 'border-[#e31b23] bg-rose-50/50 text-rose-900 ring-2 ring-[#e31b23]/30' : 'border-slate-200 hover:border-[#e31b23] text-slate-800'}"
                       >
                         {#if imgUrl}
-                          <div class="w-full h-32 sm:h-40 mb-2 rounded-xl overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center p-2 shadow-inner">
+                          <div class="w-20 h-20 landscape:w-full landscape:h-32 shrink-0 rounded-xl overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center p-1 shadow-inner mr-3 landscape:mr-0 landscape:mb-2">
                             <img src={imgUrl} alt={option} class="w-full h-full object-contain rounded-lg" />
                           </div>
                         {/if}
 
-                        <div class="flex items-center justify-between w-full shrink-0 pt-1">
+                        <div class="flex items-center justify-between w-full shrink-0 pt-0 landscape:pt-1">
                           <span class="text-sm sm:text-base font-bold group-hover:text-[#e31b23] transition-colors truncate">{option}</span>
                           {#if currentQuestion.allowMultiple}
                             <div class="w-5 h-5 rounded-md border flex items-center justify-center transition-all shrink-0 ml-1 {isSelected ? 'bg-[#e31b23] border-[#e31b23] text-white font-bold text-xs' : 'border-slate-300 bg-white'}">
@@ -488,9 +486,9 @@
                   <button
                     on:click={advanceStep}
                     class="w-full max-w-md mx-auto bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-3.5 px-4 text-sm rounded-xl transition-all shadow-md active:scale-[0.98] flex items-center justify-center space-x-2 block"
-                    style="color: #ffffff !important;"
+                    style="color: #ffffff !important; background-color: #1a2b6c !important;"
                   >
-                    <span>Confirm & Continue ➔</span>
+                    <span style="color: #ffffff !important; font-weight: 800 !important;">Confirm & Continue ➔</span>
                   </button>
                 {/if}
               </div>
@@ -507,7 +505,7 @@
                 <button 
                   type="submit"
                   class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-4 px-5 text-base rounded-2xl transition-all shadow-md active:scale-[0.98] flex items-center justify-center space-x-2"
-                  style="color: #ffffff !important; font-weight: 800 !important;"
+                  style="color: #ffffff !important; font-weight: 800 !important; background-color: #1a2b6c !important;"
                 >
                   <span style="color: #ffffff !important; font-weight: 800 !important;">Submit Response ➔</span>
                 </button>
