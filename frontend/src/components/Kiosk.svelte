@@ -192,13 +192,13 @@
     return String(qType).toLowerCase().replace(/_/g, '-');
   }
 
-  // ADAPTIVE PORTRAIT vs LANDSCAPE GRID MATH
+  // CLEAN GRID MATH: PORTRAIT IS ALWAYS 1 VERTICAL ROW; LANDSCAPE SPREADS OUT SIDE-BY-SIDE
   function getGridClass(optionCount) {
     if (optionCount <= 1) return 'grid-cols-1 max-w-md mx-auto';
-    if (optionCount === 2) return 'grid-cols-1 portrait:grid-cols-1 landscape:grid-cols-2 max-w-2xl mx-auto';
-    if (optionCount === 3) return 'grid-cols-1 portrait:grid-cols-1 landscape:grid-cols-3 max-w-4xl mx-auto';
-    if (optionCount === 4) return 'grid-cols-1 portrait:grid-cols-2 landscape:grid-cols-4 max-w-5xl mx-auto';
-    return 'grid-cols-1 portrait:grid-cols-2 landscape:grid-cols-5 max-w-6xl mx-auto';
+    if (optionCount === 2) return 'grid-cols-1 landscape:grid-cols-2 max-w-2xl mx-auto';
+    if (optionCount === 3) return 'grid-cols-1 landscape:grid-cols-3 max-w-4xl mx-auto';
+    if (optionCount === 4) return 'grid-cols-1 landscape:grid-cols-4 max-w-5xl mx-auto';
+    return 'grid-cols-1 landscape:grid-cols-5 max-w-6xl mx-auto';
   }
 
   onDestroy(() => {
@@ -206,7 +206,8 @@
   });
 </script>
 
-<div class="fixed inset-0 w-screen h-screen min-h-[100dvh] max-h-[100dvh] min-w-[100vw] max-w-[100vw] bg-[#f8fafc] text-slate-800 p-4 sm:p-6 font-sans box-border overflow-hidden flex flex-col justify-between select-none">
+<!-- FLEXIBLE OUTER CONTAINER THAT ADAPTS SMOOTHLY WITH OR WITHOUT SIDEBAR -->
+<div class="w-full h-full min-h-full flex-1 bg-[#f8fafc] text-slate-800 p-3 sm:p-5 font-sans box-border overflow-hidden flex flex-col justify-between select-none">
   
   {#if !isTerminalUnlocked}
     <!-- ADMIN SECURITY GATEWAY MODAL -->
@@ -283,16 +284,11 @@
     <!-- MAIN BODY WORKSPACE -->
     <main class="w-full flex-1 flex flex-col justify-center min-h-0 py-1 box-border">
       {#if !activeSurveyId || !surveyTitle || questions.length === 0}
-        <!-- SELECTION LAUNCHER MENU (HIGH CONTRAST BUTTON FIX) -->
+        <!-- SELECTION LAUNCHER MENU (NEAT CENTERED CARD, BLUE LOGO REMOVED) -->
         <div in:scale={{ duration: 300, start: 0.96 }} class="w-full max-w-3xl mx-auto bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col justify-between my-auto">
           
           <div class="text-center space-y-2 border-b border-slate-100 pb-4 shrink-0">
-            <div class="h-12 w-12 bg-[#1a2b6c] text-white rounded-2xl border border-[#1a2b6c] flex items-center justify-center mx-auto shadow-md shadow-[#1a2b6c]/20">
-              <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
-                <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
-              </svg>
-            </div>
-            <h1 class="text-xl font-black tracking-tight text-[#1a2b6c]">Select Survey Form</h1>
+            <h1 class="text-2xl font-black tracking-tight text-[#1a2b6c]">Select Survey Form</h1>
             <p class="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
               Choose an active form sequence below to launch Live Kiosk Mode on <span class="text-[#1a2b6c] font-mono font-bold">{deviceId}</span>.
             </p>
@@ -303,14 +299,14 @@
               No active forms available in system storage. Please create a form first in the Form Designer.
             </div>
           {:else}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[24rem] overflow-y-auto custom-scrollbar my-3 pr-1">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[22rem] overflow-y-auto custom-scrollbar my-3 pr-1">
               {#each surveys.filter(s => !s.isDraft && !String(s._id).startsWith("DRAFT-")) as survey}
                 <button
                   on:click={() => {
                     resetTerminal();
                     onSelectSurvey(survey._id);
                   }}
-                  class="text-left bg-slate-50 hover:bg-white border border-slate-200 hover:border-[#e31b23] border-t-4 border-t-[#1a2b6c] rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between group active:scale-[0.98] shadow-sm hover:shadow-md space-y-4"
+                  class="text-left bg-slate-50 hover:bg-white border border-slate-200 hover:border-[#e31b23] border-t-4 border-t-[#1a2b6c] rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between group active:scale-[0.98] shadow-xs hover:shadow-md space-y-4"
                 >
                   <div class="space-y-1.5">
                     <div class="flex items-center justify-between">
@@ -329,7 +325,7 @@
 
                   <div class="flex items-center justify-between pt-3 border-t border-slate-200/80">
                     <span class="text-[11px] text-slate-600 font-semibold group-hover:text-slate-900 transition-colors">Tap to start terminal</span>
-                    <!-- GUARANTEED HIGH CONTRAST VISIBLE LAUNCH BUTTON -->
+                    <!-- HIGH-CONTRAST VISIBLE LAUNCH BUTTON -->
                     <span class="text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition-all flex items-center space-x-1.5 group-hover:scale-105 bg-[#1a2b6c] group-hover:bg-[#e31b23] text-white" style="color: #ffffff !important; background-color: #1a2b6c !important;">
                       <span style="color: #ffffff !important; font-weight: 800 !important;">Launch</span>
                       <span class="transform group-hover:translate-x-1 transition-transform" style="color: #ffffff !important;">➔</span>
@@ -357,7 +353,7 @@
         </div>
 
       {:else}
-        <!-- ACTIVE FORM FILLING CANVAS (ADAPTIVE PORTRAIT VERTICAL STACKING) -->
+        <!-- ACTIVE FORM FILLING CANVAS -->
         <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="w-full max-w-5xl mx-auto h-full flex flex-col justify-between overflow-hidden box-border px-2 my-auto">
           
           <!-- TOP PROGRESS TRACKER -->
@@ -404,19 +400,19 @@
             {/if}
           </div>
 
-          <!-- DYNAMIC NEAT RESPONSE CANVAS (TOP-TO-BOTTOM IN PORTRAIT, SIDE-BY-SIDE IN LANDSCAPE) -->
+          <!-- DYNAMIC RESPONSE CANVAS (SINGLE VERTICAL ROW IN PORTRAIT, SIDE-BY-SIDE IN LANDSCAPE) -->
           <div class="w-full flex-1 flex flex-col justify-center min-h-0 box-border py-2 my-auto">
             
             {#if getNormalizedType(currentQuestion.type) === 'smiley'}
-              <div class="grid grid-cols-5 gap-3 w-full max-w-4xl mx-auto my-auto items-center">
+              <div class="grid grid-cols-1 landscape:grid-cols-5 gap-3 w-full max-w-4xl mx-auto my-auto items-center">
                 {#each satisfactionScale as option}
                   <button 
                     on:click={() => handleSelectOption(`${option.emoji} ${option.label}`)}
-                    class="flex flex-col items-center justify-center p-3 sm:p-5 rounded-2xl border transition-all duration-200 group active:scale-95 shadow-sm bg-white {option.color}">
-                    <span class="text-4xl sm:text-6xl transform group-hover:scale-110 transition-transform duration-200 select-none filter drop-shadow-xs">
+                    class="flex flex-row landscape:flex-col items-center justify-between landscape:justify-center p-3 sm:p-4 rounded-2xl border transition-all duration-200 group active:scale-95 shadow-sm bg-white {option.color}">
+                    <span class="text-3xl sm:text-5xl transform group-hover:scale-110 transition-transform duration-200 select-none filter drop-shadow-xs">
                       {option.emoji}
                     </span>
-                    <span class="mt-2 text-[10px] sm:text-xs font-black tracking-widest uppercase font-mono">
+                    <span class="text-xs font-black tracking-widest uppercase font-mono">
                       {option.label}
                     </span>
                   </button>
@@ -445,7 +441,7 @@
               {@const optCount = currentQuestion.options?.length || 0}
               
               <div class="w-full my-auto space-y-4">
-                <div class="grid {getGridClass(optCount)} gap-3.5 w-full items-center justify-center">
+                <div class="grid {getGridClass(optCount)} gap-3 w-full items-center justify-center">
                   {#if currentQuestion.options && optCount > 0}
                     {#each currentQuestion.options as option}
                       {@const imgUrl = currentQuestion.enableOptionImages && currentQuestion.optionImages ? currentQuestion.optionImages[option] : ''}
@@ -462,7 +458,7 @@
                         class="w-full text-left bg-white border rounded-2xl p-3.5 sm:p-4 transition-all shadow-sm active:scale-[0.98] flex flex-row landscape:flex-col items-center justify-between group h-auto {currentQuestion.allowMultiple && isSelected ? 'border-[#e31b23] bg-rose-50/50 text-rose-900 ring-2 ring-[#e31b23]/30' : 'border-slate-200 hover:border-[#e31b23] text-slate-800'}"
                       >
                         {#if imgUrl}
-                          <div class="w-20 h-20 landscape:w-full landscape:h-32 shrink-0 rounded-xl overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center p-1 shadow-inner mr-3 landscape:mr-0 landscape:mb-2">
+                          <div class="w-16 h-16 landscape:w-full landscape:h-32 shrink-0 rounded-xl overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center p-1 shadow-inner mr-3 landscape:mr-0 landscape:mb-2">
                             <img src={imgUrl} alt={option} class="w-full h-full object-contain rounded-lg" />
                           </div>
                         {/if}
