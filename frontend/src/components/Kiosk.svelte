@@ -192,16 +192,13 @@
     return String(qType).toLowerCase().replace(/_/g, '-');
   }
 
-  // MATHEMATICALLY EVEN GRID CREATOR
-  // Landscape: 5 items = 1 row of 5; 6 items = 2 rows of 3 (even split!).
-  // Portrait: Always 1 neat vertical column (or 2 even columns for 4/6 items).
   function getGridClass(optionCount) {
     if (optionCount <= 1) return 'grid-cols-1 max-w-md mx-auto';
     if (optionCount === 2) return 'grid-cols-1 landscape:grid-cols-2 max-w-2xl mx-auto';
     if (optionCount === 3) return 'grid-cols-1 landscape:grid-cols-3 max-w-4xl mx-auto';
     if (optionCount === 4) return 'grid-cols-1 portrait:grid-cols-2 landscape:grid-cols-4 max-w-5xl mx-auto';
     if (optionCount === 5) return 'grid-cols-1 landscape:grid-cols-5 w-full mx-auto';
-    if (optionCount === 6) return 'grid-cols-1 portrait:grid-cols-2 landscape:grid-cols-3 max-w-4xl mx-auto'; // EVEN 3 x 2!
+    if (optionCount === 6) return 'grid-cols-1 portrait:grid-cols-2 landscape:grid-cols-3 max-w-4xl mx-auto';
     return 'grid-cols-1 portrait:grid-cols-2 landscape:grid-cols-4 max-w-5xl mx-auto';
   }
 
@@ -382,8 +379,8 @@
             </div>
           </div>
 
-          <!-- QUESTION HEADER & IMAGE AREA -->
-          <div class="text-center space-y-1.5 shrink-0 py-2">
+          <!-- QUESTION HEADER & LARGER VISIBLE IMAGE AREA -->
+          <div class="text-center space-y-2 shrink-0 py-2">
             {#if currentQuestion.isRequired}
               <div class="flex items-center justify-center">
                 <span class="text-rose-600 dark:text-rose-400 font-bold text-[10px] bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 px-2.5 py-0.5 rounded-full">* Required Field</span>
@@ -391,7 +388,8 @@
             {/if}
 
             {#if currentQuestion.questionImage}
-              <div class="max-h-24 sm:max-h-32 max-w-md mx-auto aspect-[16/9] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 shadow-sm flex items-center justify-center p-1">
+              <!-- EXPANDED IMAGE BOUNDS WITH FULL UNCROPPED VISIBILITY -->
+              <div class="max-h-56 sm:max-h-72 w-full max-w-2xl mx-auto rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 shadow-sm flex items-center justify-center p-2">
                 <img src={currentQuestion.questionImage} alt={currentQuestion.questionText} class="w-full h-full object-contain rounded-xl" />
               </div>
             {/if}
@@ -411,12 +409,11 @@
           <div class="w-full flex-1 flex flex-col justify-center min-h-0 box-border py-2 my-auto overflow-y-auto custom-scrollbar">
             
             {#if getNormalizedType(currentQuestion.type) === 'smiley'}
-              <!-- SMILEY MATRIX: CENTERED EMOJI ON TOP, LABEL UNDERNEATH -->
               <div class="grid grid-cols-1 landscape:grid-cols-5 gap-3 w-full max-w-3xl landscape:max-w-4xl mx-auto my-auto items-center">
                 {#each satisfactionScale as option}
                   <button 
                     on:click={() => handleSelectOption(`${option.emoji} ${option.label}`)}
-                    class="flex flex-col items-center justify-center p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 group active:scale-95 shadow-sm bg-slate-50 dark:bg-slate-950 {option.color}">
+                    class="flex flex-col items-center justify-center p-3.5 sm:p-5 rounded-2xl border transition-all duration-200 group active:scale-95 shadow-sm bg-slate-50 dark:bg-slate-950 {option.color}">
                     <span class="text-4xl sm:text-5xl transform group-hover:scale-110 transition-transform duration-200 select-none filter drop-shadow-xs">
                       {option.emoji}
                     </span>
@@ -466,8 +463,7 @@
                         class="w-full text-left bg-slate-50 dark:bg-slate-950 border rounded-2xl p-3.5 sm:p-4 transition-all shadow-sm active:scale-[0.98] flex flex-col justify-between group h-auto {currentQuestion.allowMultiple && isSelected ? 'border-[#e31b23] bg-rose-50/50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-200 ring-2 ring-[#e31b23]/30' : 'border-slate-200 dark:border-slate-800 hover:border-[#e31b23] text-slate-800 dark:text-slate-100'}"
                       >
                         {#if imgUrl}
-                          <!-- UNCROPPED IMAGE CONTAINER -->
-                          <div class="w-full h-28 sm:h-36 shrink-0 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center p-1.5 shadow-inner mb-2">
+                          <div class="w-full h-28 sm:h-36 shrink-0 rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center p-1.5 shadow-inner mb-2">
                             <img src={imgUrl} alt={option} class="w-full h-full object-contain rounded-lg" />
                           </div>
                         {/if}
