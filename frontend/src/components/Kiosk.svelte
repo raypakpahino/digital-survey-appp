@@ -100,7 +100,6 @@
     }
   }
 
-  // FIXED CONDITIONAL EVALUATION FUNCTION (MATCHES WITH OR WITHOUT EMOJIS)
   function shouldShowQuestion(qIndex) {
     if (qIndex === 0) return true;
     const q = questions[qIndex];
@@ -115,7 +114,6 @@
     const recordedAnswer = answersAccumulator.find(a => a.questionText === dependedQuestion.questionText);
     if (!recordedAnswer) return false;
 
-    // Clean emojis & non-alphanumeric chars to guarantee bulletproof matching
     const cleanAnswer = String(recordedAnswer.value).toUpperCase().replace(/[^\w\s]/gi, '').trim();
     const cleanTarget = String(requiredValue).toUpperCase().replace(/[^\w\s]/gi, '').trim();
 
@@ -199,7 +197,6 @@
   });
 </script>
 
-<!-- DYNAMIC WRAPPER -->
 <div class="{activeSurveyId && surveyTitle && questions.length > 0 ? 'fixed inset-0 z-50 bg-[#f8fafc] text-slate-800 p-4 sm:p-8' : 'w-full h-full text-slate-800 dark:text-slate-100 p-2 sm:p-4'} font-sans box-border overflow-y-auto custom-scrollbar flex flex-col items-center justify-between">
   
   {#if !isTerminalUnlocked}
@@ -243,11 +240,13 @@
           <p class="text-xs text-rose-600 font-bold bg-rose-50 border border-rose-200 p-2.5 rounded-xl text-center animate-pulse">{passError}</p>
         {/if}
 
+        <!-- HIGH-CONTRAST UNLOCK BUTTON (FIXED TEXT VISIBILITY) -->
         <button
           type="submit"
-          class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold py-3.5 px-4 rounded-xl text-xs transition-all shadow-md active:scale-95"
+          class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-3.5 px-4 rounded-xl text-xs transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 border border-transparent"
+          style="color: #ffffff !important; font-weight: 800 !important;"
         >
-          Unlock Terminal & Launch ➔
+          <span style="color: #ffffff !important; font-weight: 800 !important;">Unlock Terminal & Launch ➔</span>
         </button>
       </form>
     </div>
@@ -322,7 +321,7 @@
 
                   <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-900">
                     <span class="text-[11px] text-slate-500 dark:text-slate-400 font-medium group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">Tap to start terminal</span>
-                    <span class="text-xs font-bold px-4 py-1.5 rounded-xl shadow-xs transition-all flex items-center space-x-1.5 group-hover:scale-105 bg-[#1a2b6c] group-hover:bg-[#e31b23] text-white">
+                    <span class="text-xs font-bold px-4 py-1.5 rounded-xl shadow-xs transition-all flex items-center space-x-1.5 group-hover:scale-105 bg-[#1a2b6c] group-hover:bg-[#e31b23] text-white" style="color: #ffffff !important;">
                       <span>Launch</span>
                       <span class="transform group-hover:translate-x-1 transition-transform">➔</span>
                     </span>
@@ -472,9 +471,9 @@
                   <button
                     on:click={advanceStep}
                     class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold py-3.5 px-5 text-sm rounded-xl transition-all shadow-md active:scale-[0.98] mt-4 flex items-center justify-center space-x-2"
+                    style="color: #ffffff !important;"
                   >
-                    <span>Confirm & Continue</span>
-                    <span>➔</span>
+                    <span>Confirm & Continue ➔</span>
                   </button>
                 {/if}
               </div>
@@ -491,7 +490,7 @@
                 <button 
                   type="submit"
                   class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold py-3.5 px-5 text-sm sm:text-base rounded-xl transition-all shadow-md active:scale-[0.98] flex items-center justify-center space-x-2"
-                  style="color: #ffffff !important; font-weight: 800 !important; background-color: #1a2b6c !important;"
+                  style="color: #ffffff !important; font-weight: 800 !important;"
                 >
                   <span style="color: #ffffff !important; font-weight: 800 !important;">Submit Response ➔</span>
                 </button>
