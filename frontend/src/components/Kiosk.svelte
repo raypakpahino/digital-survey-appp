@@ -192,12 +192,16 @@
     return String(qType).toLowerCase().replace(/_/g, '-');
   }
 
+  // MATHEMATICALLY BALANCED GRID CALCULATOR
   function getGridClass(optionCount) {
     if (optionCount <= 1) return 'grid-cols-1 max-w-md mx-auto';
-    if (optionCount === 2) return 'grid-cols-1 landscape:grid-cols-2 max-w-2xl mx-auto';
-    if (optionCount === 3) return 'grid-cols-1 landscape:grid-cols-3 max-w-4xl mx-auto';
-    if (optionCount === 4) return 'grid-cols-1 landscape:grid-cols-4 max-w-5xl mx-auto';
-    return 'grid-cols-1 landscape:grid-cols-5 max-w-6xl mx-auto';
+    if (optionCount === 2) return 'grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto';
+    if (optionCount === 3) return 'grid-cols-1 sm:grid-cols-3 max-w-4xl mx-auto';
+    if (optionCount === 4) return 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 max-w-5xl mx-auto';
+    if (optionCount === 5) return 'grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 max-w-6xl mx-auto';
+    if (optionCount === 6) return 'grid-cols-2 sm:grid-cols-3 max-w-4xl mx-auto'; // EVEN 3 x 2
+    if (optionCount <= 8) return 'grid-cols-2 sm:grid-cols-4 max-w-5xl mx-auto'; // EVEN 4 x 2
+    return 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 max-w-6xl mx-auto';
   }
 
   onDestroy(() => {
@@ -205,7 +209,7 @@
   });
 </script>
 
-<div class="w-full h-full min-h-full flex-1 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 p-4 sm:p-6 font-sans box-border overflow-hidden flex flex-col justify-between select-none">
+<div class="w-full h-full min-h-full flex-1 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 p-3 sm:p-5 font-sans box-border overflow-hidden flex flex-col justify-between select-none">
   
   {#if !isTerminalUnlocked}
     <!-- ADMIN SECURITY GATEWAY MODAL -->
@@ -260,13 +264,13 @@
 
   {:else}
     <!-- MAIN WORKSPACE -->
-    <main class="w-full max-w-5xl mx-auto flex-1 flex flex-col justify-between min-h-0 py-2 box-border">
+    <main class="w-full max-w-6xl mx-auto flex-1 flex flex-col justify-between min-h-0 py-1 box-border">
       {#if !activeSurveyId || !surveyTitle || questions.length === 0}
         
         <!-- SELECTION LAUNCHER MENU CARD -->
         <div in:scale={{ duration: 300, start: 0.96 }} class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col justify-between my-auto">
           
-          <!-- TOP HEADER WITH TABLET ID (HIGH CONTRAST WHITE TEXT FIX) -->
+          <!-- TOP HEADER WITH TABLET ID -->
           <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
             <div class="flex items-center space-x-2">
               <div class="h-2.5 w-2.5 rounded-full bg-[#e31b23] animate-pulse"></div>
@@ -322,7 +326,6 @@
 
                   <div class="flex items-center justify-between pt-3 border-t border-slate-200/80 dark:border-slate-800">
                     <span class="text-[11px] text-slate-600 dark:text-slate-400 font-semibold group-hover:text-slate-900 dark:group-hover:text-white transition-colors">Tap to start terminal</span>
-                    <!-- HIGH-CONTRAST VISIBLE LAUNCH BUTTON -->
                     <span class="text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition-all flex items-center space-x-1.5 group-hover:scale-105 bg-[#1a2b6c] group-hover:bg-[#e31b23] text-white" style="color: #ffffff !important; background-color: #1a2b6c !important;">
                       <span style="color: #ffffff !important; font-weight: 800 !important;">Launch</span>
                       <span class="transform group-hover:translate-x-1 transition-transform" style="color: #ffffff !important;">➔</span>
@@ -333,7 +336,7 @@
             </div>
           {/if}
 
-          <!-- FOOTER INSIDE MODAL TO PREVENT OVERLAPPING -->
+          <!-- FOOTER INSIDE MODAL -->
           <div class="pt-4 mt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400 font-mono tracking-wider font-semibold">
             <span>🔒 Secure Enterprise Client Terminal</span>
             <span>Terminal Kiosk Mode</span>
@@ -357,10 +360,10 @@
 
       {:else}
         <!-- ACTIVE FORM FILLING CANVAS -->
-        <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col justify-between overflow-hidden box-border my-auto">
+        <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="w-full h-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col justify-between overflow-hidden box-border my-auto">
           
           <!-- TOP PROGRESS TRACKER -->
-          <div class="space-y-1 shrink-0 max-w-3xl mx-auto w-full">
+          <div class="space-y-1 shrink-0 w-full">
             <div class="flex items-center justify-between text-[11px] font-mono font-bold">
               <span class="text-rose-800 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 px-3 py-0.5 rounded-full">
                 Question {currentQuestionIndex + 1} of {questions.length}
@@ -379,7 +382,7 @@
           </div>
 
           <!-- QUESTION HEADER & IMAGE AREA -->
-          <div class="text-center space-y-1.5 shrink-0 py-3">
+          <div class="text-center space-y-1.5 shrink-0 py-2">
             {#if currentQuestion.isRequired}
               <div class="flex items-center justify-center">
                 <span class="text-rose-600 dark:text-rose-400 font-bold text-[10px] bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 px-2.5 py-0.5 rounded-full">* Required Field</span>
@@ -387,12 +390,12 @@
             {/if}
 
             {#if currentQuestion.questionImage}
-              <div class="max-h-28 sm:max-h-36 max-w-md mx-auto aspect-[16/9] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm flex items-center justify-center p-1">
+              <div class="max-h-24 sm:max-h-32 max-w-md mx-auto aspect-[16/9] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 shadow-sm flex items-center justify-center p-1">
                 <img src={currentQuestion.questionImage} alt={currentQuestion.questionText} class="w-full h-full object-contain rounded-xl" />
               </div>
             {/if}
 
-            <h1 class="text-xl sm:text-3xl font-black tracking-tight text-[#1a2b6c] dark:text-white leading-tight px-2">
+            <h1 class="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-[#1a2b6c] dark:text-white leading-tight px-2">
               {currentQuestion.questionText}
             </h1>
 
@@ -403,19 +406,19 @@
             {/if}
           </div>
 
-          <!-- DYNAMIC RESPONSE CANVAS -->
+          <!-- DYNAMIC NEAT RESPONSE CANVAS -->
           <div class="w-full flex-1 flex flex-col justify-center min-h-0 box-border py-2 my-auto">
             
             {#if getNormalizedType(currentQuestion.type) === 'smiley'}
-              <div class="grid grid-cols-1 landscape:grid-cols-5 gap-3 w-full max-w-4xl mx-auto my-auto items-center">
+              <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 w-full max-w-4xl mx-auto my-auto items-center">
                 {#each satisfactionScale as option}
                   <button 
                     on:click={() => handleSelectOption(`${option.emoji} ${option.label}`)}
-                    class="flex flex-row landscape:flex-col items-center justify-between landscape:justify-center p-3.5 sm:p-5 rounded-2xl border transition-all duration-200 group active:scale-95 shadow-sm bg-white dark:bg-slate-950 {option.color}">
+                    class="flex flex-col items-center justify-center p-3 sm:p-5 rounded-2xl border transition-all duration-200 group active:scale-95 shadow-sm bg-slate-50 dark:bg-slate-950 {option.color}">
                     <span class="text-3xl sm:text-5xl transform group-hover:scale-110 transition-transform duration-200 select-none filter drop-shadow-xs">
                       {option.emoji}
                     </span>
-                    <span class="text-xs font-black tracking-widest uppercase font-mono">
+                    <span class="mt-2 text-[10px] sm:text-xs font-black tracking-widest uppercase font-mono">
                       {option.label}
                     </span>
                   </button>
@@ -424,7 +427,7 @@
 
             {:else if getNormalizedType(currentQuestion.type) === 'stars'}
               <div 
-                class="flex items-center justify-center space-x-4 sm:space-x-8 w-full my-auto py-4"
+                class="flex items-center justify-center space-x-3 sm:space-x-8 w-full my-auto py-4"
                 on:mouseleave={() => hoveredStarIndex = 0}
               >
                 {#each [1, 2, 3, 4, 5] as starValue}
@@ -432,7 +435,7 @@
                     type="button"
                     on:mouseenter={() => hoveredStarIndex = starValue}
                     on:click={() => handleSelectOption(`${starValue} Stars`)}
-                    class="text-6xl sm:text-8xl transform hover:scale-125 active:scale-95 transition-all duration-150 outline-none select-none filter drop-shadow-xs focus:outline-none"
+                    class="text-5xl sm:text-8xl transform hover:scale-125 active:scale-95 transition-all duration-150 outline-none select-none filter drop-shadow-xs focus:outline-none"
                     style="color: {starValue <= (hoveredStarIndex || 0) ? '#e31b23' : '#cbd5e1'}"
                   >
                     {starValue <= (hoveredStarIndex || 0) ? '★' : '☆'}
@@ -444,7 +447,7 @@
               {@const optCount = currentQuestion.options?.length || 0}
               
               <div class="w-full my-auto space-y-4">
-                <div class="grid {getGridClass(optCount)} gap-3.5 w-full items-center justify-center">
+                <div class="grid {getGridClass(optCount)} gap-3 w-full items-center justify-center">
                   {#if currentQuestion.options && optCount > 0}
                     {#each currentQuestion.options as option}
                       {@const imgUrl = currentQuestion.enableOptionImages && currentQuestion.optionImages ? currentQuestion.optionImages[option] : ''}
@@ -458,16 +461,16 @@
                             handleSelectOption(option);
                           }
                         }}
-                        class="w-full text-left bg-white dark:bg-slate-950 border rounded-2xl p-3.5 sm:p-4 transition-all shadow-sm active:scale-[0.98] flex flex-row landscape:flex-col items-center justify-between group h-auto {currentQuestion.allowMultiple && isSelected ? 'border-[#e31b23] bg-rose-50/50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-200 ring-2 ring-[#e31b23]/30' : 'border-slate-200 dark:border-slate-800 hover:border-[#e31b23] text-slate-800 dark:text-slate-100'}"
+                        class="w-full text-left bg-slate-50 dark:bg-slate-950 border rounded-2xl p-3.5 sm:p-4 transition-all shadow-sm active:scale-[0.98] flex flex-col justify-between group h-full {currentQuestion.allowMultiple && isSelected ? 'border-[#e31b23] bg-rose-50/50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-200 ring-2 ring-[#e31b23]/30' : 'border-slate-200 dark:border-slate-800 hover:border-[#e31b23] text-slate-800 dark:text-slate-100'}"
                       >
                         {#if imgUrl}
-                          <div class="w-16 h-16 landscape:w-full landscape:h-32 shrink-0 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center p-1 shadow-inner mr-3 landscape:mr-0 landscape:mb-2">
-                            <img src={imgUrl} alt={option} class="w-full h-full object-contain rounded-lg" />
+                          <div class="w-full h-24 sm:h-32 shrink-0 rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center p-1 shadow-inner mb-2">
+                            <img src={imgUrl} alt={option} class="w-full h-full object-cover rounded-lg" />
                           </div>
                         {/if}
 
-                        <div class="flex items-center justify-between w-full shrink-0 pt-0 landscape:pt-1">
-                          <span class="text-sm sm:text-base font-bold group-hover:text-[#e31b23] transition-colors truncate">{option}</span>
+                        <div class="flex items-center justify-between w-full shrink-0 pt-1">
+                          <span class="text-xs sm:text-base font-bold group-hover:text-[#e31b23] transition-colors truncate">{option}</span>
                           {#if currentQuestion.allowMultiple}
                             <div class="w-5 h-5 rounded-md border flex items-center justify-center transition-all shrink-0 ml-1 {isSelected ? 'bg-[#e31b23] border-[#e31b23] text-white font-bold text-xs' : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900'}">
                               {#if isSelected}✓{/if}
@@ -499,7 +502,7 @@
                   bind:value={selectedValue}
                   on:input={() => (validationError = "")}
                   placeholder={currentQuestion.isRequired ? "Type your response here (Required)..." : "Type your response here..."}
-                  class="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[#1a2b6c] dark:text-white placeholder-slate-400 rounded-2xl p-4 text-base outline-none transition-all shadow-inner {validationError ? 'border-rose-500 focus:border-rose-400' : 'focus:border-[#e31b23] focus:ring-2 focus:ring-rose-500/20'}"
+                  class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[#1a2b6c] dark:text-white placeholder-slate-400 rounded-2xl p-4 text-base outline-none transition-all shadow-inner {validationError ? 'border-rose-500 focus:border-rose-400' : 'focus:border-[#e31b23] focus:ring-2 focus:ring-rose-500/20'}"
                 />
                 <button 
                   type="submit"
@@ -513,7 +516,7 @@
 
           </div>
 
-          <!-- FOOTER INSIDE FORM CARD TO PREVENT OVERLAPPING -->
+          <!-- FOOTER INSIDE FORM CARD -->
           <div class="pt-3 mt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400 font-mono tracking-wider font-semibold">
             <span>🔒 Secure Enterprise Client Terminal</span>
             <span>Terminal Kiosk Mode</span>
