@@ -192,16 +192,13 @@
     return String(qType).toLowerCase().replace(/_/g, '-');
   }
 
-  // MATHEMATICALLY BALANCED GRID CALCULATOR
+  // DYNAMIC GRID: PORTRAIT = 1 SINGLE VERTICAL COLUMN; LANDSCAPE = 1 SINGLE HORIZONTAL ROW
   function getGridClass(optionCount) {
-    if (optionCount <= 1) return 'grid-cols-1 max-w-md mx-auto';
-    if (optionCount === 2) return 'grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto';
-    if (optionCount === 3) return 'grid-cols-1 sm:grid-cols-3 max-w-4xl mx-auto';
-    if (optionCount === 4) return 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 max-w-5xl mx-auto';
-    if (optionCount === 5) return 'grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 max-w-6xl mx-auto';
-    if (optionCount === 6) return 'grid-cols-2 sm:grid-cols-3 max-w-4xl mx-auto'; // EVEN 3 x 2
-    if (optionCount <= 8) return 'grid-cols-2 sm:grid-cols-4 max-w-5xl mx-auto'; // EVEN 4 x 2
-    return 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 max-w-6xl mx-auto';
+    if (optionCount <= 1) return 'grid-cols-1 max-w-lg mx-auto';
+    if (optionCount === 2) return 'grid-cols-1 landscape:grid-cols-2 max-w-3xl mx-auto';
+    if (optionCount === 3) return 'grid-cols-1 landscape:grid-cols-3 max-w-4xl mx-auto';
+    if (optionCount === 4) return 'grid-cols-1 landscape:grid-cols-4 max-w-5xl mx-auto';
+    return 'grid-cols-1 landscape:grid-cols-5 w-full mx-auto';
   }
 
   onDestroy(() => {
@@ -263,7 +260,7 @@
     </div>
 
   {:else}
-    <!-- MAIN WORKSPACE -->
+    <!-- MAIN WORKSPACE CONTAINER -->
     <main class="w-full max-w-6xl mx-auto flex-1 flex flex-col justify-between min-h-0 py-1 box-border">
       {#if !activeSurveyId || !surveyTitle || questions.length === 0}
         
@@ -360,7 +357,7 @@
 
       {:else}
         <!-- ACTIVE FORM FILLING CANVAS -->
-        <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="w-full h-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col justify-between overflow-hidden box-border my-auto">
+        <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col justify-between overflow-hidden box-border my-auto h-full">
           
           <!-- TOP PROGRESS TRACKER -->
           <div class="space-y-1 shrink-0 w-full">
@@ -390,7 +387,7 @@
             {/if}
 
             {#if currentQuestion.questionImage}
-              <div class="max-h-24 sm:max-h-32 max-w-md mx-auto aspect-[16/9] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 shadow-sm flex items-center justify-center p-1">
+              <div class="max-h-24 sm:max-h-32 max-w-md mx-auto aspect-[16/9] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm flex items-center justify-center p-1">
                 <img src={currentQuestion.questionImage} alt={currentQuestion.questionText} class="w-full h-full object-contain rounded-xl" />
               </div>
             {/if}
@@ -406,19 +403,19 @@
             {/if}
           </div>
 
-          <!-- DYNAMIC NEAT RESPONSE CANVAS -->
-          <div class="w-full flex-1 flex flex-col justify-center min-h-0 box-border py-2 my-auto">
+          <!-- DYNAMIC RESPONSE CANVAS (UNCROPPED IMAGES + FULL 100% PORTRAIT STACK) -->
+          <div class="w-full flex-1 flex flex-col justify-center min-h-0 box-border py-2 my-auto overflow-y-auto custom-scrollbar">
             
             {#if getNormalizedType(currentQuestion.type) === 'smiley'}
-              <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 w-full max-w-4xl mx-auto my-auto items-center">
+              <div class="grid grid-cols-1 landscape:grid-cols-5 gap-3 w-full max-w-4xl mx-auto my-auto items-center">
                 {#each satisfactionScale as option}
                   <button 
                     on:click={() => handleSelectOption(`${option.emoji} ${option.label}`)}
-                    class="flex flex-col items-center justify-center p-3 sm:p-5 rounded-2xl border transition-all duration-200 group active:scale-95 shadow-sm bg-slate-50 dark:bg-slate-950 {option.color}">
+                    class="flex flex-row landscape:flex-col items-center justify-between landscape:justify-center p-3.5 sm:p-5 rounded-2xl border transition-all duration-200 group active:scale-95 shadow-sm bg-slate-50 dark:bg-slate-950 {option.color}">
                     <span class="text-3xl sm:text-5xl transform group-hover:scale-110 transition-transform duration-200 select-none filter drop-shadow-xs">
                       {option.emoji}
                     </span>
-                    <span class="mt-2 text-[10px] sm:text-xs font-black tracking-widest uppercase font-mono">
+                    <span class="text-xs font-black tracking-widest uppercase font-mono">
                       {option.label}
                     </span>
                   </button>
@@ -461,16 +458,17 @@
                             handleSelectOption(option);
                           }
                         }}
-                        class="w-full text-left bg-slate-50 dark:bg-slate-950 border rounded-2xl p-3.5 sm:p-4 transition-all shadow-sm active:scale-[0.98] flex flex-col justify-between group h-full {currentQuestion.allowMultiple && isSelected ? 'border-[#e31b23] bg-rose-50/50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-200 ring-2 ring-[#e31b23]/30' : 'border-slate-200 dark:border-slate-800 hover:border-[#e31b23] text-slate-800 dark:text-slate-100'}"
+                        class="w-full text-left bg-slate-50 dark:bg-slate-950 border rounded-2xl p-3.5 sm:p-4 transition-all shadow-sm active:scale-[0.98] flex flex-row landscape:flex-col items-center justify-between group h-auto {currentQuestion.allowMultiple && isSelected ? 'border-[#e31b23] bg-rose-50/50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-200 ring-2 ring-[#e31b23]/30' : 'border-slate-200 dark:border-slate-800 hover:border-[#e31b23] text-slate-800 dark:text-slate-100'}"
                       >
                         {#if imgUrl}
-                          <div class="w-full h-24 sm:h-32 shrink-0 rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center p-1 shadow-inner mb-2">
-                            <img src={imgUrl} alt={option} class="w-full h-full object-cover rounded-lg" />
+                          <!-- UNCROPPED IMAGE CONTAINER (OBJECT-CONTAIN PRESERVES ORIGINAL ASPECT RATIO) -->
+                          <div class="w-20 h-20 landscape:w-full landscape:h-32 shrink-0 rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center p-1.5 shadow-inner mr-3 landscape:mr-0 landscape:mb-2">
+                            <img src={imgUrl} alt={option} class="w-full h-full object-contain rounded-lg" />
                           </div>
                         {/if}
 
-                        <div class="flex items-center justify-between w-full shrink-0 pt-1">
-                          <span class="text-xs sm:text-base font-bold group-hover:text-[#e31b23] transition-colors truncate">{option}</span>
+                        <div class="flex items-center justify-between w-full shrink-0 pt-0 landscape:pt-1">
+                          <span class="text-sm sm:text-base font-bold group-hover:text-[#e31b23] transition-colors truncate">{option}</span>
                           {#if currentQuestion.allowMultiple}
                             <div class="w-5 h-5 rounded-md border flex items-center justify-center transition-all shrink-0 ml-1 {isSelected ? 'bg-[#e31b23] border-[#e31b23] text-white font-bold text-xs' : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900'}">
                               {#if isSelected}✓{/if}
