@@ -125,6 +125,33 @@
     ];
   }
 
+  // REORDER QUESTION UP/DOWN WITH SKIP LOGIC RE-INDEX SAFETY
+  function moveQuestion(index, direction) {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= localQuestions.length) return;
+
+    const updated = [...localQuestions];
+    const [movedItem] = updated.splice(index, 1);
+    updated.splice(targetIndex, 0, movedItem);
+
+    // Auto-adjust skip logic pointers so dependencies remain accurate after swap
+    updated.forEach((q, idx) => {
+      if (q.skipLogic && q.skipLogic.enabled) {
+        if (q.skipLogic.dependsOnIndex === index) {
+          q.skipLogic.dependsOnIndex = targetIndex;
+        } else if (q.skipLogic.dependsOnIndex === targetIndex) {
+          q.skipLogic.dependsOnIndex = index;
+        }
+        // Safety check: Question 1 can never depend on a previous question
+        if (idx === 0) {
+          q.skipLogic.enabled = false;
+        }
+      }
+    });
+
+    localQuestions = updated;
+  }
+
   function addOption(qIndex) {
     localQuestions[qIndex].options = [
       ...localQuestions[qIndex].options,
@@ -368,13 +395,37 @@
               <div class="flex items-start justify-between gap-4">
                 <div class="flex-1 space-y-3">
                   <div class="flex items-center space-x-2.5">
-                    <span class="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 h-6 w-6 rounded-lg text-xs font-mono border border-slate-200 dark:border-slate-800 flex items-center justify-center font-bold shadow-inner">{index + 1}</span>
-                    <span class="text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-md bg-white dark:bg-slate-900 text-[#1a2b6c] dark:text-cyan-400 border border-slate-200 dark:border-slate-800 tracking-wider font-mono">{question.type}</span>
+                    
+                    <!-- REORDER BUTTONS & INDEX BADGE -->
+                    <div class="flex items-center space-x-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 rounded-xl shadow-xs">
+                      <span class="text-slate-700 dark:text-slate-300 px-2 text-xs font-mono font-bold">{index + 1}</span>
+                      
+                      <div class="flex flex-col border-l border-slate-200 dark:border-slate-800 pl-1 pr-0.5 space-y-0.5">
+                        <button
+                          type="button"
+                          disabled={index === 0}
+                          on:click={() => moveQuestion(index, -1)}
+                          class="p-0.5 text-[9px] font-bold text-slate-500 hover:text-[#1a2b6c] dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+                          title="Move Question Up"
+                          aria-label="Move Question Up"
+                        >▲</button>
+                        <button
+                          type="button"
+                          disabled={index === localQuestions.length - 1}
+                          on:click={() => moveQuestion(index, 1)}
+                          class="p-0.5 text-[9px] font-bold text-slate-500 hover:text-[#1a2b6c] dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+                          title="Move Question Down"
+                          aria-label="Move Question Down"
+                        >▼</button>
+                      </div>
+                    </div>
+
+                    <span class="text-[10px] uppercase font-bold px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 text-[#1a2b6c] dark:text-cyan-400 border border-slate-200 dark:border-slate-800 tracking-wider font-mono">{question.type}</span>
                     {#if question.isRequired}
-                      <span class="text-[9px] uppercase font-bold px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60 tracking-wider font-mono">REQUIRED</span>
+                      <span class="text-[9px] uppercase font-bold px-2 py-1 rounded-md bg-rose-50 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60 tracking-wider font-mono">REQUIRED</span>
                     {/if}
                     {#if question.skipLogic?.enabled}
-                      <span class="text-[9px] uppercase font-bold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 tracking-wider font-mono">CONDITIONAL SKIP</span>
+                      <span class="text-[9px] uppercase font-bold px-2 py-1 rounded-md bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 tracking-wider font-mono">CONDITIONAL SKIP</span>
                     {/if}
                   </div>
 
