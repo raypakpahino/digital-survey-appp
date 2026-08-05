@@ -21,7 +21,6 @@
   let countdownSeconds = 4;
 
   let deviceId = "Unassigned Device";
-  let isTerminalUnlocked = true;
 
   // FORM PIN GATE
   let selectedSurveyForPin = null;
@@ -76,7 +75,6 @@
       const data = await res.json();
 
       if (data.success) {
-        // Auto-assign device name from matched Device PIN
         if (data.deviceName) {
           deviceId = data.deviceName;
           localStorage.setItem("sdx_device_id", deviceId);
@@ -101,11 +99,11 @@
   }
 
   const satisfactionScale = [
-    { label: "ANGRY", emoji: "🤬", color: "hover:bg-rose-500/10 hover:border-rose-500 text-rose-700 bg-rose-50 border-rose-200 dark:bg-slate-800 dark:border-slate-700 dark:text-rose-400" },
-    { label: "SAD", emoji: "😞", color: "hover:bg-orange-500/10 hover:border-orange-500 text-orange-700 bg-orange-50 border-orange-200 dark:bg-slate-800 dark:border-slate-700 dark:text-orange-400" },
-    { label: "NEUTRAL", emoji: "😐", color: "hover:bg-amber-500/10 hover:border-amber-500 text-amber-700 bg-amber-50 border-amber-200 dark:bg-slate-800 dark:border-slate-700 dark:text-amber-400" },
-    { label: "HAPPY", emoji: "😊", color: "hover:bg-emerald-500/10 hover:border-emerald-500 text-emerald-700 bg-emerald-50 border-emerald-200 dark:bg-slate-800 dark:border-slate-700 dark:text-emerald-400" },
-    { label: "DELIGHTED", emoji: "🤩", color: "hover:bg-rose-500/10 hover:border-rose-500 text-rose-700 bg-rose-50 border-rose-200 dark:bg-slate-800 dark:border-slate-700 dark:text-rose-400" }
+    { label: "ANGRY", emoji: "🤬", color: "hover:bg-rose-50 border-rose-200 text-rose-700 bg-rose-50/50" },
+    { label: "SAD", emoji: "😞", color: "hover:bg-orange-50 border-orange-200 text-orange-700 bg-orange-50/50" },
+    { label: "NEUTRAL", emoji: "😐", color: "hover:bg-amber-50 border-amber-200 text-amber-700 bg-amber-50/50" },
+    { label: "HAPPY", emoji: "😊", color: "hover:bg-emerald-50 border-emerald-200 text-emerald-700 bg-emerald-50/50" },
+    { label: "DELIGHTED", emoji: "🤩", color: "hover:bg-rose-50 border-rose-200 text-rose-700 bg-rose-50/50" }
   ];
 
   function handleSelectOption(value) {
@@ -232,19 +230,20 @@
   });
 </script>
 
-<div class="w-full h-full min-h-full flex-1 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 p-3 sm:p-5 font-sans box-border overflow-hidden flex flex-col justify-between select-none">
+<!-- FORCED LIGHT MODE OUTER CONTAINER FOR FORM/KIOSK CANVAS -->
+<div class="w-full h-full min-h-full flex-1 bg-slate-100 text-slate-800 p-3 sm:p-5 font-sans box-border overflow-hidden flex flex-col justify-between select-none">
   <main class="w-full max-w-6xl mx-auto flex-1 flex flex-col justify-between min-h-0 py-1 box-border relative">
     
     <!-- DEVICE ACCESS PIN GATE OVERLAY -->
     {#if selectedSurveyForPin || (!isPinVerifiedForCurrentSurvey && activeSurveyId)}
-      <div in:scale={{ duration: 200 }} class="absolute inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center space-y-4 shadow-2xl relative">
+      <div in:scale={{ duration: 200 }} class="absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center space-y-4 shadow-2xl relative">
           <div class="space-y-1">
             <span class="text-[10px] font-mono font-extrabold text-[#e31b23] uppercase tracking-widest block">Protected Survey Terminal</span>
-            <h3 class="text-lg font-black text-[#1a2b6c] dark:text-white truncate">
+            <h3 class="text-lg font-black text-[#1a2b6c] truncate">
               {selectedSurveyForPin ? selectedSurveyForPin.title : surveyTitle}
             </h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Enter your Admin-assigned Device Access PIN to unlock this form.</p>
+            <p class="text-xs text-slate-500">Enter your Admin-assigned Device Access PIN to unlock this form.</p>
           </div>
 
           <form on:submit|preventDefault={verifyFormPinAndLaunch} class="space-y-3">
@@ -253,7 +252,7 @@
               maxlength="6" 
               bind:value={enteredFormPin} 
               placeholder="Enter PIN (e.g. 9999)" 
-              class="w-full text-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-3 px-4 text-lg font-mono font-bold tracking-widest text-[#1a2b6c] dark:text-white focus:outline-none focus:border-[#e31b23]" 
+              class="w-full text-center bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-lg font-mono font-bold tracking-widest text-[#1a2b6c] focus:outline-none focus:border-[#e31b23]" 
             />
 
             {#if pinError}
@@ -274,13 +273,13 @@
 
     {#if !activeSurveyId || !surveyTitle || questions.length === 0}
       
-      <!-- SELECTION LAUNCHER MENU CARD -->
-      <div in:scale={{ duration: 300, start: 0.96 }} class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col justify-between my-auto">
+      <!-- SELECTION LAUNCHER MENU CARD (ALWAYS LIGHT MODE) -->
+      <div in:scale={{ duration: 300, start: 0.96 }} class="w-full bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col justify-between my-auto">
         
-        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
           <div class="flex items-center space-x-2">
             <div class="h-2.5 w-2.5 rounded-full bg-[#e31b23] animate-pulse"></div>
-            <span class="text-xs font-black font-mono tracking-widest text-[#1a2b6c] dark:text-cyan-400 uppercase">
+            <span class="text-xs font-black font-mono tracking-widest text-[#1a2b6c] uppercase">
               {surveyTitle || "FEEDBACK TERMINAL"}
             </span>
           </div>
@@ -295,14 +294,14 @@
         </div>
 
         <div class="text-center space-y-1 mb-4">
-          <h1 class="text-2xl font-black tracking-tight text-[#1a2b6c] dark:text-white">Select Survey Form</h1>
-          <p class="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+          <h1 class="text-2xl font-black tracking-tight text-[#1a2b6c]">Select Survey Form</h1>
+          <p class="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
             Choose an active form sequence below to launch Live Kiosk Mode.
           </p>
         </div>
 
         {#if surveys.length === 0}
-          <div class="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center text-xs text-slate-400 dark:text-slate-500 my-auto">
+          <div class="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center text-xs text-slate-400 my-auto">
             No active forms available in system storage. Please create a form first in the Form Designer.
           </div>
         {:else}
@@ -310,25 +309,25 @@
             {#each surveys.filter(s => !s.isDraft && !String(s._id).startsWith("DRAFT-")) as survey}
               <button
                 on:click={() => handlePromptSurveyPin(survey)}
-                class="text-left bg-slate-50 dark:bg-slate-950 hover:bg-white dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-[#e31b23] border-t-4 border-t-[#1a2b6c] rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between group active:scale-[0.98] shadow-xs hover:shadow-md space-y-4 cursor-pointer"
+                class="text-left bg-slate-50 hover:bg-white border border-slate-200 hover:border-[#e31b23] border-t-4 border-t-[#1a2b6c] rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between group active:scale-[0.98] shadow-xs hover:shadow-md space-y-4 cursor-pointer"
               >
                 <div class="space-y-1.5">
                   <div class="flex items-center justify-between">
-                    <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-800 px-2.5 py-0.5 rounded-full flex items-center space-x-1">
+                    <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full flex items-center space-x-1">
                       <span class="h-1.5 w-1.5 rounded-full inline-block animate-pulse shrink-0" style="background-color: #10b981 !important;"></span>
                       <span>LIVE READY</span>
                     </span>
-                    <span class="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-bold">
+                    <span class="text-[10px] font-mono text-slate-500 font-bold">
                       {survey.questions?.length || 0} Fields
                     </span>
                   </div>
-                  <h3 class="text-base font-bold text-[#1a2b6c] dark:text-white group-hover:text-[#e31b23] transition-colors truncate pt-1">
+                  <h3 class="text-base font-bold text-[#1a2b6c] group-hover:text-[#e31b23] transition-colors truncate pt-1">
                     {survey.title || "Untitled Form"}
                   </h3>
                 </div>
 
-                <div class="flex items-center justify-between pt-3 border-t border-slate-200/80 dark:border-slate-800">
-                  <span class="text-[11px] text-slate-600 dark:text-slate-400 font-semibold group-hover:text-slate-900 dark:group-hover:text-white transition-colors">PIN Protected</span>
+                <div class="flex items-center justify-between pt-3 border-t border-slate-200">
+                  <span class="text-[11px] text-slate-600 font-semibold group-hover:text-slate-900 transition-colors">PIN Protected</span>
                   <span class="text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition-all flex items-center space-x-1.5 group-hover:scale-105 bg-[#1a2b6c] group-hover:bg-[#e31b23] text-white" style="color: #ffffff !important; background-color: #1a2b6c !important;">
                     <span style="color: #ffffff !important; font-weight: 800 !important;">Enter PIN & Launch</span>
                     <span class="transform group-hover:translate-x-1 transition-transform" style="color: #ffffff !important;">➔</span>
@@ -339,7 +338,7 @@
           </div>
         {/if}
 
-        <div class="pt-4 mt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400 font-mono tracking-wider font-semibold">
+        <div class="pt-4 mt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-mono tracking-wider font-semibold">
           <span>🔒 Secure Enterprise Client Terminal</span>
           <span>Terminal Kiosk Mode</span>
         </div>
@@ -347,34 +346,34 @@
 
     {:else if isSubmitted}
       <!-- SUBMISSION CONFIRMATION -->
-      <div in:scale={{ duration: 400, start: 0.95 }} class="w-full max-w-xl mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-10 shadow-xl flex flex-col items-center justify-center text-center space-y-4 my-auto">
-        <div class="h-16 w-16 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm shrink-0">
+      <div in:scale={{ duration: 400, start: 0.95 }} class="w-full max-w-xl mx-auto bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-xl flex flex-col items-center justify-center text-center space-y-4 my-auto">
+        <div class="h-16 w-16 bg-emerald-100 border border-emerald-300 rounded-full flex items-center justify-center text-emerald-600 shadow-sm shrink-0">
           <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
         </div>
-        <h2 class="text-2xl sm:text-4xl font-black tracking-tight text-[#1a2b6c] dark:text-white">
+        <h2 class="text-2xl sm:text-4xl font-black tracking-tight text-[#1a2b6c]">
           Thank You!
         </h2>
-        <p class="text-xs sm:text-base text-slate-600 dark:text-slate-300 max-w-md leading-relaxed">
-          Your response has been securely registered under <span class="font-bold text-[#1a2b6c] dark:text-cyan-400">{deviceId}</span>. Resets in 
+        <p class="text-xs sm:text-base text-slate-600 max-w-md leading-relaxed">
+          Your response has been securely registered under <span class="font-bold text-[#1a2b6c]">{deviceId}</span>. Resets in 
           <span class="text-[#e31b23] font-mono font-bold text-base sm:text-lg px-1">{countdownSeconds}s</span>...
         </p>
       </div>
 
     {:else}
-      <!-- ACTIVE FORM FILLING CANVAS -->
-      <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col justify-between overflow-hidden box-border my-auto h-full">
+      <!-- ACTIVE FORM FILLING CANVAS (STRICTLY WHITE/LIGHT THEME) -->
+      <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="w-full bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col justify-between overflow-hidden box-border my-auto h-full">
         
         <div class="space-y-1 shrink-0 w-full">
           <div class="flex items-center justify-between text-[11px] font-mono font-bold">
-            <span class="text-rose-800 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 px-3 py-0.5 rounded-full">
+            <span class="text-rose-800 bg-rose-50 border border-rose-200 px-3 py-0.5 rounded-full">
               Question {currentQuestionIndex + 1} of {questions.length}
             </span>
-            <span class="text-slate-500 dark:text-slate-400 font-semibold">
+            <span class="text-slate-500 font-semibold">
               {Math.round(((currentQuestionIndex + 1) / questions.length) * 100)}% Completed
             </span>
           </div>
 
-          <div class="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+          <div class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
             <div 
               class="h-full bg-gradient-to-r from-[#1a2b6c] to-[#e31b23] transition-all duration-300 rounded-full"
               style="width: {((currentQuestionIndex + 1) / questions.length) * 100}%"
@@ -385,22 +384,22 @@
         <div class="text-center space-y-2 shrink-0 py-2">
           {#if currentQuestion.isRequired}
             <div class="flex items-center justify-center">
-              <span class="text-rose-600 dark:text-rose-400 font-bold text-[10px] bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 px-2.5 py-0.5 rounded-full">* Required Field</span>
+              <span class="text-rose-600 font-bold text-[10px] bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full">* Required Field</span>
             </div>
           {/if}
 
           {#if currentQuestion.questionImage}
-            <div class="max-h-56 sm:max-h-72 w-full max-w-2xl mx-auto rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 shadow-sm flex items-center justify-center p-2">
+            <div class="max-h-56 sm:max-h-72 w-full max-w-2xl mx-auto rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center p-2">
               <img src={currentQuestion.questionImage} alt={currentQuestion.questionText} class="w-full h-full object-contain rounded-xl" />
             </div>
           {/if}
 
-          <h1 class="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-[#1a2b6c] dark:text-white leading-tight px-2">
+          <h1 class="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-[#1a2b6c] leading-tight px-2">
             {currentQuestion.questionText}
           </h1>
 
           {#if validationError}
-            <div class="text-xs font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 px-3 py-1 rounded-xl inline-block animate-pulse">
+            <div class="text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1 rounded-xl inline-block animate-pulse">
               ⚠️ {validationError}
             </div>
           {/if}
@@ -413,11 +412,11 @@
               {#each satisfactionScale as option}
                 <button 
                   on:click={() => handleSelectOption(`${option.emoji} ${option.label}`)}
-                  class="flex flex-col items-center justify-center p-3.5 sm:p-5 rounded-2xl border transition-all duration-200 group active:scale-95 shadow-sm bg-slate-50 dark:bg-slate-950 cursor-pointer {option.color}">
+                  class="flex flex-col items-center justify-center p-3.5 sm:p-5 rounded-2xl border transition-all duration-200 group active:scale-95 shadow-sm bg-slate-50 cursor-pointer {option.color}">
                   <span class="text-4xl sm:text-5xl transform group-hover:scale-110 transition-transform duration-200 select-none filter drop-shadow-xs">
                     {option.emoji}
                   </span>
-                  <span class="mt-2 text-xs font-black tracking-widest uppercase font-mono text-slate-700 dark:text-slate-300">
+                  <span class="mt-2 text-xs font-black tracking-widest uppercase font-mono text-slate-700">
                     {option.label}
                   </span>
                 </button>
@@ -460,10 +459,10 @@
                           handleSelectOption(option);
                         }
                       }}
-                      class="w-full text-left bg-slate-50 dark:bg-slate-950 border rounded-2xl p-3.5 sm:p-4 transition-all shadow-sm active:scale-[0.98] flex flex-col justify-between group h-auto cursor-pointer {currentQuestion.allowMultiple && isSelected ? 'border-[#e31b23] bg-rose-50/50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-200 ring-2 ring-[#e31b23]/30' : 'border-slate-200 dark:border-slate-800 hover:border-[#e31b23] text-slate-800 dark:text-slate-100'}"
+                      class="w-full text-left bg-slate-50 border rounded-2xl p-3.5 sm:p-4 transition-all shadow-sm active:scale-[0.98] flex flex-col justify-between group h-auto cursor-pointer {currentQuestion.allowMultiple && isSelected ? 'border-[#e31b23] bg-rose-50 text-rose-900 ring-2 ring-[#e31b23]/30' : 'border-slate-200 hover:border-[#e31b23] text-slate-800'}"
                     >
                       {#if imgUrl}
-                        <div class="w-full h-28 sm:h-36 shrink-0 rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center p-1.5 shadow-inner mb-2">
+                        <div class="w-full h-28 sm:h-36 shrink-0 rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center p-1.5 shadow-inner mb-2">
                           <img src={imgUrl} alt={option} class="w-full h-full object-contain rounded-lg" />
                         </div>
                       {/if}
@@ -471,7 +470,7 @@
                       <div class="flex items-center justify-between w-full shrink-0 pt-1">
                         <span class="text-sm sm:text-base font-bold group-hover:text-[#e31b23] transition-colors truncate">{option}</span>
                         {#if currentQuestion.allowMultiple}
-                          <div class="w-5 h-5 rounded-md border flex items-center justify-center transition-all shrink-0 ml-1 {isSelected ? 'bg-[#e31b23] border-[#e31b23] text-white font-bold text-xs' : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900'}">
+                          <div class="w-5 h-5 rounded-md border flex items-center justify-center transition-all shrink-0 ml-1 {isSelected ? 'bg-[#e31b23] border-[#e31b23] text-white font-bold text-xs' : 'border-slate-300 bg-white'}">
                             {#if isSelected}✓{/if}
                           </div>
                         {:else}
@@ -501,7 +500,7 @@
                 bind:value={selectedValue}
                 on:input={() => (validationError = "")}
                 placeholder={currentQuestion.isRequired ? "Type your response here (Required)..." : "Type your response here..."}
-                class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[#1a2b6c] dark:text-white placeholder-slate-400 rounded-2xl p-4 text-base outline-none transition-all shadow-inner {validationError ? 'border-rose-500 focus:border-rose-400' : 'focus:border-[#e31b23] focus:ring-2 focus:ring-rose-500/20'}"
+                class="w-full bg-slate-50 border border-slate-200 text-[#1a2b6c] placeholder-slate-400 rounded-2xl p-4 text-base outline-none transition-all shadow-inner {validationError ? 'border-rose-500 focus:border-rose-400' : 'focus:border-[#e31b23] focus:ring-2 focus:ring-rose-500/20'}"
               />
               <button 
                 type="submit"
@@ -515,7 +514,7 @@
 
         </div>
 
-        <div class="pt-3 mt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400 font-mono tracking-wider font-semibold">
+        <div class="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-mono tracking-wider font-semibold">
           <span>🔒 Secure Enterprise Client Terminal</span>
           <span>Terminal Kiosk Mode</span>
         </div>
@@ -528,5 +527,4 @@
   .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
 </style>
