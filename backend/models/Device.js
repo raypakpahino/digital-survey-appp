@@ -8,7 +8,7 @@ const deviceSchema = new mongoose.Schema({
   pairingCode: {
     type: String,
     unique: true,
-    sparse: true // Allows it to be null once paired
+    sparse: true
   },
   status: {
     type: String,
@@ -19,7 +19,17 @@ const deviceSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Survey',
     default: null
+  },
+  loggedInUser: {
+    type: String,
+    default: 'Guest'
+  },
+  lastActive: {
+    type: Date,
+    default: Date.now
   }
 }, { timestamps: true });
 
-export default mongoose.model('Device', deviceSchema);
+const Device = mongoose.models.Device || mongoose.model('Device', deviceSchema);
+
+export default Device;

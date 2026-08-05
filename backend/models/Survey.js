@@ -9,7 +9,6 @@ const QuestionSchema = new mongoose.Schema({
   enableOptionImages: { type: Boolean, default: false },
   options: [{ type: String }],
   optionImages: { type: mongoose.Schema.Types.Mixed, default: {} },
-  // EXPLICIT SCHEMA FOR CONDITIONAL SKIP LOGIC
   skipLogic: {
     enabled: { type: Boolean, default: false },
     dependsOnIndex: { type: Number, default: 0 },
@@ -20,13 +19,13 @@ const QuestionSchema = new mongoose.Schema({
 const SurveySchema = new mongoose.Schema({
   title: { type: String, required: true, default: 'Untitled Digital Form Template' },
   isDraft: { type: Boolean, default: false },
+  pinCode: { type: String, default: '1234' }, // 4-digit PIN protection per form
   questions: [QuestionSchema]
 }, { 
   timestamps: true,
   strict: false
 });
 
-// Guard against model re-compilation in Node ESM
 const Survey = mongoose.models.Survey || mongoose.model('Survey', SurveySchema);
 
 export default Survey;
