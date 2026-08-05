@@ -3,26 +3,26 @@ import mongoose from 'mongoose';
 const deviceSchema = new mongoose.Schema({
   deviceName: {
     type: String,
-    required: true
-  },
-  pairingCode: {
-    type: String,
+    required: true,
     unique: true,
-    sparse: true
+    trim: true
+  },
+  accessPin: {
+    type: String,
+    default: '1234'
+  },
+  allowedFormTitle: {
+    type: String,
+    default: 'All Forms'
+  },
+  loggedInUser: {
+    type: String,
+    default: 'Operator'
   },
   status: {
     type: String,
     enum: ['pending', 'paired'],
-    default: 'pending'
-  },
-  pairedSurveyId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Survey',
-    default: null
-  },
-  loggedInUser: {
-    type: String,
-    default: 'Guest'
+    default: 'paired'
   },
   lastActive: {
     type: Date,

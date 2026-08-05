@@ -6,7 +6,6 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
-// Helper to sanitize incoming survey questions safely
 const sanitizeQuestions = (questions) => {
   if (!Array.isArray(questions)) return [];
   return questions.map((q) => ({
@@ -35,7 +34,6 @@ const sanitizeQuestions = (questions) => {
 // SURVEY ROUTES
 // ==========================================
 
-// 1. GET ALL SURVEYS
 router.get('/surveys', async (req, res) => {
   try {
     const surveys = await Survey.find({});
@@ -45,7 +43,6 @@ router.get('/surveys', async (req, res) => {
   }
 });
 
-// 2. CREATE A NEW SURVEY (WITH PIN CODE)
 router.post('/surveys', async (req, res) => {
   try {
     const { title, questions, pinCode } = req.body;
@@ -61,7 +58,6 @@ router.post('/surveys', async (req, res) => {
   }
 });
 
-// 3. UPDATE AN EXISTING SURVEY
 router.put('/surveys/:id', async (req, res) => {
   try {
     const { title, questions, pinCode } = req.body;
@@ -85,7 +81,6 @@ router.put('/surveys/:id', async (req, res) => {
   }
 });
 
-// 4. VERIFY SURVEY PIN CODE
 router.post('/surveys/:id/verify-pin', async (req, res) => {
   try {
     const { pinCode } = req.body;
@@ -102,7 +97,6 @@ router.post('/surveys/:id/verify-pin', async (req, res) => {
   }
 });
 
-// 5. DELETE A SURVEY
 router.delete('/surveys/:id', async (req, res) => {
   try {
     const surveyToDelete = await Survey.findById(req.params.id);
@@ -117,108 +111,75 @@ router.delete('/surveys/:id', async (req, res) => {
 });
 
 // ==========================================
-// DEVICE MANAGEMENT ROUTES
+// DEVICE MANAGEMENT ROUTES (3-SECTION STRUCTURE)
 // ==========================================
 
-// 6. GET ALL REGISTERED DEVICES
 router.get('/devices', async (req, res) => {
   try {
-    const devices = await Device.find({}).populate('pairedSurveyId').sort({ updatedAt: -1 });
+    const devices = await Device.find({}).sort({ updatedAt: -1 });
     res.json({ success: true, devices });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// 7. REGISTER / HEARTBEAT DEVICE SESSION
-router.post('/devices/heartbeat', async (req, res) => {
+router.post('/devices/register', async (req, res) => {
   try {
-    const { deviceName, loggedInUser, pairedSurveyId } = req.body;
+    const { deviceName, accessPin, allowedFormTitle, loggedInUser } = req.body;
     if (!deviceName) return res.status(400).json({ success: false, message: 'deviceName is required' });
 
-    const updatedDevice = await Device.findOneAndUpdate(
+    const device = await Device.findOneAndUpdate(
       { deviceName },
       {
         $set: {
           deviceName,
-          status: 'paired',
+          accessPin: accessPin || '1234',
+          allowedFormTitle: allowedFormTitle || 'All Forms',
           loggedInUser: loggedInUser || 'Operator',
-          pairedSurveyId: pairedSurveyId || null,
+          status: 'paired',
           lastActive: new Date()
         }
       },
       { upsert: true, new: true }
     );
 
-    res.json({ success: true, device: updatedDevice });
+    res.json({ success: true, device });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// 8. REVOKE DEVICE SESSION
 router.delete('/devices/:id', async (req, res) => {
   try {
     await Device.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: 'Device session revoked.' });
+    res.json({ success: true, message: 'Device removed successfully.' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
 // ==========================================
-// USER PROVISIONING & RESPONSE ROUTES
+// RESPONSES & USER ROUTES
 // ==========================================
 
-// 9. GET ALL USER ACCOUNTS (ADMIN ONLY)
-router.get('/users', async (req, res) => {
-  try {
-    const users = await User.find({}, '-password').sort({ createdAt: -1 });
-    res.json({ success: true, users });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// 10. CREATE PRE-MADE USER ACCOUNT
-router.post('/users', async (req, res) => {
-  try {
-    const { username, password, role } = req.body;
-    const existing = await User.findOne({ username: username.toLowerCase() });
-    if (existing) return res.status(400).json({ success: false, message: 'Username already exists.' });
-
-    const newUser = await User.create({ 
-      username: username.toLowerCase(), 
-      password, 
-      role: role || 'user' 
-    });
-
-    res.status(201).json({ 
-      success: true, 
-      user: { _id: newUser._id, username: newUser.username, role: newUser.role } 
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// 11. POST A NEW KIOSK RESPONSE
 router.post('/responses', async (req, res) => {
   try {
     const { surveyTitle, deviceId, answers } = req.body;
+    const cleanDeviceId = deviceId || 'Tablet-Unassigned';
+
     const newResponse = await Response.create({
       surveyTitle,
-      deviceId: deviceId || 'Tablet-Unassigned',
+      deviceId: cleanDeviceId,
       answers,
       timestamp: new Date().toISOString()
     });
+
     res.status(201).json({ success: true, response: newResponse });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// 12. GET ALL RESPONSES
 router.get('/responses', async (req, res) => {
   try {
     const responses = await Response.find({}).sort({ createdAt: -1 });
