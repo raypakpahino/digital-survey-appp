@@ -10,7 +10,7 @@
   let editingDeviceId = null;
   let inputDeviceName = "";
   let inputPin = "1234";
-  let selectedFormTitle = "All Forms";
+  let selectedForms = ["All Forms"]; // MULTI-SELECT ARRAY
   let formMessage = "";
   let formMessageType = "info";
 
@@ -34,11 +34,36 @@
     isLoading = false;
   }
 
+  function toggleFormSelection(title) {
+    if (title === "All Forms") {
+      selectedForms = ["All Forms"];
+      return;
+    }
+
+    selectedForms = selectedForms.filter(f => f !== "All Forms");
+
+    if (selectedForms.includes(title)) {
+      selectedForms = selectedForms.filter(f => f !== title);
+      if (selectedForms.length === 0) selectedForms = ["All Forms"];
+    } else {
+      selectedForms = [...selectedForms, title];
+    }
+  }
+
   function startEditDevice(dev) {
     editingDeviceId = dev._id;
     inputDeviceName = dev.deviceName;
     inputPin = dev.accessPin || "1234";
-    selectedFormTitle = dev.allowedFormTitle || "All Forms";
+    
+    // Parse single string or array from database
+    if (Array.isArray(dev.allowedFormTitle)) {
+      selectedForms = dev.allowedFormTitle.length > 0 ? dev.allowedFormTitle : ["All Forms"];
+    } else if (typeof dev.allowedFormTitle === 'string' && dev.allowedFormTitle.includes(',')) {
+      selectedForms = dev.allowedFormTitle.split(',').map(s => s.trim());
+    } else {
+      selectedForms = [dev.allowedFormTitle || "All Forms"];
+    }
+
     formMessage = `Editing '${dev.deviceName}'. Click 'Save Changes' to update rules.`;
     formMessageType = "info";
   }
@@ -47,7 +72,7 @@
     editingDeviceId = null;
     inputDeviceName = "";
     inputPin = "1234";
-    selectedFormTitle = availableSurveys.length > 0 ? availableSurveys[0].title : "All Forms";
+    selectedForms = ["All Forms"];
     formMessage = "";
   }
 
@@ -65,6 +90,8 @@
       return;
     }
 
+    const payloadForms = selectedForms.length > 0 ? selectedForms : ["All Forms"];
+
     try {
       let res, data;
       if (editingDeviceId) {
@@ -74,7 +101,7 @@
           body: JSON.stringify({
             deviceName: inputDeviceName.trim(),
             accessPin: inputPin.trim(),
-            allowedFormTitle: selectedFormTitle
+            allowedFormTitle: payloadForms
           })
         });
       } else {
@@ -84,7 +111,7 @@
           body: JSON.stringify({
             deviceName: inputDeviceName.trim(),
             accessPin: inputPin.trim(),
-            allowedFormTitle: selectedFormTitle || "All Forms",
+            allowedFormTitle: payloadForms,
             loggedInUser: currentUser?.username || "Admin"
           })
         });
@@ -116,6 +143,15 @@
     }
   }
 
+  function formatFormDisplay(allowedForms) {
+    if (!allowedForms) return "All Forms";
+    if (Array.isArray(allowedForms)) {
+      if (allowedForms.length === 0 || allowedForms.includes("All Forms")) return "All Forms";
+      return allowedForms.join(", ");
+    }
+    return allowedForms;
+  }
+
   onMount(() => {
     loadData();
     const interval = setInterval(loadData, 10000);
@@ -143,10 +179,10 @@
     </button>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
     
-    <!-- LEFT PANEL: REGISTER / EDIT DEVICE CARD -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5 h-fit">
+    <!-- LEFT PANEL: FIXED/STICKY FORM CARD -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5 lg:sticky lg:top-6 h-fit z-10">
       <div class="flex items-center justify-between">
         <div class="space-y-1">
           <span class="text-[10px] font-mono font-extrabold text-[#e31b23] dark:text-rose-400 uppercase tracking-widest block">
@@ -193,19 +229,34 @@
           />
         </div>
 
-        <!-- 3. FORMS TO ACCESS SELECTOR -->
-        <div class="space-y-1">
-          <label for="dev-form-select" class="text-[10px] font-mono font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">3. Authorized Form Access</label>
-          <select 
-            id="dev-form-select"
-            bind:value={selectedFormTitle} 
-            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-[#1a2b6c] dark:text-white rounded-xl p-3 font-bold focus:outline-none focus:border-[#e31b23] focus:ring-2 focus:ring-[#e31b23]/20 transition-all cursor-pointer"
-          >
-            <option value="All Forms">All Available Forms</option>
+        <!-- 3. AUTHORIZED FORM ACCESS MULTI-SELECT CHECKBOXES -->
+        <div class="space-y-2">
+          <span class="text-[10px] font-mono font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">3. Authorized Form Access (Multi-Select)</span>
+          
+          <div class="max-h-48 overflow-y-auto space-y-1.5 p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl custom-scrollbar">
+            <!-- ALL FORMS OPTION -->
+            <button 
+              type="button"
+              on:click={() => toggleFormSelection("All Forms")}
+              class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-between cursor-pointer {selectedForms.includes('All Forms') ? 'bg-[#1a2b6c] text-white' : 'hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'}"
+            >
+              <span>All Available Forms</span>
+              {#if selectedForms.includes('All Forms')}<span>✓</span>{/if}
+            </button>
+
+            <!-- INDIVIDUAL SURVEY CHECKBOXES -->
             {#each availableSurveys as s}
-              <option value={s.title}>{s.title}</option>
+              {@const isSelected = selectedForms.includes(s.title)}
+              <button 
+                type="button"
+                on:click={() => toggleFormSelection(s.title)}
+                class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-between cursor-pointer {isSelected ? 'bg-[#1a2b6c] text-white' : 'hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'}"
+              >
+                <span class="truncate pr-2">{s.title}</span>
+                {#if isSelected}<span>✓</span>{/if}
+              </button>
             {/each}
-          </select>
+          </div>
         </div>
 
         <button 
@@ -223,7 +274,7 @@
       </form>
     </div>
 
-    <!-- RIGHT PANEL: DEVICE TABLE (SYNCS FULL LIST FROM RESPONSES) -->
+    <!-- RIGHT PANEL: SCROLLABLE DEVICE TABLE -->
     <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
         <h3 class="text-xs font-mono font-extrabold text-[#1a2b6c] dark:text-cyan-400 uppercase tracking-wider">Registered Device Roster</h3>
@@ -265,10 +316,11 @@
                     </span>
                   </td>
 
-                  <!-- 3. AUTHORIZED FORMS BADGE -->
+                  <!-- 3. AUTHORIZED FORMS (MULTI-SELECT DISPLAY) -->
                   <td class="py-3.5 px-3 font-bold">
-                    <span class="px-3 py-1 rounded-md border text-[11px] font-black {dev.allowedFormTitle === 'All Forms' || !dev.allowedFormTitle ? 'bg-cyan-50 dark:bg-cyan-950/60 border-cyan-200 dark:border-cyan-800/60 text-[#1a2b6c] dark:text-cyan-300' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'}">
-                      {dev.allowedFormTitle || 'All Forms'}
+                    {@const formatted = formatFormDisplay(dev.allowedFormTitle)}
+                    <span class="px-3 py-1 rounded-md border text-[11px] font-black inline-block max-w-[220px] truncate {formatted === 'All Forms' ? 'bg-cyan-50 dark:bg-cyan-950/60 border-cyan-200 dark:border-cyan-800/60 text-[#1a2b6c] dark:text-cyan-300' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'}" title={formatted}>
+                      {formatted}
                     </span>
                   </td>
 

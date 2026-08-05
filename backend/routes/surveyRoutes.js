@@ -81,6 +81,7 @@ router.put('/surveys/:id', async (req, res) => {
   }
 });
 
+// MULTI-FORM PIN VERIFICATION ROUTE
 router.post('/surveys/:id/verify-pin', async (req, res) => {
   try {
     const { pinCode } = req.body;
@@ -90,10 +91,21 @@ router.post('/surveys/:id/verify-pin', async (req, res) => {
     const matchedDevice = await Device.findOne({ accessPin: pinCode });
 
     if (matchedDevice) {
-      if (matchedDevice.allowedFormTitle !== 'All Forms' && matchedDevice.allowedFormTitle !== survey.title) {
+      let allowed = matchedDevice.allowedFormTitle;
+      let isAllowed = false;
+
+      if (!allowed || allowed === 'All Forms' || (Array.isArray(allowed) && allowed.includes('All Forms'))) {
+        isAllowed = true;
+      } else if (Array.isArray(allowed)) {
+        isAllowed = allowed.includes(survey.title);
+      } else if (typeof allowed === 'string') {
+        isAllowed = allowed === survey.title || allowed.includes(survey.title);
+      }
+
+      if (!isAllowed) {
         return res.status(403).json({ 
           success: false, 
-          message: `This PIN belongs to '${matchedDevice.deviceName}', authorized only for form '${matchedDevice.allowedFormTitle}'.` 
+          message: `This PIN belongs to '${matchedDevice.deviceName}', but is not authorized for form '${survey.title}'.` 
         });
       }
 
@@ -160,7 +172,7 @@ router.post('/devices/register', async (req, res) => {
         $set: {
           deviceName: cleanName,
           accessPin: accessPin || '1234',
-          allowedFormTitle: allowedFormTitle || 'All Forms',
+          allowedFormTitle: allowedFormTitle || ['All Forms'],
           loggedInUser: loggedInUser || 'Operator',
           status: 'paired',
           lastActive: new Date()
@@ -205,12 +217,10 @@ router.put('/devices/:id', async (req, res) => {
   }
 });
 
-// PERMANENT DELETE ROUTE: Clears linked responses so device won't auto-recreate
 router.delete('/devices/:id', async (req, res) => {
   try {
     const deviceToDelete = await Device.findById(req.params.id);
     if (deviceToDelete) {
-      // Re-assign linked responses to 'Unassigned' or remove deviceId link
       await Response.updateMany(
         { deviceId: deviceToDelete.deviceName },
         { $set: { deviceId: 'Tablet-Unassigned' } }
