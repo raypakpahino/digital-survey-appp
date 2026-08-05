@@ -7,7 +7,6 @@
   let availableSurveys = [];
   let isLoading = false;
 
-  // NEW/EDIT DEVICE ENTRY FORM STATE
   let editingDeviceId = null;
   let inputDeviceName = "";
   let inputPin = "1234";
@@ -224,7 +223,7 @@
       </form>
     </div>
 
-    <!-- RIGHT PANEL: DEVICE TABLE -->
+    <!-- RIGHT PANEL: DEVICE TABLE (SYNCS FULL LIST FROM RESPONSES) -->
     <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
         <h3 class="text-xs font-mono font-extrabold text-[#1a2b6c] dark:text-cyan-400 uppercase tracking-wider">Registered Device Roster</h3>
@@ -259,7 +258,7 @@
                     </div>
                   </td>
 
-                  <!-- 2. ACCESS PIN BADGE (STATIC CLEAN DISPLAY) -->
+                  <!-- 2. ACCESS PIN BADGE -->
                   <td class="py-3.5 px-3">
                     <span class="bg-rose-50 dark:bg-rose-950/60 text-[#e31b23] dark:text-rose-400 px-3 py-1 rounded-md font-mono font-black tracking-widest border border-rose-200 dark:border-rose-900/60 inline-block">
                       {dev.accessPin || dev.pinCode || '1234'}
@@ -273,7 +272,7 @@
                     </span>
                   </td>
 
-                  <!-- EDIT RULE AND DELETE ACTIONS -->
+                  <!-- ACTIONS -->
                   <td class="py-3.5 px-3 text-right">
                     <div class="flex items-center justify-end space-x-2">
                       <button 

@@ -135,12 +135,37 @@ router.delete('/surveys/:id', async (req, res) => {
 });
 
 // ==========================================
-// DEVICE MANAGEMENT ROUTES (WITH CASCADE RENAME TO RESPONSES)
+// DEVICE MANAGEMENT ROUTES (AUTO-SYNC FROM RESPONSES)
 // ==========================================
 
+// AUTO-SYNC ENDPOINT: Populates missing response devices into Device Management
 router.get('/devices', async (req, res) => {
   try {
-    const devices = await Device.find({}).sort({ updatedAt: -1 });
+    // 1. Fetch all existing devices
+    let devices = await Device.find({}).sort({ updatedAt: -1 });
+    const registeredNames = new Set(devices.map(d => d.deviceName));
+
+    // 2. Fetch distinct device names from submission responses
+    const responseDeviceNames = await Response.distinct('deviceId');
+
+    // 3. Register any historical devices that aren't in Device Management yet
+    const missingNames = responseDeviceNames.filter(name => name && !registeredNames.has(name));
+
+    if (missingNames.length > 0) {
+      const newDevicesDocs = missingNames.map(name => ({
+        deviceName: name.trim(),
+        accessPin: '1234',
+        allowedFormTitle: 'All Forms',
+        loggedInUser: 'Operator',
+        status: 'paired',
+        lastActive: new Date()
+      }));
+
+      await Device.insertMany(newDevicesDocs);
+      // Re-fetch full device roster after insert
+      devices = await Device.find({}).sort({ updatedAt: -1 });
+    }
+
     res.json({ success: true, devices });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -220,29 +245,6 @@ router.delete('/devices/:id', async (req, res) => {
 // ==========================================
 // RESPONSES & USER ROUTES
 // ==========================================
-
-router.post('/responses/rename-device', async (req, res) => {
-  try {
-    const { oldDeviceId, newDeviceId } = req.body;
-    if (!oldDeviceId || !newDeviceId) {
-      return res.status(400).json({ success: false, message: "oldDeviceId and newDeviceId required." });
-    }
-
-    await Response.updateMany(
-      { deviceId: oldDeviceId },
-      { $set: { deviceId: newDeviceId.trim() } }
-    );
-
-    await Device.findOneAndUpdate(
-      { deviceName: oldDeviceId },
-      { $set: { deviceName: newDeviceId.trim() } }
-    );
-
-    res.json({ success: true, message: `Renamed device from '${oldDeviceId}' to '${newDeviceId.trim()}'.` });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 
 router.post('/responses', async (req, res) => {
   try {
