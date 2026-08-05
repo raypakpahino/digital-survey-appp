@@ -10,11 +10,50 @@
   let editingDeviceId = null;
   let inputDeviceName = "";
   let inputPin = "1234";
-  let selectedForms = ["All Forms"]; // MULTI-SELECT ARRAY
+  let selectedForms = ["All Forms"];
   let formMessage = "";
   let formMessageType = "info";
 
+  // DRAGGABLE RESIZER STATE
+  let leftPanelWidth = 360;
+  let isResizing = false;
+
   const API_BASE = "/api";
+
+  function startResizing(event) {
+    event.preventDefault();
+    isResizing = true;
+    
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "col-resize";
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", stopResizing);
+  }
+
+  function handleMouseMove(event) {
+    if (!isResizing) return;
+    
+    const minWidth = 280;
+    const maxWidth = 550;
+    const containerOffset = 280; // Accounting for sidebar/padding
+    const newWidth = event.clientX - containerOffset;
+
+    if (newWidth >= minWidth && newWidth <= maxWidth) {
+      leftPanelWidth = newWidth;
+    }
+  }
+
+  function stopResizing() {
+    if (!isResizing) return;
+    isResizing = false;
+
+    document.body.style.userSelect = "";
+    document.body.style.cursor = "";
+
+    window.removeEventListener("mousemove", handleMouseMove);
+    window.removeEventListener("mouseup", stopResizing);
+  }
 
   async function loadData() {
     isLoading = true;
@@ -55,7 +94,6 @@
     inputDeviceName = dev.deviceName;
     inputPin = dev.accessPin || "1234";
     
-    // Parse single string or array from database
     if (Array.isArray(dev.allowedFormTitle)) {
       selectedForms = dev.allowedFormTitle.length > 0 ? dev.allowedFormTitle : ["All Forms"];
     } else if (typeof dev.allowedFormTitle === 'string' && dev.allowedFormTitle.includes(',')) {
@@ -159,7 +197,7 @@
   });
 </script>
 
-<div class="w-full space-y-8 animate-fade pb-12 box-border">
+<div class="w-full space-y-8 animate-fade pb-12 box-border relative overflow-visible">
   <!-- TOP HEADER -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-5 gap-4">
     <div>
@@ -179,10 +217,14 @@
     </button>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+  <!-- FLEX LAYOUT WITH RESIZABLE & STICKY LEFT PANEL -->
+  <div class="flex flex-col lg:flex-row items-start gap-0 relative overflow-visible w-full">
     
-    <!-- LEFT PANEL: FIXED/STICKY FORM CARD -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5 lg:sticky lg:top-6 h-fit z-10">
+    <!-- LEFT PANEL: FIXED / STICKY ADD/UPDATE FORM CARD -->
+    <div 
+      class="w-full shrink-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5 lg:sticky lg:top-6 z-20"
+      style="width: {leftPanelWidth}px;"
+    >
       <div class="flex items-center justify-between">
         <div class="space-y-1">
           <span class="text-[10px] font-mono font-extrabold text-[#e31b23] dark:text-rose-400 uppercase tracking-widest block">
@@ -233,8 +275,7 @@
         <div class="space-y-2">
           <span class="text-[10px] font-mono font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">3. Authorized Form Access (Multi-Select)</span>
           
-          <div class="max-h-48 overflow-y-auto space-y-1.5 p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl custom-scrollbar">
-            <!-- ALL FORMS OPTION -->
+          <div class="max-h-44 overflow-y-auto space-y-1.5 p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl custom-scrollbar">
             <button 
               type="button"
               on:click={() => toggleFormSelection("All Forms")}
@@ -244,7 +285,6 @@
               {#if selectedForms.includes('All Forms')}<span>✓</span>{/if}
             </button>
 
-            <!-- INDIVIDUAL SURVEY CHECKBOXES -->
             {#each availableSurveys as s}
               {@const isSelected = selectedForms.includes(s.title)}
               <button 
@@ -274,8 +314,17 @@
       </form>
     </div>
 
+    <!-- DRAGGABLE RESIZER HANDLE -->
+    <div
+      on:mousedown={startResizing}
+      class="hidden lg:flex w-5 cursor-col-resize items-center justify-center shrink-0 group transition-colors z-30 self-stretch my-auto py-12"
+      title="Drag left/right to resize sections"
+    >
+      <div class="w-1.5 h-24 rounded-full bg-slate-300 dark:bg-slate-700 group-hover:bg-[#e31b23] group-hover:shadow-md transition-all"></div>
+    </div>
+
     <!-- RIGHT PANEL: SCROLLABLE DEVICE TABLE -->
-    <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+    <div class="flex-1 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4 min-w-0">
       <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
         <h3 class="text-xs font-mono font-extrabold text-[#1a2b6c] dark:text-cyan-400 uppercase tracking-wider">Registered Device Roster</h3>
         <span class="text-xs font-mono font-bold text-slate-500 dark:text-slate-400">{devices.length} Total Registered</span>
