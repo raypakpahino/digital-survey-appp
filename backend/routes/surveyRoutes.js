@@ -135,37 +135,12 @@ router.delete('/surveys/:id', async (req, res) => {
 });
 
 // ==========================================
-// DEVICE MANAGEMENT ROUTES (AUTO-SYNC FROM RESPONSES)
+// DEVICE MANAGEMENT ROUTES
 // ==========================================
 
-// AUTO-SYNC ENDPOINT: Populates missing response devices into Device Management
 router.get('/devices', async (req, res) => {
   try {
-    // 1. Fetch all existing devices
-    let devices = await Device.find({}).sort({ updatedAt: -1 });
-    const registeredNames = new Set(devices.map(d => d.deviceName));
-
-    // 2. Fetch distinct device names from submission responses
-    const responseDeviceNames = await Response.distinct('deviceId');
-
-    // 3. Register any historical devices that aren't in Device Management yet
-    const missingNames = responseDeviceNames.filter(name => name && !registeredNames.has(name));
-
-    if (missingNames.length > 0) {
-      const newDevicesDocs = missingNames.map(name => ({
-        deviceName: name.trim(),
-        accessPin: '1234',
-        allowedFormTitle: 'All Forms',
-        loggedInUser: 'Operator',
-        status: 'paired',
-        lastActive: new Date()
-      }));
-
-      await Device.insertMany(newDevicesDocs);
-      // Re-fetch full device roster after insert
-      devices = await Device.find({}).sort({ updatedAt: -1 });
-    }
-
+    const devices = await Device.find({}).sort({ updatedAt: -1 });
     res.json({ success: true, devices });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -200,7 +175,6 @@ router.post('/devices/register', async (req, res) => {
   }
 });
 
-// UPDATE DEVICE & RENAME MATCHING RESPONSES IN MONGODB
 router.put('/devices/:id', async (req, res) => {
   try {
     const { accessPin, allowedFormTitle, deviceName } = req.body;
@@ -213,13 +187,11 @@ router.put('/devices/:id', async (req, res) => {
     const oldName = existingDevice.deviceName;
     const newName = deviceName ? deviceName.trim() : oldName;
 
-    // Update Device Document
     existingDevice.deviceName = newName;
     if (accessPin) existingDevice.accessPin = accessPin.trim();
     if (allowedFormTitle) existingDevice.allowedFormTitle = allowedFormTitle;
     await existingDevice.save();
 
-    // Cascade rename to all existing responses in the database
     if (oldName !== newName) {
       await Response.updateMany(
         { deviceId: oldName },
@@ -233,10 +205,19 @@ router.put('/devices/:id', async (req, res) => {
   }
 });
 
+// PERMANENT DELETE ROUTE: Clears linked responses so device won't auto-recreate
 router.delete('/devices/:id', async (req, res) => {
   try {
-    await Device.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: 'Device removed successfully.' });
+    const deviceToDelete = await Device.findById(req.params.id);
+    if (deviceToDelete) {
+      // Re-assign linked responses to 'Unassigned' or remove deviceId link
+      await Response.updateMany(
+        { deviceId: deviceToDelete.deviceName },
+        { $set: { deviceId: 'Tablet-Unassigned' } }
+      );
+      await Device.findByIdAndDelete(req.params.id);
+    }
+    res.json({ success: true, message: 'Device permanently removed.' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
