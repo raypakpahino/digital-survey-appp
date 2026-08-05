@@ -211,11 +211,13 @@
             <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs font-mono">
               {#each devices as dev (dev._id || dev.deviceName)}
                 <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                  <!-- 1. DEVICE NAME (EXPLICIT HIGH CONTRAST DARK NAVY IN LIGHT MODE, BRIGHT WHITE IN DARK MODE) -->
-                  <td class="py-3.5 px-3 font-bold text-[#1a2b6c] dark:text-white">
+                  <!-- 1. DEVICE NAME (FORCED INLINE HIGH-CONTRAST DARK COLOR IN LIGHT MODE) -->
+                  <td class="py-3.5 px-3 font-bold">
                     <div class="flex items-center space-x-2">
                       <span class="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
-                      <span class="truncate max-w-[180px] text-[#1a2b6c] dark:text-white font-black">{dev.deviceName}</span>
+                      <span class="truncate max-w-[180px] font-black text-slate-900 dark:text-white" style="color: var(--dev-name-color, #0f172a);">
+                        {dev.deviceName}
+                      </span>
                     </div>
                   </td>
 
@@ -233,12 +235,12 @@
                     </span>
                   </td>
 
-                  <!-- DELETE BUTTON WITH ACTIVE CLICK & HOVER EFFECTS -->
+                  <!-- DELETE BUTTON -->
                   <td class="py-3.5 px-3 text-right">
                     <button 
                       on:click={() => handleDeleteDevice(dev._id)}
                       class="text-xs bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white px-3.5 py-1.5 rounded-xl font-extrabold transition-all duration-150 shadow-xs hover:shadow-md active:scale-95 cursor-pointer border border-transparent"
-                      style="color: #ffffff !important;"
+                      style="color: #ffffff !important; background-color: #e11d48 !important;"
                     >
                       <span style="color: #ffffff !important; font-weight: 800 !important;">Delete</span>
                     </button>
@@ -255,6 +257,9 @@
 </div>
 
 <style>
+  :global(.dark) {
+    --dev-name-color: #ffffff;
+  }
   .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
