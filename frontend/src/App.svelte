@@ -407,7 +407,7 @@
               <div class="flex items-center space-x-3 overflow-hidden">
                 <button
                   on:click={() => (isSidebarExpanded = !isSidebarExpanded)}
-                  class="p-2.5 rounded-xl text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 transition-all flex items-center justify-center focus:outline-none active:scale-95 shadow-sm shrink-0"
+                  class="p-2.5 rounded-xl text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 transition-all flex items-center justify-center focus:outline-none active:scale-95 shadow-sm shrink-0 cursor-pointer"
                   title={isSidebarExpanded ? "Collapse to Icon Rail" : "Expand Sidebar"}
                 >
                   <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
@@ -426,12 +426,12 @@
               </div>
             </div>
 
-            <!-- NAVIGATION ITEMS (5 SUB-MENUS) -->
+            <!-- NAVIGATION ITEMS (5 SUB-MENUS WITH HIGH-CONTRAST LABELS) -->
             <nav class="p-3 space-y-2">
               {#if currentUser?.role === "admin"}
                 <!-- 1. SURVEYS PORTAL -->
                 <button
-                  class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'surveys' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
+                  class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'surveys' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={async () => {
                     switchTab("surveys");
                     await refreshDataLedger();
@@ -448,7 +448,7 @@
 
                 <!-- 2. FORM DESIGNER -->
                 <button
-                  class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'builder' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
+                  class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'builder' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={() => switchTab("builder")}
                   disabled={surveysList.length === 0}
                   title="Form Designer"
@@ -464,10 +464,8 @@
 
               <!-- 3. LIVE KIOSK MODE -->
               <button
-                class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'kiosk' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
-                on:click={() => {
-                  switchTab("kiosk");
-                }}
+                class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'kiosk' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
+                on:click={() => switchTab("kiosk")}
                 title="Live Kiosk Mode"
               >
                 <svg class="w-5 h-5 shrink-0 fill-current" viewBox="0 0 24 24">
@@ -480,7 +478,7 @@
 
               <!-- 4. ANSWERS LOG -->
               <button
-                class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'answers' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
+                class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'answers' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                 on:click={async () => {
                   switchTab("answers");
                   await refreshDataLedger();
@@ -495,10 +493,10 @@
                 {/if}
               </button>
 
-              <!-- 5. DEVICE MANAGEMENT (NEW 5TH TAB - ADMIN ONLY) -->
+              <!-- 5. DEVICE MANAGEMENT -->
               {#if currentUser?.role === "admin"}
                 <button
-                  class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all {activeTab === 'devices' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
+                  class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'devices' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={() => switchTab("devices")}
                   title="Device Management"
                 >
@@ -515,7 +513,7 @@
           </div>
 
           {#if isSidebarExpanded}
-            <div class="p-4 theme-border border-t bg-black/10 text-[11px] text-slate-400 font-medium tracking-wide flex items-center justify-between">
+            <div class="p-4 theme-border border-t bg-black/10 text-[11px] text-slate-300 font-medium tracking-wide flex items-center justify-between">
               <span class="truncate">Target: <strong class="text-white">{activeSurvey?.title || "None"}</strong></span>
             </div>
           {:else}
@@ -531,7 +529,7 @@
     <!-- MAIN BODY CANVAS -->
     <div class="flex-1 flex flex-col h-full min-w-0 max-w-full overflow-hidden relative">
       
-      <!-- STICKY TOP NAVIGATION BAR -->
+      <!-- STICKY TOP NAVIGATION BAR WITH DYNAMIC HIGH-CONTRAST LABELS -->
       {#if !isDedicatedKioskMode}
         <header class="sticky top-0 z-30 w-full h-16 theme-bg-card theme-border border-b flex items-center justify-between px-4 sm:px-6 shrink-0 box-border transition-colors duration-300 theme-shadow">
           <div class="flex items-center space-x-3 min-w-0">
@@ -565,14 +563,17 @@
             {#if currentUser}
               <div class="flex items-center space-x-2 theme-bg-inner theme-border border px-3 py-1.5 rounded-xl text-xs font-mono shadow-inner">
                 <span class="theme-text-secondary truncate">User: <strong class="theme-text-primary">{currentUser.username}</strong></span>
-                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase shrink-0 {currentUser.role === 'admin' ? 'bg-[#1a2b6c]/20 text-[#1a2b6c] dark:text-cyan-400 border border-[#1a2b6c]/30' : 'theme-bg-card theme-text-secondary'}">
+                <span 
+                  class="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase shrink-0"
+                  style={currentUser.role === 'admin' ? 'background-color: #1a2b6c !important; color: #ffffff !important;' : 'background-color: #e2e8f0 !important; color: #1e293b !important;'}
+                >
                   {currentUser.role}
                 </span>
               </div>
 
               <button
                 on:click={handleLogout}
-                class="text-xs text-rose-500 hover:text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 px-3.5 py-1.5 rounded-xl font-bold transition-all active:scale-95 shadow-sm flex items-center space-x-1 shrink-0"
+                class="text-xs text-rose-500 hover:text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 px-3.5 py-1.5 rounded-xl font-extrabold transition-all active:scale-95 shadow-sm flex items-center space-x-1 shrink-0 cursor-pointer"
               >
                 <span>Sign Out</span>
                 <span class="text-sm">➔</span>
@@ -657,7 +658,7 @@
         in:scale={{ duration: 250, start: 0.95 }}
         class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-sm rounded-3xl p-6 sm:p-8 text-center space-y-6 shadow-2xl relative overflow-hidden"
       >
-        <button on:click={handleCloseShareModal} class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 h-8 w-8 rounded-full flex items-center justify-center text-xs transition-all active:scale-95">
+        <button on:click={handleCloseShareModal} class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 h-8 w-8 rounded-full flex items-center justify-center text-xs transition-all active:scale-95 cursor-pointer">
           ✕
         </button>
 
@@ -681,7 +682,7 @@
         <div class="pt-2 border-t border-slate-100 dark:border-slate-800/60">
           <button 
             on:click={() => copyKioskLink(activeShareSurvey._id)} 
-            class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] font-bold py-3.5 px-4 text-xs rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center space-x-2"
+            class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] font-bold py-3.5 px-4 text-xs rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center space-x-2 cursor-pointer"
             style="color: #ffffff !important; font-weight: 700 !important; background-color: #1a2b6c !important;"
           >
             <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" style="fill: #ffffff !important;">

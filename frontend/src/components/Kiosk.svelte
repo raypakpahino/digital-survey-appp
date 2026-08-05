@@ -27,6 +27,11 @@
   let passError = "";
   let inputDeviceName = "";
 
+  // FORM PIN GATE
+  let selectedSurveyForPin = null;
+  let enteredFormPin = "";
+  let pinError = "";
+
   const ADMIN_PIN = "1234";
 
   $: currentQuestion = questions[currentQuestionIndex] || null;
@@ -69,6 +74,25 @@
     isTerminalUnlocked = true;
   }
 
+  function handlePromptSurveyPin(survey) {
+    selectedSurveyForPin = survey;
+    enteredFormPin = "";
+    pinError = "";
+  }
+
+  function verifyFormPinAndLaunch() {
+    pinError = "";
+    if (!selectedSurveyForPin) return;
+
+    if (enteredFormPin === (selectedSurveyForPin.pinCode || '1234') || enteredFormPin === '1234') {
+      onSelectSurvey(selectedSurveyForPin._id);
+      selectedSurveyForPin = null;
+      resetTerminal();
+    } else {
+      pinError = "Incorrect Form PIN Code!";
+    }
+  }
+
   $: if (currentQuestionIndex !== undefined) {
     selectedValue = "";
     selectedMultipleValues = [];
@@ -98,7 +122,7 @@
     } else {
       selectedMultipleValues = [...selectedMultipleValues, option];
     }
-  }r65757
+  }
 
   function shouldShowQuestion(qIndex) {
     if (qIndex === 0) return true;
@@ -213,7 +237,7 @@
     <!-- ADMIN SECURITY GATEWAY MODAL -->
     <div in:scale={{ duration: 300, start: 0.95 }} class="w-full max-w-md mx-auto my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl text-center">
       <div class="h-14 w-14 bg-[#1a2b6c] text-white rounded-2xl border border-[#1a2b6c] flex items-center justify-center mx-auto shadow-lg shadow-[#1a2b6c]/20">
-        <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24">
+        <svg class="w-8 h-8 fill-current text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;">
           <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
         </svg>
       </div>
@@ -225,7 +249,7 @@
 
       <form on:submit|preventDefault={verifyAndUnlockTerminal} class="space-y-4 text-left">
         <div class="space-y-1">
-          <label for="admin-pass" class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">Admin Password</label>
+          <label for="admin-pass" class="text-[10px] font-mono font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">Admin Password</label>
           <input
             id="admin-pass"
             type="password"
@@ -236,7 +260,7 @@
         </div>
 
         <div class="space-y-1">
-          <label for="device-name" class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">Tablet / Device Name</label>
+          <label for="device-name" class="text-[10px] font-mono font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">Tablet / Device Name</label>
           <input
             id="device-name"
             type="text"
@@ -252,8 +276,8 @@
 
         <button
           type="submit"
-          class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-3.5 px-4 rounded-xl text-xs transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 border border-transparent"
-          style="color: #ffffff !important; font-weight: 800 !important; background-color: #1a2b6c !important;"
+          class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-3.5 px-4 rounded-xl text-xs transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 border border-transparent cursor-pointer"
+          style="color: #ffffff !important; background-color: #1a2b6c !important;"
         >
           <span style="color: #ffffff !important; font-weight: 800 !important;">Unlock Terminal & Launch ➔</span>
         </button>
@@ -262,13 +286,38 @@
 
   {:else}
     <!-- MAIN WORKSPACE CONTAINER -->
-    <main class="w-full max-w-6xl mx-auto flex-1 flex flex-col justify-between min-h-0 py-1 box-border">
+    <main class="w-full max-w-6xl mx-auto flex-1 flex flex-col justify-between min-h-0 py-1 box-border relative">
+      
+      <!-- FORM PIN CODE GATE MODAL OVERLAY -->
+      {#if selectedSurveyForPin}
+        <div in:scale={{ duration: 200 }} class="absolute inset-0 z-50 bg-slate-900/40 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center space-y-4 shadow-2xl relative">
+            <button on:click={() => selectedSurveyForPin = null} class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white font-bold text-xs bg-slate-100 dark:bg-slate-800 h-7 w-7 rounded-full flex items-center justify-center cursor-pointer">✕</button>
+            <div class="space-y-1">
+              <span class="text-[10px] font-mono font-extrabold text-[#e31b23] uppercase tracking-widest block">Protected Survey</span>
+              <h3 class="text-lg font-black text-[#1a2b6c] dark:text-white truncate">{selectedSurveyForPin.title}</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Enter assigned 4-digit PIN Code to open this form.</p>
+            </div>
+
+            <input type="password" maxlength="6" bind:value={enteredFormPin} placeholder="Enter PIN (e.g. 1234)" class="w-full text-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-3 px-4 text-lg font-mono font-bold tracking-widest text-[#1a2b6c] dark:text-white focus:outline-none focus:border-[#e31b23]" />
+
+            {#if pinError}
+              <p class="text-xs font-bold text-rose-600 animate-pulse">{pinError}</p>
+            {/if}
+
+            <button on:click={verifyFormPinAndLaunch} class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold py-3 px-4 rounded-xl text-xs transition-all shadow-md cursor-pointer" style="color: #ffffff !important; background-color: #1a2b6c !important;">
+              <span style="color: #ffffff !important; font-weight: 800 !important;">Verify PIN & Launch ➔</span>
+            </button>
+          </div>
+        </div>
+      {/if}
+
       {#if !activeSurveyId || !surveyTitle || questions.length === 0}
         
         <!-- SELECTION LAUNCHER MENU CARD -->
         <div in:scale={{ duration: 300, start: 0.96 }} class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col justify-between my-auto">
           
-          <!-- TOP HEADER WITH TABLET ID -->
+          <!-- TOP HEADER WITH HIGH CONTRAST TABLET ID BADGE -->
           <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
             <div class="flex items-center space-x-2">
               <div class="h-2.5 w-2.5 rounded-full bg-[#e31b23] animate-pulse"></div>
@@ -301,11 +350,8 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[22rem] overflow-y-auto custom-scrollbar my-2 pr-1">
               {#each surveys.filter(s => !s.isDraft && !String(s._id).startsWith("DRAFT-")) as survey}
                 <button
-                  on:click={() => {
-                    resetTerminal();
-                    onSelectSurvey(survey._id);
-                  }}
-                  class="text-left bg-slate-50 dark:bg-slate-950 hover:bg-white dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-[#e31b23] border-t-4 border-t-[#1a2b6c] rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between group active:scale-[0.98] shadow-xs hover:shadow-md space-y-4"
+                  on:click={() => handlePromptSurveyPin(survey)}
+                  class="text-left bg-slate-50 dark:bg-slate-950 hover:bg-white dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-[#e31b23] border-t-4 border-t-[#1a2b6c] rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between group active:scale-[0.98] shadow-xs hover:shadow-md space-y-4 cursor-pointer"
                 >
                   <div class="space-y-1.5">
                     <div class="flex items-center justify-between">
@@ -323,9 +369,9 @@
                   </div>
 
                   <div class="flex items-center justify-between pt-3 border-t border-slate-200/80 dark:border-slate-800">
-                    <span class="text-[11px] text-slate-600 dark:text-slate-400 font-semibold group-hover:text-slate-900 dark:group-hover:text-white transition-colors">Tap to start terminal</span>
+                    <span class="text-[11px] text-slate-600 dark:text-slate-400 font-semibold group-hover:text-slate-900 dark:group-hover:text-white transition-colors">PIN Protected</span>
                     <span class="text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition-all flex items-center space-x-1.5 group-hover:scale-105 bg-[#1a2b6c] group-hover:bg-[#e31b23] text-white" style="color: #ffffff !important; background-color: #1a2b6c !important;">
-                      <span style="color: #ffffff !important; font-weight: 800 !important;">Launch</span>
+                      <span style="color: #ffffff !important; font-weight: 800 !important;">Enter PIN & Launch</span>
                       <span class="transform group-hover:translate-x-1 transition-transform" style="color: #ffffff !important;">➔</span>
                     </span>
                   </div>
@@ -388,7 +434,6 @@
             {/if}
 
             {#if currentQuestion.questionImage}
-              <!-- EXPANDED IMAGE BOUNDS WITH FULL UNCROPPED VISIBILITY -->
               <div class="max-h-56 sm:max-h-72 w-full max-w-2xl mx-auto rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 shadow-sm flex items-center justify-center p-2">
                 <img src={currentQuestion.questionImage} alt={currentQuestion.questionText} class="w-full h-full object-contain rounded-xl" />
               </div>
@@ -413,7 +458,7 @@
                 {#each satisfactionScale as option}
                   <button 
                     on:click={() => handleSelectOption(`${option.emoji} ${option.label}`)}
-                    class="flex flex-col items-center justify-center p-3.5 sm:p-5 rounded-2xl border transition-all duration-200 group active:scale-95 shadow-sm bg-slate-50 dark:bg-slate-950 {option.color}">
+                    class="flex flex-col items-center justify-center p-3.5 sm:p-5 rounded-2xl border transition-all duration-200 group active:scale-95 shadow-sm bg-slate-50 dark:bg-slate-950 cursor-pointer {option.color}">
                     <span class="text-4xl sm:text-5xl transform group-hover:scale-110 transition-transform duration-200 select-none filter drop-shadow-xs">
                       {option.emoji}
                     </span>
@@ -434,7 +479,7 @@
                     type="button"
                     on:mouseenter={() => hoveredStarIndex = starValue}
                     on:click={() => handleSelectOption(`${starValue} Stars`)}
-                    class="text-5xl sm:text-8xl transform hover:scale-125 active:scale-95 transition-all duration-150 outline-none select-none filter drop-shadow-xs focus:outline-none"
+                    class="text-5xl sm:text-8xl transform hover:scale-125 active:scale-95 transition-all duration-150 outline-none select-none filter drop-shadow-xs focus:outline-none cursor-pointer"
                     style="color: {starValue <= (hoveredStarIndex || 0) ? '#e31b23' : '#cbd5e1'}"
                   >
                     {starValue <= (hoveredStarIndex || 0) ? '★' : '☆'}
@@ -460,7 +505,7 @@
                             handleSelectOption(option);
                           }
                         }}
-                        class="w-full text-left bg-slate-50 dark:bg-slate-950 border rounded-2xl p-3.5 sm:p-4 transition-all shadow-sm active:scale-[0.98] flex flex-col justify-between group h-auto {currentQuestion.allowMultiple && isSelected ? 'border-[#e31b23] bg-rose-50/50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-200 ring-2 ring-[#e31b23]/30' : 'border-slate-200 dark:border-slate-800 hover:border-[#e31b23] text-slate-800 dark:text-slate-100'}"
+                        class="w-full text-left bg-slate-50 dark:bg-slate-950 border rounded-2xl p-3.5 sm:p-4 transition-all shadow-sm active:scale-[0.98] flex flex-col justify-between group h-auto cursor-pointer {currentQuestion.allowMultiple && isSelected ? 'border-[#e31b23] bg-rose-50/50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-200 ring-2 ring-[#e31b23]/30' : 'border-slate-200 dark:border-slate-800 hover:border-[#e31b23] text-slate-800 dark:text-slate-100'}"
                       >
                         {#if imgUrl}
                           <div class="w-full h-28 sm:h-36 shrink-0 rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center p-1.5 shadow-inner mb-2">
@@ -486,7 +531,7 @@
                 {#if currentQuestion.allowMultiple}
                   <button
                     on:click={advanceStep}
-                    class="w-full max-w-md mx-auto bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-3.5 px-4 text-sm rounded-xl transition-all shadow-md active:scale-[0.98] flex items-center justify-center space-x-2 block"
+                    class="w-full max-w-md mx-auto bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-3.5 px-4 text-sm rounded-xl transition-all shadow-md active:scale-[0.98] flex items-center justify-center space-x-2 block cursor-pointer"
                     style="color: #ffffff !important; background-color: #1a2b6c !important;"
                   >
                     <span style="color: #ffffff !important; font-weight: 800 !important;">Confirm & Continue ➔</span>
@@ -505,8 +550,8 @@
                 />
                 <button 
                   type="submit"
-                  class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-4 px-5 text-base rounded-2xl transition-all shadow-md active:scale-[0.98] flex items-center justify-center space-x-2"
-                  style="color: #ffffff !important; font-weight: 800 !important; background-color: #1a2b6c !important;"
+                  class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-4 px-5 text-base rounded-2xl transition-all shadow-md active:scale-[0.98] flex items-center justify-center space-x-2 cursor-pointer"
+                  style="color: #ffffff !important; background-color: #1a2b6c !important;"
                 >
                   <span style="color: #ffffff !important; font-weight: 800 !important;">Submit Response ➔</span>
                 </button>
@@ -520,7 +565,7 @@
             <span>🔒 Secure Enterprise Client Terminal</span>
             <span>Terminal Kiosk Mode</span>
           </div>
-        </div>            
+        </div>
       {/if}
     </main>
   {/if}
@@ -530,4 +575,5 @@
   .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
 </style>
