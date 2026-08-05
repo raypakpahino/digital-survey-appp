@@ -233,10 +233,10 @@
 <div class="w-full h-full min-h-full flex-1 bg-slate-100 text-slate-800 p-3 sm:p-5 font-sans box-border overflow-hidden flex flex-col justify-between select-none">
   <main class="w-full max-w-6xl mx-auto flex-1 flex flex-col justify-between min-h-0 py-1 box-border relative">
     
-    <!-- DEVICE ACCESS PIN GATE OVERLAY -->
+    <!-- PURE BLUR OVERLAY (NO DARK/GREY BACKGROUND TINT) -->
     {#if selectedSurveyForPin || (!isPinVerifiedForCurrentSurvey && activeSurveyId)}
-      <div in:scale={{ duration: 200 }} class="absolute inset-0 z-50 bg-slate-900/30 backdrop-blur-xl flex items-center justify-center p-4">
-        <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center space-y-4 shadow-2xl relative">
+      <div in:scale={{ duration: 200 }} class="fixed inset-0 z-50 backdrop-blur-xl bg-white/15 flex items-center justify-center p-4">
+        <div class="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center space-y-4 shadow-2xl relative">
           <div class="space-y-1">
             <span class="text-[10px] font-mono font-extrabold text-[#e31b23] uppercase tracking-widest block">Protected Survey Terminal</span>
             <h3 class="text-lg font-black text-[#1a2b6c] truncate">
@@ -387,8 +387,7 @@
             </div>
           {/if}
 
-          <!-- QUESTION IMAGE (HIDDEN UNTIL PIN UNLOCKED TO AVOID BLUR HOLE) -->
-          {#if currentQuestion.questionImage && isPinVerifiedForCurrentSurvey}
+          {#if currentQuestion.questionImage}
             <div class="max-h-56 sm:max-h-72 w-full max-w-2xl mx-auto rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 shadow-sm flex items-center justify-center p-2">
               <img src={currentQuestion.questionImage} alt={currentQuestion.questionText} class="w-full h-full object-contain rounded-xl" />
             </div>
