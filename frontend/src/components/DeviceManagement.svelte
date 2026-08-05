@@ -15,7 +15,7 @@
   let formMessageType = "info";
 
   // DRAGGABLE RESIZER STATE
-  let leftPanelWidth = 360; // default px width
+  let leftPanelWidth = 360;
   let isResizing = false;
   let startX = 0;
   let startWidth = 360;
@@ -39,7 +39,6 @@
     const dx = event.clientX - startX;
     const newWidth = startWidth + dx;
 
-    // Clamp panel width between 260px and 550px
     if (newWidth >= 260 && newWidth <= 550) {
       leftPanelWidth = newWidth;
     }
@@ -216,7 +215,6 @@
   </div>
 
   <div class="flex flex-col lg:flex-row items-start gap-0 w-full relative">
-    
     <div 
       class="shrink-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5 z-20"
       style="width: {leftPanelWidth}px; position: sticky; top: 1.5rem; height: max-content;"
@@ -335,6 +333,7 @@
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs font-mono">
               {#each devices as dev (dev._id || dev.deviceName)}
+                {@const formatted = formatFormDisplay(dev.allowedFormTitle)}
                 <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
                   <td class="py-3.5 px-3 font-bold">
                     <div class="flex items-center space-x-2">
@@ -352,7 +351,6 @@
                   </td>
 
                   <td class="py-3.5 px-3 font-bold">
-                    {@const formatted = formatFormDisplay(dev.allowedFormTitle)}
                     <span class="px-3 py-1 rounded-md border text-[11px] font-black inline-block max-w-[200px] truncate {formatted === 'All Forms' ? 'bg-cyan-50 border-cyan-200 text-[#1a2b6c]' : 'bg-slate-100 border-slate-200 text-slate-800'}" title={formatted}>
                       {formatted}
                     </span>
@@ -383,7 +381,6 @@
         </div>
       {/if}
     </div>
-
   </div>
 </div>
 
