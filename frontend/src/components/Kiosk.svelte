@@ -20,14 +20,12 @@
   let autoResetTimer;
   let countdownSeconds = 4;
 
-  // TABLET IDENTIFIER & SECURITY GATE STATE
   let deviceId = "";
   let isTerminalUnlocked = false;
   let adminPasscode = "";
   let passError = "";
   let inputDeviceName = "";
 
-  // FORM PIN GATE
   let selectedSurveyForPin = null;
   let enteredFormPin = "";
   let pinError = "";
@@ -36,28 +34,54 @@
 
   $: currentQuestion = questions[currentQuestionIndex] || null;
 
+  async function syncDeviceToDatabase(name) {
+    if (!name) return;
+    try {
+      await fetch('/api/devices/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deviceName: name,
+          loggedInUser: localStorage.getItem('sdx_username') || 'Mobile Respondent'
+        })
+      });
+    } catch (err) {}
+  }
+
   onMount(() => {
     const hash = window.location.hash;
     const urlParams = new URLSearchParams(hash.includes("?") ? hash.split("?")[1] : window.location.search);
     const paramDeviceId = urlParams.get("deviceId");
     const isDirectLink = urlParams.has("id") && (hash.startsWith("#/kiosk") || window.location.search.includes("id="));
 
+    const savedDeviceId = localStorage.getItem("sdx_device_id");
+
+    // QR CODE OR DIRECT LINK BYPASS
+    if (isDirectLink) {
+      isTerminalUnlocked = true;
+      deviceId = paramDeviceId || savedDeviceId || "Mobile-Device";
+      localStorage.setItem("sdx_device_id", deviceId);
+      syncDeviceToDatabase(deviceId);
+      return;
+    }
+
     if (!isDirectLink) {
       activeSurveyId = "";
     }
 
-    const savedDeviceId = localStorage.getItem("sdx_device_id");
     if (paramDeviceId) {
       deviceId = paramDeviceId;
       localStorage.setItem("sdx_device_id", paramDeviceId);
       isTerminalUnlocked = true;
+      syncDeviceToDatabase(deviceId);
     } else if (savedDeviceId) {
       deviceId = savedDeviceId;
       isTerminalUnlocked = true;
+      syncDeviceToDatabase(deviceId);
     }
   });
 
-  function verifyAndUnlockTerminal() {
+  async function verifyAndUnlockTerminal() {
     passError = "";
     if (adminPasscode !== ADMIN_PIN) {
       passError = "Invalid Admin Password! Access Denied.";
@@ -72,6 +96,7 @@
     deviceId = inputDeviceName.trim();
     localStorage.setItem("sdx_device_id", deviceId);
     isTerminalUnlocked = true;
+    await syncDeviceToDatabase(deviceId);
   }
 
   function handlePromptSurveyPin(survey) {
@@ -80,7 +105,7 @@
     pinError = "";
   }
 
-  function verifyFormPinAndLaunch() {
+  async function verifyFormPinAndLaunch() {
     pinError = "";
     if (!selectedSurveyForPin) return;
 
@@ -88,6 +113,7 @@
       onSelectSurvey(selectedSurveyForPin._id);
       selectedSurveyForPin = null;
       resetTerminal();
+      await syncDeviceToDatabase(deviceId);
     } else {
       pinError = "Incorrect Form PIN Code!";
     }
@@ -234,7 +260,7 @@
 <div class="w-full h-full min-h-full flex-1 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 p-3 sm:p-5 font-sans box-border overflow-hidden flex flex-col justify-between select-none">
   
   {#if !isTerminalUnlocked}
-    <!-- ADMIN SECURITY GATEWAY MODAL -->
+    <!-- ADMIN SECURITY GATEWAY MODAL (ONLY SHOWN IF NOT DIRECT QR CODE LINK) -->
     <div in:scale={{ duration: 300, start: 0.95 }} class="w-full max-w-md mx-auto my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl text-center">
       <div class="h-14 w-14 bg-[#1a2b6c] text-white rounded-2xl border border-[#1a2b6c] flex items-center justify-center mx-auto shadow-lg shadow-[#1a2b6c]/20">
         <svg class="w-8 h-8 fill-current text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;">
