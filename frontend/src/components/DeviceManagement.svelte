@@ -7,12 +7,17 @@
   let availableSurveys = [];
   let isLoading = false;
 
-  // NEW DEVICE ENTRY FORM STATE
+  // NEW/EDIT DEVICE ENTRY FORM STATE
+  let editingDeviceId = null;
   let inputDeviceName = "";
   let inputPin = "1234";
-  let selectedFormTitle = "";
+  let selectedFormTitle = "All Forms";
   let formMessage = "";
-  let formMessageType = "info"; // "success" | "error"
+  let formMessageType = "info";
+
+  // INLINE PIN EDITING STATE
+  let inlineEditingId = null;
+  let inlinePinValue = "";
 
   const API_BASE = "/api";
 
@@ -27,9 +32,6 @@
       const surData = await surRes.json();
       if (surData.success) {
         availableSurveys = (surData.surveys || []).filter(s => !s.isDraft && !String(s._id).startsWith("DRAFT-"));
-        if (!selectedFormTitle && availableSurveys.length > 0) {
-          selectedFormTitle = availableSurveys[0].title;
-        }
       }
     } catch (err) {
       console.warn("Error loading device management data:", err);
@@ -37,7 +39,24 @@
     isLoading = false;
   }
 
-  async function handleAddDevice() {
+  function startEditDevice(dev) {
+    editingDeviceId = dev._id;
+    inputDeviceName = dev.deviceName;
+    inputPin = dev.accessPin || "1234";
+    selectedFormTitle = dev.allowedFormTitle || "All Forms";
+    formMessage = `Editing '${dev.deviceName}'. Click 'Save Device Access Rule' to apply changes.`;
+    formMessageType = "info";
+  }
+
+  function resetForm() {
+    editingDeviceId = null;
+    inputDeviceName = "";
+    inputPin = "1234";
+    selectedFormTitle = availableSurveys.length > 0 ? availableSurveys[0].title : "All Forms";
+    formMessage = "";
+  }
+
+  async function handleAddOrUpdateDevice() {
     formMessage = "";
     if (!inputDeviceName.trim()) {
       formMessage = "Device Name is required.";
@@ -52,31 +71,70 @@
     }
 
     try {
-      const res = await fetch(`${API_BASE}/devices/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          deviceName: inputDeviceName.trim(),
-          accessPin: inputPin.trim(),
-          allowedFormTitle: selectedFormTitle || "All Forms",
-          loggedInUser: currentUser?.username || "Admin"
-        })
-      });
+      let res, data;
+      if (editingDeviceId) {
+        res = await fetch(`${API_BASE}/devices/${editingDeviceId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            deviceName: inputDeviceName.trim(),
+            accessPin: inputPin.trim(),
+            allowedFormTitle: selectedFormTitle
+          })
+        });
+      } else {
+        res = await fetch(`${API_BASE}/devices/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            deviceName: inputDeviceName.trim(),
+            accessPin: inputPin.trim(),
+            allowedFormTitle: selectedFormTitle || "All Forms",
+            loggedInUser: currentUser?.username || "Admin"
+          })
+        });
+      }
 
-      const data = await res.json();
+      data = await res.json();
       if (data.success) {
-        formMessage = `Device '${inputDeviceName.trim()}' registered successfully.`;
+        formMessage = `Device access rule saved successfully.`;
         formMessageType = "success";
-        inputDeviceName = "";
-        inputPin = "1234";
+        resetForm();
         loadData();
       } else {
-        formMessage = data.message || "Failed to register device.";
+        formMessage = data.message || "Failed to update device.";
         formMessageType = "error";
       }
     } catch (err) {
       formMessage = "Error connecting to server.";
       formMessageType = "error";
+    }
+  }
+
+  function startInlinePinEdit(dev) {
+    inlineEditingId = dev._id;
+    inlinePinValue = dev.accessPin || "1234";
+  }
+
+  async function saveInlinePin(devId) {
+    if (!inlinePinValue.trim() || inlinePinValue.length < 4) {
+      alert("PIN must be at least 4 digits.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/devices/${devId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessPin: inlinePinValue.trim() })
+      });
+      const data = await res.json();
+      if (data.success) {
+        inlineEditingId = null;
+        loadData();
+      }
+    } catch (err) {
+      console.error("Error updating PIN:", err);
     }
   }
 
@@ -102,7 +160,7 @@
   <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-5 gap-4">
     <div>
       <h1 class="text-2xl font-black tracking-tight text-[#1a2b6c] dark:text-white">Device & Access Management</h1>
-      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Configure registered client devices, assign access PINs, and set authorized form permissions.</p>
+      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Configure registered client devices, edit access PINs, and set authorized form permissions.</p>
     </div>
     
     <button 
@@ -119,11 +177,20 @@
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     
-    <!-- LEFT PANEL: REGISTER / ASSIGN NEW DEVICE CARD -->
+    <!-- LEFT PANEL: REGISTER / EDIT DEVICE CARD -->
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5 h-fit">
-      <div class="space-y-1">
-        <span class="text-[10px] font-mono font-extrabold text-[#e31b23] dark:text-rose-400 uppercase tracking-widest block">Device Registration</span>
-        <h3 class="text-base font-black text-[#1a2b6c] dark:text-white">Add / Update Device</h3>
+      <div class="flex items-center justify-between">
+        <div class="space-y-1">
+          <span class="text-[10px] font-mono font-extrabold text-[#e31b23] dark:text-rose-400 uppercase tracking-widest block">
+            {editingDeviceId ? 'Edit Device Rule' : 'Device Registration'}
+          </span>
+          <h3 class="text-base font-black text-[#1a2b6c] dark:text-white">
+            {editingDeviceId ? 'Update Access PIN & Form' : 'Add / Update Device'}
+          </h3>
+        </div>
+        {#if editingDeviceId}
+          <button on:click={resetForm} class="text-[10px] font-extrabold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">Cancel</button>
+        {/if}
       </div>
       
       {#if formMessage}
@@ -132,7 +199,7 @@
         </div>
       {/if}
 
-      <form on:submit|preventDefault={handleAddDevice} class="space-y-4">
+      <form on:submit|preventDefault={handleAddOrUpdateDevice} class="space-y-4">
         <!-- 1. DEVICE NAME INPUT -->
         <div class="space-y-1">
           <label for="dev-name-input" class="text-[10px] font-mono font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">1. Device Name</label>
@@ -145,7 +212,7 @@
           />
         </div>
 
-        <!-- 2. ACCESS PIN INPUT -->
+        <!-- 2. ACCESS PIN INPUT (EDITABLE HERE) -->
         <div class="space-y-1">
           <label for="dev-pin-input" class="text-[10px] font-mono font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">2. Form Access PIN</label>
           <input 
@@ -181,12 +248,14 @@
           <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24" style="fill: #ffffff !important;">
             <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
           </svg>
-          <span style="color: #ffffff !important; font-weight: 800 !important;">Save Device Access Rule</span>
+          <span style="color: #ffffff !important; font-weight: 800 !important;">
+            {editingDeviceId ? 'Save Changes' : 'Save Device Access Rule'}
+          </span>
         </button>
       </form>
     </div>
 
-    <!-- RIGHT PANEL: HIGH CONTRAST DEVICE TABLE -->
+    <!-- RIGHT PANEL: HIGH CONTRAST DEVICE TABLE WITH EDITABLE PIN BADGES -->
     <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
         <h3 class="text-xs font-mono font-extrabold text-[#1a2b6c] dark:text-cyan-400 uppercase tracking-wider">Registered Device Roster</h3>
@@ -203,15 +272,15 @@
             <thead>
               <tr class="border-b border-slate-200 dark:border-slate-800 text-[10px] font-mono font-extrabold uppercase text-slate-500 dark:text-slate-400 tracking-wider">
                 <th class="py-3 px-3">Device Name</th>
-                <th class="py-3 px-3">Access PIN</th>
+                <th class="py-3 px-3">Access PIN (Click to Edit)</th>
                 <th class="py-3 px-3">Authorized Forms</th>
-                <th class="py-3 px-3 text-right">Action</th>
+                <th class="py-3 px-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs font-mono">
               {#each devices as dev (dev._id || dev.deviceName)}
                 <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                  <!-- 1. DEVICE NAME (FORCED INLINE HIGH-CONTRAST DARK COLOR IN LIGHT MODE) -->
+                  <!-- 1. DEVICE NAME -->
                   <td class="py-3.5 px-3 font-bold">
                     <div class="flex items-center space-x-2">
                       <span class="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
@@ -221,11 +290,35 @@
                     </div>
                   </td>
 
-                  <!-- 2. ACCESS PIN BADGE -->
+                  <!-- 2. INLINE EDITABLE ACCESS PIN -->
                   <td class="py-3.5 px-3">
-                    <span class="bg-rose-50 dark:bg-rose-950/60 text-[#e31b23] dark:text-rose-400 px-3 py-1 rounded-md font-mono font-black tracking-widest border border-rose-200 dark:border-rose-900/60">
-                      {dev.accessPin || dev.pinCode || '1234'}
-                    </span>
+                    {#if inlineEditingId === dev._id}
+                      <div class="flex items-center space-x-1.5">
+                        <input 
+                          type="text" 
+                          maxlength="6" 
+                          bind:value={inlinePinValue}
+                          class="w-20 bg-white dark:bg-slate-950 border-2 border-[#e31b23] text-[#1a2b6c] dark:text-white font-mono font-black text-xs px-2 py-1 rounded-md text-center focus:outline-none"
+                        />
+                        <button 
+                          on:click={() => saveInlinePin(dev._id)}
+                          class="bg-emerald-600 text-white font-bold px-2 py-1 rounded-md text-[10px] hover:bg-emerald-700"
+                        >Save</button>
+                        <button 
+                          on:click={() => inlineEditingId = null}
+                          class="bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold px-2 py-1 rounded-md text-[10px]"
+                        >✕</button>
+                      </div>
+                    {:else}
+                      <button 
+                        on:click={() => startInlinePinEdit(dev)}
+                        class="bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/80 text-[#e31b23] dark:text-rose-400 px-3 py-1 rounded-md font-mono font-black tracking-widest border border-rose-200 dark:border-rose-900/60 cursor-pointer flex items-center space-x-1.5 group"
+                        title="Click to edit PIN"
+                      >
+                        <span>{dev.accessPin || dev.pinCode || '1234'}</span>
+                        <span class="text-[9px] opacity-40 group-hover:opacity-100 transition-opacity">✏️</span>
+                      </button>
+                    {/if}
                   </td>
 
                   <!-- 3. AUTHORIZED FORMS BADGE -->
@@ -235,15 +328,24 @@
                     </span>
                   </td>
 
-                  <!-- DELETE BUTTON -->
+                  <!-- EDIT AND DELETE ACTIONS -->
                   <td class="py-3.5 px-3 text-right">
-                    <button 
-                      on:click={() => handleDeleteDevice(dev._id)}
-                      class="text-xs bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white px-3.5 py-1.5 rounded-xl font-extrabold transition-all duration-150 shadow-xs hover:shadow-md active:scale-95 cursor-pointer border border-transparent"
-                      style="color: #ffffff !important; background-color: #e11d48 !important;"
-                    >
-                      <span style="color: #ffffff !important; font-weight: 800 !important;">Delete</span>
-                    </button>
+                    <div class="flex items-center justify-end space-x-2">
+                      <button 
+                        on:click={() => startEditDevice(dev)}
+                        class="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[#1a2b6c] dark:text-cyan-400 px-3 py-1.5 rounded-xl font-extrabold transition-all duration-150 cursor-pointer border border-slate-200 dark:border-slate-700"
+                      >
+                        Edit Rule
+                      </button>
+
+                      <button 
+                        on:click={() => handleDeleteDevice(dev._id)}
+                        class="text-xs bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white px-3 py-1.5 rounded-xl font-extrabold transition-all duration-150 shadow-xs hover:shadow-md active:scale-95 cursor-pointer border border-transparent"
+                        style="color: #ffffff !important; background-color: #e11d48 !important;"
+                      >
+                        <span style="color: #ffffff !important; font-weight: 800 !important;">Delete</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               {/each}

@@ -81,25 +81,22 @@ router.put('/surveys/:id', async (req, res) => {
   }
 });
 
-// SMART PIN VERIFICATION: CHECKS DEVICE PINS & SURVEY PIN
 router.post('/surveys/:id/verify-pin', async (req, res) => {
   try {
     const { pinCode } = req.body;
     const survey = await Survey.findById(req.params.id);
     if (!survey) return res.status(404).json({ success: false, message: 'Survey not found.' });
 
-    // 1. Check Device Management PIN Rules first
     const matchedDevice = await Device.findOne({ accessPin: pinCode });
 
     if (matchedDevice) {
       if (matchedDevice.allowedFormTitle !== 'All Forms' && matchedDevice.allowedFormTitle !== survey.title) {
         return res.status(403).json({ 
           success: false, 
-          message: `This PIN is assigned to '${matchedDevice.deviceName}', but only authorized for form '${matchedDevice.allowedFormTitle}'.` 
+          message: `This PIN belongs to '${matchedDevice.deviceName}', authorized only for form '${matchedDevice.allowedFormTitle}'.` 
         });
       }
 
-      // Update Device Last Active
       matchedDevice.lastActive = new Date();
       await matchedDevice.save();
 
@@ -110,7 +107,6 @@ router.post('/surveys/:id/verify-pin', async (req, res) => {
       });
     }
 
-    // 2. Check Specific Survey PIN or Fallback '1234'
     if (survey.pinCode === pinCode || pinCode === '1234') {
       return res.json({ 
         success: true, 
@@ -157,10 +153,10 @@ router.post('/devices/register', async (req, res) => {
     if (!deviceName) return res.status(400).json({ success: false, message: 'deviceName is required' });
 
     const device = await Device.findOneAndUpdate(
-      { deviceName },
+      { deviceName: deviceName.trim() },
       {
         $set: {
-          deviceName,
+          deviceName: deviceName.trim(),
           accessPin: accessPin || '1234',
           allowedFormTitle: allowedFormTitle || 'All Forms',
           loggedInUser: loggedInUser || 'Operator',
@@ -172,6 +168,28 @@ router.post('/devices/register', async (req, res) => {
     );
 
     res.json({ success: true, device });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// UPDATE SPECIFIC DEVICE ACCESS PIN OR PERMISSIONS BY ID
+router.put('/devices/:id', async (req, res) => {
+  try {
+    const { accessPin, allowedFormTitle, deviceName } = req.body;
+    const updatedDevice = await Device.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          ...(deviceName && { deviceName: deviceName.trim() }),
+          ...(accessPin && { accessPin: accessPin.trim() }),
+          ...(allowedFormTitle && { allowedFormTitle })
+        }
+      },
+      { new: true }
+    );
+
+    res.json({ success: true, device: updatedDevice });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
