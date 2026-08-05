@@ -26,9 +26,11 @@
   let passError = "";
   let inputDeviceName = "";
 
+  // FORM PIN GATE
   let selectedSurveyForPin = null;
   let enteredFormPin = "";
   let pinError = "";
+  let isPinVerifiedForCurrentSurvey = false;
 
   const ADMIN_PIN = "1234";
 
@@ -52,16 +54,22 @@
     const hash = window.location.hash;
     const urlParams = new URLSearchParams(hash.includes("?") ? hash.split("?")[1] : window.location.search);
     const paramDeviceId = urlParams.get("deviceId");
-    const isDirectLink = urlParams.has("id") && (hash.startsWith("#/kiosk") || window.location.search.includes("id="));
+    const urlSurveyId = urlParams.get("id");
+    const isDirectLink = Boolean(urlSurveyId) && (hash.startsWith("#/kiosk") || window.location.search.includes("id="));
 
     const savedDeviceId = localStorage.getItem("sdx_device_id");
 
-    // QR CODE OR DIRECT LINK BYPASS
     if (isDirectLink) {
       isTerminalUnlocked = true;
       deviceId = paramDeviceId || savedDeviceId || "Mobile-Device";
       localStorage.setItem("sdx_device_id", deviceId);
       syncDeviceToDatabase(deviceId);
+
+      // FORCE PIN GATE FOR DIRECT LINK / QR CODE
+      const targetSurvey = surveys.find(s => s._id === urlSurveyId);
+      if (targetSurvey) {
+        selectedSurveyForPin = targetSurvey;
+      }
       return;
     }
 
@@ -80,6 +88,14 @@
       syncDeviceToDatabase(deviceId);
     }
   });
+
+  // Watch for direct link survey matching once survey array loads
+  $: if (activeSurveyId && surveys.length > 0 && !isPinVerifiedForCurrentSurvey && !selectedSurveyForPin) {
+    const matched = surveys.find(s => s._id === activeSurveyId);
+    if (matched) {
+      selectedSurveyForPin = matched;
+    }
+  }
 
   async function verifyAndUnlockTerminal() {
     passError = "";
@@ -110,6 +126,7 @@
     if (!selectedSurveyForPin) return;
 
     if (enteredFormPin === (selectedSurveyForPin.pinCode || '1234') || enteredFormPin === '1234') {
+      isPinVerifiedForCurrentSurvey = true;
       onSelectSurvey(selectedSurveyForPin._id);
       selectedSurveyForPin = null;
       resetTerminal();
@@ -260,7 +277,7 @@
 <div class="w-full h-full min-h-full flex-1 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 p-3 sm:p-5 font-sans box-border overflow-hidden flex flex-col justify-between select-none">
   
   {#if !isTerminalUnlocked}
-    <!-- ADMIN SECURITY GATEWAY MODAL (ONLY SHOWN IF NOT DIRECT QR CODE LINK) -->
+    <!-- ADMIN SECURITY GATEWAY MODAL -->
     <div in:scale={{ duration: 300, start: 0.95 }} class="w-full max-w-md mx-auto my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl text-center">
       <div class="h-14 w-14 bg-[#1a2b6c] text-white rounded-2xl border border-[#1a2b6c] flex items-center justify-center mx-auto shadow-lg shadow-[#1a2b6c]/20">
         <svg class="w-8 h-8 fill-current text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;">
@@ -314,26 +331,39 @@
     <!-- MAIN WORKSPACE CONTAINER -->
     <main class="w-full max-w-6xl mx-auto flex-1 flex flex-col justify-between min-h-0 py-1 box-border relative">
       
-      <!-- FORM PIN CODE GATE MODAL OVERLAY -->
-      {#if selectedSurveyForPin}
-        <div in:scale={{ duration: 200 }} class="absolute inset-0 z-50 bg-slate-900/40 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <!-- FORM PIN CODE GATE MODAL OVERLAY (BLOCKS CONTENT UNTIL PIN IS VERIFIED) -->
+      {#if selectedSurveyForPin || (!isPinVerifiedForCurrentSurvey && activeSurveyId)}
+        <div in:scale={{ duration: 200 }} class="absolute inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
           <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center space-y-4 shadow-2xl relative">
-            <button on:click={() => selectedSurveyForPin = null} class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white font-bold text-xs bg-slate-100 dark:bg-slate-800 h-7 w-7 rounded-full flex items-center justify-center cursor-pointer">✕</button>
             <div class="space-y-1">
               <span class="text-[10px] font-mono font-extrabold text-[#e31b23] uppercase tracking-widest block">Protected Survey</span>
-              <h3 class="text-lg font-black text-[#1a2b6c] dark:text-white truncate">{selectedSurveyForPin.title}</h3>
+              <h3 class="text-lg font-black text-[#1a2b6c] dark:text-white truncate">
+                {selectedSurveyForPin ? selectedSurveyForPin.title : surveyTitle}
+              </h3>
               <p class="text-xs text-slate-500 dark:text-slate-400">Enter assigned 4-digit PIN Code to open this form.</p>
             </div>
 
-            <input type="password" maxlength="6" bind:value={enteredFormPin} placeholder="Enter PIN (e.g. 1234)" class="w-full text-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-3 px-4 text-lg font-mono font-bold tracking-widest text-[#1a2b6c] dark:text-white focus:outline-none focus:border-[#e31b23]" />
+            <form on:submit|preventDefault={verifyFormPinAndLaunch} class="space-y-3">
+              <input 
+                type="password" 
+                maxlength="6" 
+                bind:value={enteredFormPin} 
+                placeholder="Enter PIN (e.g. 1234)" 
+                class="w-full text-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-3 px-4 text-lg font-mono font-bold tracking-widest text-[#1a2b6c] dark:text-white focus:outline-none focus:border-[#e31b23]" 
+              />
 
-            {#if pinError}
-              <p class="text-xs font-bold text-rose-600 animate-pulse">{pinError}</p>
-            {/if}
+              {#if pinError}
+                <p class="text-xs font-bold text-rose-600 animate-pulse">{pinError}</p>
+              {/if}
 
-            <button on:click={verifyFormPinAndLaunch} class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold py-3 px-4 rounded-xl text-xs transition-all shadow-md cursor-pointer" style="color: #ffffff !important; background-color: #1a2b6c !important;">
-              <span style="color: #ffffff !important; font-weight: 800 !important;">Verify PIN & Launch ➔</span>
-            </button>
+              <button 
+                type="submit" 
+                class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold py-3 px-4 rounded-xl text-xs transition-all shadow-md cursor-pointer" 
+                style="color: #ffffff !important; background-color: #1a2b6c !important;"
+              >
+                <span style="color: #ffffff !important; font-weight: 800 !important;">Verify PIN & Launch ➔</span>
+              </button>
+            </form>
           </div>
         </div>
       {/if}
@@ -343,7 +373,6 @@
         <!-- SELECTION LAUNCHER MENU CARD -->
         <div in:scale={{ duration: 300, start: 0.96 }} class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col justify-between my-auto">
           
-          <!-- TOP HEADER WITH HIGH CONTRAST TABLET ID BADGE -->
           <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
             <div class="flex items-center space-x-2">
               <div class="h-2.5 w-2.5 rounded-full bg-[#e31b23] animate-pulse"></div>
