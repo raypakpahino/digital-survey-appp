@@ -230,14 +230,13 @@
   });
 </script>
 
-<!-- FORCED LIGHT MODE OUTER CONTAINER FOR FORM/KIOSK CANVAS -->
 <div class="w-full h-full min-h-full flex-1 bg-slate-100 text-slate-800 p-3 sm:p-5 font-sans box-border overflow-hidden flex flex-col justify-between select-none">
   <main class="w-full max-w-6xl mx-auto flex-1 flex flex-col justify-between min-h-0 py-1 box-border relative">
     
     <!-- DEVICE ACCESS PIN GATE OVERLAY -->
     {#if selectedSurveyForPin || (!isPinVerifiedForCurrentSurvey && activeSurveyId)}
-      <div in:scale={{ duration: 200 }} class="absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center space-y-4 shadow-2xl relative">
+      <div in:scale={{ duration: 200 }} class="absolute inset-0 z-50 bg-slate-900/30 backdrop-blur-xl flex items-center justify-center p-4">
+        <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center space-y-4 shadow-2xl relative">
           <div class="space-y-1">
             <span class="text-[10px] font-mono font-extrabold text-[#e31b23] uppercase tracking-widest block">Protected Survey Terminal</span>
             <h3 class="text-lg font-black text-[#1a2b6c] truncate">
@@ -273,7 +272,7 @@
 
     {#if !activeSurveyId || !surveyTitle || questions.length === 0}
       
-      <!-- SELECTION LAUNCHER MENU CARD (ALWAYS LIGHT MODE) -->
+      <!-- SELECTION LAUNCHER MENU CARD -->
       <div in:scale={{ duration: 300, start: 0.96 }} class="w-full bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col justify-between my-auto">
         
         <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
@@ -360,7 +359,7 @@
       </div>
 
     {:else}
-      <!-- ACTIVE FORM FILLING CANVAS (STRICTLY WHITE/LIGHT THEME) -->
+      <!-- ACTIVE FORM FILLING CANVAS -->
       <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="w-full bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col justify-between overflow-hidden box-border my-auto h-full">
         
         <div class="space-y-1 shrink-0 w-full">
@@ -388,8 +387,9 @@
             </div>
           {/if}
 
-          {#if currentQuestion.questionImage}
-            <div class="max-h-56 sm:max-h-72 w-full max-w-2xl mx-auto rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center p-2">
+          <!-- QUESTION IMAGE (HIDDEN UNTIL PIN UNLOCKED TO AVOID BLUR HOLE) -->
+          {#if currentQuestion.questionImage && isPinVerifiedForCurrentSurvey}
+            <div class="max-h-56 sm:max-h-72 w-full max-w-2xl mx-auto rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 shadow-sm flex items-center justify-center p-2">
               <img src={currentQuestion.questionImage} alt={currentQuestion.questionText} class="w-full h-full object-contain rounded-xl" />
             </div>
           {/if}
