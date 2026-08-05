@@ -107,7 +107,7 @@
     
     <button 
       on:click={loadData} 
-      class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white px-4 py-2.5 rounded-xl font-extrabold text-xs transition-all shadow-md active:scale-95 flex items-center space-x-2 shrink-0 border border-transparent cursor-pointer"
+      class="bg-[#1a2b6c] hover:bg-[#e31b23] active:bg-[#c2151c] text-white px-5 py-2.5 rounded-xl font-extrabold text-xs transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 flex items-center space-x-2 shrink-0 border border-transparent cursor-pointer"
       style="color: #ffffff !important; background-color: #1a2b6c !important;"
     >
       <svg class="w-4 h-4 fill-current shrink-0 {isLoading ? 'animate-spin' : ''}" viewBox="0 0 24 24" style="fill: #ffffff !important;">
@@ -141,7 +141,7 @@
             type="text" 
             bind:value={inputDeviceName} 
             placeholder="e.g. Charisse's Phone or Tablet-A" 
-            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-[#1a2b6c] dark:text-white placeholder-slate-400 dark:placeholder-slate-600 rounded-xl p-3 font-mono font-bold focus:outline-none focus:border-[#e31b23]" 
+            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-[#1a2b6c] dark:text-white placeholder-slate-400 dark:placeholder-slate-600 rounded-xl p-3 font-mono font-bold focus:outline-none focus:border-[#e31b23] focus:ring-2 focus:ring-[#e31b23]/20 transition-all" 
           />
         </div>
 
@@ -154,7 +154,7 @@
             maxlength="6"
             bind:value={inputPin} 
             placeholder="e.g. 1234" 
-            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-[#1a2b6c] dark:text-white font-mono font-bold rounded-xl p-3 focus:outline-none focus:border-[#e31b23]" 
+            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-[#1a2b6c] dark:text-white font-mono font-bold rounded-xl p-3 focus:outline-none focus:border-[#e31b23] focus:ring-2 focus:ring-[#e31b23]/20 transition-all" 
           />
         </div>
 
@@ -164,7 +164,7 @@
           <select 
             id="dev-form-select"
             bind:value={selectedFormTitle} 
-            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-[#1a2b6c] dark:text-white rounded-xl p-3 font-bold focus:outline-none focus:border-[#e31b23] cursor-pointer"
+            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-[#1a2b6c] dark:text-white rounded-xl p-3 font-bold focus:outline-none focus:border-[#e31b23] focus:ring-2 focus:ring-[#e31b23]/20 transition-all cursor-pointer"
           >
             <option value="All Forms">All Available Forms</option>
             {#each availableSurveys as s}
@@ -175,7 +175,7 @@
 
         <button 
           type="submit" 
-          class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-3.5 px-4 rounded-xl text-xs transition-all shadow-md active:scale-95 border border-transparent cursor-pointer flex items-center justify-center space-x-2" 
+          class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] active:bg-[#c2151c] text-white font-extrabold py-3.5 px-4 rounded-xl text-xs transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 border border-transparent cursor-pointer flex items-center justify-center space-x-2" 
           style="color: #ffffff !important; background-color: #1a2b6c !important;"
         >
           <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24" style="fill: #ffffff !important;">
@@ -186,60 +186,61 @@
       </form>
     </div>
 
-    <!-- RIGHT PANEL: 3-COLUMN DEVICE MANAGEMENT TABLE -->
+    <!-- RIGHT PANEL: HIGH CONTRAST DEVICE TABLE -->
     <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
         <h3 class="text-xs font-mono font-extrabold text-[#1a2b6c] dark:text-cyan-400 uppercase tracking-wider">Registered Device Roster</h3>
-        <span class="text-xs font-mono font-bold text-slate-400 dark:text-slate-500">{devices.length} Total Registered</span>
+        <span class="text-xs font-mono font-bold text-slate-500 dark:text-slate-400">{devices.length} Total Registered</span>
       </div>
 
       {#if devices.length === 0}
-        <div class="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center text-slate-400 text-xs">
+        <div class="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center text-slate-400 dark:text-slate-500 text-xs">
           No registered devices found. Use the left panel to add device permissions.
         </div>
       {:else}
         <div class="overflow-x-auto custom-scrollbar">
           <table class="w-full text-left border-collapse">
             <thead>
-              <tr class="border-b border-slate-200 dark:border-slate-800 text-[10px] font-mono font-extrabold uppercase text-slate-400 dark:text-slate-500 tracking-wider">
+              <tr class="border-b border-slate-200 dark:border-slate-800 text-[10px] font-mono font-extrabold uppercase text-slate-500 dark:text-slate-400 tracking-wider">
                 <th class="py-3 px-3">Device Name</th>
                 <th class="py-3 px-3">Access PIN</th>
                 <th class="py-3 px-3">Authorized Forms</th>
                 <th class="py-3 px-3 text-right">Action</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs font-mono">
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs font-mono">
               {#each devices as dev (dev._id || dev.deviceName)}
-                <tr class="hover:bg-slate-50 dark:hover:bg-slate-950/60 transition-colors">
-                  <!-- 1. DEVICE NAME -->
+                <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                  <!-- 1. DEVICE NAME (EXPLICIT HIGH CONTRAST DARK NAVY IN LIGHT MODE, BRIGHT WHITE IN DARK MODE) -->
                   <td class="py-3.5 px-3 font-bold text-[#1a2b6c] dark:text-white">
                     <div class="flex items-center space-x-2">
                       <span class="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
-                      <span class="truncate max-w-[160px]">{dev.deviceName}</span>
+                      <span class="truncate max-w-[180px] text-[#1a2b6c] dark:text-white font-black">{dev.deviceName}</span>
                     </div>
                   </td>
 
-                  <!-- 2. ACCESS PIN -->
+                  <!-- 2. ACCESS PIN BADGE -->
                   <td class="py-3.5 px-3">
-                    <span class="bg-slate-100 dark:bg-slate-800 text-[#1a2b6c] dark:text-cyan-400 px-2.5 py-1 rounded-md font-bold tracking-widest border border-slate-200 dark:border-slate-700">
+                    <span class="bg-rose-50 dark:bg-rose-950/60 text-[#e31b23] dark:text-rose-400 px-3 py-1 rounded-md font-mono font-black tracking-widest border border-rose-200 dark:border-rose-900/60">
                       {dev.accessPin || dev.pinCode || '1234'}
                     </span>
                   </td>
 
-                  <!-- 3. FORMS TO ACCESS -->
-                  <td class="py-3.5 px-3 font-bold text-slate-700 dark:text-slate-300">
-                    <span class="px-2.5 py-1 rounded-md border text-[11px] {dev.allowedFormTitle === 'All Forms' || !dev.allowedFormTitle ? 'bg-cyan-50 dark:bg-cyan-950/40 border-cyan-200 dark:border-cyan-800 text-cyan-800 dark:text-cyan-300' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'}">
+                  <!-- 3. AUTHORIZED FORMS BADGE -->
+                  <td class="py-3.5 px-3 font-bold">
+                    <span class="px-3 py-1 rounded-md border text-[11px] font-black {dev.allowedFormTitle === 'All Forms' || !dev.allowedFormTitle ? 'bg-cyan-50 dark:bg-cyan-950/60 border-cyan-200 dark:border-cyan-800/60 text-[#1a2b6c] dark:text-cyan-300' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'}">
                       {dev.allowedFormTitle || 'All Forms'}
                     </span>
                   </td>
 
-                  <!-- ACTIONS -->
+                  <!-- DELETE BUTTON WITH ACTIVE CLICK & HOVER EFFECTS -->
                   <td class="py-3.5 px-3 text-right">
                     <button 
                       on:click={() => handleDeleteDevice(dev._id)}
-                      class="text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 px-2.5 py-1 rounded-lg border border-rose-200 dark:border-rose-900 font-bold transition-all cursor-pointer"
+                      class="text-xs bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white px-3.5 py-1.5 rounded-xl font-extrabold transition-all duration-150 shadow-xs hover:shadow-md active:scale-95 cursor-pointer border border-transparent"
+                      style="color: #ffffff !important;"
                     >
-                      Delete
+                      <span style="color: #ffffff !important; font-weight: 800 !important;">Delete</span>
                     </button>
                   </td>
                 </tr>
