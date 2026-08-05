@@ -231,8 +231,11 @@
   async function persistActiveSurveyState(updatedTitle, updatedQuestions) {
     if (!activeSurveyId || currentUser?.role !== "admin") return;
 
+    // Deep clone question array to preserve exact new index sequence in state
+    const questionsToSave = JSON.parse(JSON.stringify(updatedQuestions));
+
     activeSurvey.title = updatedTitle;
-    activeSurvey.questions = updatedQuestions;
+    activeSurvey.questions = questionsToSave;
 
     if (String(activeSurveyId).startsWith("DRAFT-") || activeSurvey.isDraft) {
       try {
@@ -241,7 +244,7 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             title: activeSurvey.title,
-            questions: activeSurvey.questions,
+            questions: questionsToSave,
           }),
         });
         const data = await res.json();
@@ -264,7 +267,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: activeSurvey.title,
-          questions: activeSurvey.questions,
+          questions: questionsToSave,
         }),
       });
       const data = await res.json();

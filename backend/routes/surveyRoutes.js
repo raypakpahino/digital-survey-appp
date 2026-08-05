@@ -4,7 +4,7 @@ import Response from '../models/Response.js';
 
 const router = express.Router();
 
-// Helper to sanitize incoming survey question fields safely (UPDATED TO KEEP SKIP LOGIC)
+// Helper to sanitize incoming survey question fields safely
 const sanitizeQuestions = (questions) => {
   if (!Array.isArray(questions)) return [];
   return questions.map((q) => ({
@@ -17,7 +17,6 @@ const sanitizeQuestions = (questions) => {
     enableOptionImages: Boolean(q.enableOptionImages),
     options: Array.isArray(q.options) ? q.options : [],
     optionImages: q.optionImages && typeof q.optionImages === 'object' ? q.optionImages : {},
-    // PRESERVE CONDITIONAL SKIP LOGIC OBJECT
     skipLogic: q.skipLogic ? {
       enabled: Boolean(q.skipLogic.enabled),
       dependsOnIndex: Number(q.skipLogic.dependsOnIndex) || 0,
@@ -56,16 +55,24 @@ router.post('/surveys', async (req, res) => {
   }
 });
 
-// 3. UPDATE AN EXISTING SURVEY
+// 3. UPDATE AN EXISTING SURVEY (FORCE RE-ORDER PERSISTENCE)
 router.put('/surveys/:id', async (req, res) => {
   try {
     const { title, questions } = req.body;
     const cleanQuestions = sanitizeQuestions(questions);
+
+    // Overwrite the questions array explicitly so MongoDB stores the exact new order
     const updatedSurvey = await Survey.findByIdAndUpdate(
       req.params.id, 
-      { title, questions: cleanQuestions }, 
-      { new: true, runValidators: false, strict: false }
+      { 
+        $set: { 
+          title, 
+          questions: cleanQuestions 
+        } 
+      }, 
+      { new: true, runValidators: false, overwrite: false }
     );
+
     res.json({ success: true, survey: updatedSurvey });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
