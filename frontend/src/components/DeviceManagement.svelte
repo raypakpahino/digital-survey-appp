@@ -345,11 +345,11 @@
               {#each devices as dev (dev._id || dev.deviceName)}
                 {@const formatted = formatFormDisplay(dev.allowedFormTitle)}
                 <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                  <!-- DEVICE NAME (EXPLICIT HIGH CONTRAST TEXT) -->
+                  <!-- DEVICE NAME: ENFORCED HIGH CONTRAST INLINE STYLING -->
                   <td class="py-3.5 px-3 font-bold">
                     <div class="flex items-center space-x-2">
                       <span class="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
-                      <span class="truncate max-w-[180px] font-black text-slate-900 dark:text-white text-xs tracking-tight">
+                      <span class="truncate max-w-[180px] font-black text-xs tracking-tight device-text-color">
                         {dev.deviceName}
                       </span>
                     </div>
@@ -364,7 +364,7 @@
 
                   <!-- AUTHORIZED FORMS BADGE -->
                   <td class="py-3.5 px-3 font-bold">
-                    <span class="px-3 py-1 rounded-md border text-[11px] font-black inline-block max-w-[200px] truncate {formatted === 'All Forms' ? 'bg-cyan-50 dark:bg-cyan-950/60 border-cyan-200 dark:border-cyan-800/60 text-[#1a2b6c] dark:text-cyan-300' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'}" title={formatted}>
+                    <span class="px-3 py-1 rounded-md border text-[11px] font-black inline-block max-w-[200px] truncate {formatted === 'All Forms' ? 'bg-slate-100 dark:bg-slate-800 text-[#1a2b6c] dark:text-cyan-300 border-slate-300 dark:border-slate-700' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'}" title={formatted}>
                       {formatted}
                     </span>
                   </td>
@@ -400,6 +400,14 @@
 </div>
 
 <style>
+  /* STRICT COLOR OVERRIDE TO PREVENT CSS VARIABLE INHERITANCE BLEED */
+  .device-text-color {
+    color: #0f172a !important;
+  }
+  :global(.dark) .device-text-color {
+    color: #ffffff !important;
+  }
+
   .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
