@@ -135,7 +135,7 @@ router.delete('/surveys/:id', async (req, res) => {
 });
 
 // ==========================================
-// DEVICE MANAGEMENT ROUTES
+// DEVICE MANAGEMENT ROUTES (WITH CASCADE RENAME TO RESPONSES)
 // ==========================================
 
 router.get('/devices', async (req, res) => {
@@ -152,11 +152,13 @@ router.post('/devices/register', async (req, res) => {
     const { deviceName, accessPin, allowedFormTitle, loggedInUser } = req.body;
     if (!deviceName) return res.status(400).json({ success: false, message: 'deviceName is required' });
 
+    const cleanName = deviceName.trim();
+
     const device = await Device.findOneAndUpdate(
-      { deviceName: deviceName.trim() },
+      { deviceName: cleanName },
       {
         $set: {
-          deviceName: deviceName.trim(),
+          deviceName: cleanName,
           accessPin: accessPin || '1234',
           allowedFormTitle: allowedFormTitle || 'All Forms',
           loggedInUser: loggedInUser || 'Operator',
@@ -173,23 +175,34 @@ router.post('/devices/register', async (req, res) => {
   }
 });
 
-// UPDATE SPECIFIC DEVICE ACCESS PIN OR PERMISSIONS BY ID
+// UPDATE DEVICE & RENAME MATCHING RESPONSES IN MONGODB
 router.put('/devices/:id', async (req, res) => {
   try {
     const { accessPin, allowedFormTitle, deviceName } = req.body;
-    const updatedDevice = await Device.findByIdAndUpdate(
-      req.params.id,
-      {
-        $set: {
-          ...(deviceName && { deviceName: deviceName.trim() }),
-          ...(accessPin && { accessPin: accessPin.trim() }),
-          ...(allowedFormTitle && { allowedFormTitle })
-        }
-      },
-      { new: true }
-    );
+    
+    const existingDevice = await Device.findById(req.params.id);
+    if (!existingDevice) {
+      return res.status(404).json({ success: false, message: "Device not found." });
+    }
 
-    res.json({ success: true, device: updatedDevice });
+    const oldName = existingDevice.deviceName;
+    const newName = deviceName ? deviceName.trim() : oldName;
+
+    // Update Device Document
+    existingDevice.deviceName = newName;
+    if (accessPin) existingDevice.accessPin = accessPin.trim();
+    if (allowedFormTitle) existingDevice.allowedFormTitle = allowedFormTitle;
+    await existingDevice.save();
+
+    // Cascade rename to all existing responses in the database
+    if (oldName !== newName) {
+      await Response.updateMany(
+        { deviceId: oldName },
+        { $set: { deviceId: newName } }
+      );
+    }
+
+    res.json({ success: true, device: existingDevice });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -207,6 +220,29 @@ router.delete('/devices/:id', async (req, res) => {
 // ==========================================
 // RESPONSES & USER ROUTES
 // ==========================================
+
+router.post('/responses/rename-device', async (req, res) => {
+  try {
+    const { oldDeviceId, newDeviceId } = req.body;
+    if (!oldDeviceId || !newDeviceId) {
+      return res.status(400).json({ success: false, message: "oldDeviceId and newDeviceId required." });
+    }
+
+    await Response.updateMany(
+      { deviceId: oldDeviceId },
+      { $set: { deviceId: newDeviceId.trim() } }
+    );
+
+    await Device.findOneAndUpdate(
+      { deviceName: oldDeviceId },
+      { $set: { deviceName: newDeviceId.trim() } }
+    );
+
+    res.json({ success: true, message: `Renamed device from '${oldDeviceId}' to '${newDeviceId.trim()}'.` });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 router.post('/responses', async (req, res) => {
   try {

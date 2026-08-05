@@ -26,7 +26,7 @@
   let isResizing = false;
 
   // DYNAMIC HOVER & RECTANGLE TOOLTIP STATE
-  let activeHoveredSlice = null; // { qIdx, label, count, percentage, color }
+  let activeHoveredSlice = null;
   let mousePos = { x: 0, y: 0 };
 
   function handleSliceMouseEnter(qIdx, item, event) {
@@ -165,45 +165,6 @@
       allAnswers: r.answers || []
     };
   });
-
-  // ADMIN PERSISTENT DEVICE RENAME FUNCTION
-  async function renameDeviceGlobally(oldDeviceId) {
-    const pass = prompt("Admin Authorization Key:");
-    if (pass !== "1234" && pass !== "admin") {
-      alert("Unauthorized key.");
-      return;
-    }
-
-    const newDeviceName = prompt(`Admin Device Rename: Update device label "${oldDeviceId}" across all logs to:`, oldDeviceId);
-    if (!newDeviceName || !newDeviceName.trim() || newDeviceName === oldDeviceId) return;
-
-    const targetName = newDeviceName.trim();
-
-    // 1. Update browser localStorage if this device is the current active tablet
-    const currentLocalDevice = localStorage.getItem("sdx_device_id");
-    if (currentLocalDevice === oldDeviceId || !currentLocalDevice) {
-      localStorage.setItem("sdx_device_id", targetName);
-    }
-
-    // 2. Reactively reassign the local array so Svelte triggers immediate UI re-render
-    responses = responses.map((r) => {
-      if ((r.deviceId || "Tablet-A") === oldDeviceId) {
-        return { ...r, deviceId: targetName };
-      }
-      return r;
-    });
-
-    // 3. Sync to backend API endpoint to update database records
-    try {
-      await fetch(`${API_BASE}/responses/rename-device`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ oldDeviceId, newDeviceId: targetName }),
-      });
-    } catch (err) {
-      console.warn("Backend API sync delay, changes saved locally in browser memory.");
-    }
-  }
 
   function toggleExpandAlert(id) {
     if (expandedAlertIds.has(id)) {
@@ -449,7 +410,7 @@
       const startRad = ((startDeg - 90) * Math.PI) / 180;
       const endRad = ((endDeg - 90) * Math.PI) / 180;
 
-      const r = 45; // Outer radius of full pie
+      const r = 45;
       const x1 = 50 + r * Math.cos(startRad);
       const y1 = 50 + r * Math.sin(startRad);
       const x2 = 50 + r * Math.cos(endRad);
@@ -457,7 +418,7 @@
 
       const largeArc = sliceDeg > 180 ? 1 : 0;
       const svgPath = total === count
-        ? "M 50,5 A 45 45 0 1 1 49.99,5 Z" // Full circle pie
+        ? "M 50,5 A 45 45 0 1 1 49.99,5 Z"
         : `M 50 50 L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
 
       return { label: key, count, percentage, color, startDeg, endDeg, svgPath };
@@ -498,7 +459,7 @@
 
 <div class="w-full h-auto lg:h-[calc(100vh-5rem)] flex flex-col lg:flex-row animate-fade overflow-y-auto lg:overflow-hidden box-border p-1 relative">
   
-  <!-- LEFT SIDE CONTROL PANEL (RESIZABLE) -->
+  <!-- LEFT SIDE CONTROL PANEL -->
   <div 
     class="w-full bg-slate-900 border border-slate-800/80 rounded-2xl p-4 shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3 box-border shadow-lg transition-none"
     style="width: {leftPanelWidth}px;"
@@ -533,7 +494,7 @@
       </div>
     </div>
 
-    <!-- TABLET DEVICE FILTERING & ADMIN RENAME SECTION -->
+    <!-- READ-ONLY TABLET SITE FILTER CHIPS (NO INLINE EDITING) -->
     <div class="flex-1 pt-2 sm:pt-0 lg:pt-2 border-t sm:border-t-0 lg:border-t sm:border-l lg:border-l-0 sm:pl-3 lg:pl-0 border-slate-800/80 space-y-1.5 shrink-0">
       <div class="flex items-center justify-between">
         <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Tablet Site Filter</span>
@@ -550,28 +511,17 @@
         {:else}
           {#each availableDevices as devId}
             {@const isSelected = selectedDevices.includes(devId)}
-            <div class="flex items-center space-x-1 group/item">
-              <button
-                on:click={() => toggleDeviceFilter(devId)}
-                class="w-full px-2 py-1.5 rounded-lg text-[9px] font-mono font-bold transition-all border flex items-center justify-between shadow-xs active:scale-95 truncate {isSelected ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300 ring-1 ring-emerald-500/30' : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white'}"
-                title={devId}
-              >
-                <span class="truncate pr-0.5 flex items-center space-x-1">
-                  <svg class="w-3 h-3 fill-current inline-block" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
-                  <span>{devId}</span>
-                </span>
-                {#if isSelected}<span class="shrink-0 text-emerald-400 font-bold">✓</span>{/if}
-              </button>
-
-              <!-- ADMIN RETROACTIVE DEVICE RENAME BUTTON -->
-              <button
-                on:click={() => renameDeviceGlobally(devId)}
-                class="opacity-0 group-hover/item:opacity-100 bg-slate-800 hover:bg-cyan-600 text-slate-300 hover:text-white p-1 rounded transition-all text-[8px] shrink-0"
-                title="Admin: Rename this device retroactively"
-              >
-                ✏️
-              </button>
-            </div>
+            <button
+              on:click={() => toggleDeviceFilter(devId)}
+              class="w-full px-2 py-1.5 rounded-lg text-[9px] font-mono font-bold transition-all border flex items-center justify-between shadow-xs active:scale-95 cursor-pointer truncate {isSelected ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300 ring-1 ring-emerald-500/30' : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white'}"
+              title={devId}
+            >
+              <span class="truncate pr-0.5 flex items-center space-x-1">
+                <svg class="w-3 h-3 fill-current inline-block shrink-0" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+                <span class="truncate">{devId}</span>
+              </span>
+              {#if isSelected}<span class="shrink-0 text-emerald-400 font-bold ml-1">✓</span>{/if}
+            </button>
           {/each}
         {/if}
       </div>
@@ -588,14 +538,13 @@
         {/if}
       </div>
 
-      <!-- QUICK PRESET BUTTONS -->
       <div class="space-y-1">
         <span class="text-[9px] text-slate-500 font-bold uppercase block">Quick Ranges</span>
         <div class="grid grid-cols-4 gap-1">
           {#each [['ALL', 'All'], ['TODAY', 'Today'], ['7DAYS', '7 Days'], ['30DAYS', '30 Days']] as [presetKey, presetLabel]}
             <button
               on:click={() => applyDatePreset(presetKey)}
-              class="py-1 px-0.5 rounded-md text-[9px] font-bold transition-all border hover:scale-105 active:scale-95 {activePreset === presetKey ? 'bg-cyan-600 border-cyan-500 text-white shadow-xs ring-1 ring-cyan-500/30' : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200'}"
+              class="py-1 px-0.5 rounded-md text-[9px] font-bold transition-all border hover:scale-105 active:scale-95 cursor-pointer {activePreset === presetKey ? 'bg-cyan-600 border-cyan-500 text-white shadow-xs ring-1 ring-cyan-500/30' : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200'}"
             >
               {presetLabel}
             </button>
@@ -603,7 +552,6 @@
         </div>
       </div>
 
-      <!-- DATE ONLY INPUTS -->
       <div class="grid grid-cols-2 lg:grid-cols-1 gap-1.5 pt-0.5">
         <div class="space-y-0.5">
           <label for="start-date" class="text-[9px] text-slate-500 font-bold uppercase">From Date</label>
@@ -655,10 +603,9 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-1.5">
-        <!-- LOW RATING NOTIFICATION BELL BUTTON -->
         <button
           on:click={() => (isNotificationOpen = !isNotificationOpen)}
-          class="relative bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/60 p-2 rounded-lg transition-all active:scale-95 hover:scale-105 flex items-center justify-center shadow-xs text-amber-400"
+          class="relative bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/60 p-2 rounded-lg transition-all active:scale-95 hover:scale-105 flex items-center justify-center shadow-xs text-amber-400 cursor-pointer"
           title="View Low Rating Notifications"
         >
           <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.83-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
@@ -675,14 +622,14 @@
         <div class="bg-slate-950 p-0.5 border border-slate-800 rounded-lg flex items-center space-x-1">
           <button
             on:click={() => (activeViewMode = "analytics")}
-            class="px-2.5 py-1 rounded-md text-[11px] font-bold transition-all flex items-center space-x-1.5 hover:scale-105 active:scale-95 {activeViewMode === 'analytics' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'}"
+            class="px-2.5 py-1 rounded-md text-[11px] font-bold transition-all flex items-center space-x-1.5 cursor-pointer hover:scale-105 active:scale-95 {activeViewMode === 'analytics' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'}"
           >
             <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
             <span>Analytics</span>
           </button>
           <button
             on:click={() => (activeViewMode = "table")}
-            class="px-2.5 py-1 rounded-md text-[11px] font-bold transition-all flex items-center space-x-1.5 hover:scale-105 active:scale-95 {activeViewMode === 'table' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'}"
+            class="px-2.5 py-1 rounded-md text-[11px] font-bold transition-all flex items-center space-x-1.5 cursor-pointer hover:scale-105 active:scale-95 {activeViewMode === 'table' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'}"
           >
             <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M4 3h16c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2zm0 4h16V5H4v2zm0 4h5V9H4v2zm7 0h9V9h-9v2zm-7 4h5v-2H4v2zm7 0h9v-2h-9v2zm-7 4h5v-2H4v2zm7 0h9v-2h-9v2z"/></svg>
             <span>Log Matrix</span>
@@ -692,7 +639,7 @@
         <button
           on:click={() => exportToExcel()}
           disabled={filteredResponses.length === 0}
-          class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] py-1.5 px-2.5 rounded-lg transition-all hover:scale-105 active:scale-95 flex items-center space-x-1 disabled:opacity-20"
+          class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] py-1.5 px-2.5 rounded-lg transition-all hover:scale-105 active:scale-95 flex items-center space-x-1 disabled:opacity-20 cursor-pointer"
         >
           <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
           <span>Export CSV</span>
@@ -701,7 +648,7 @@
         <button
           on:click={clearAllSurveyResponses}
           disabled={filteredResponses.length === 0}
-          class="bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 text-rose-300 font-bold text-[11px] py-1.5 px-2.5 rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-20 flex items-center space-x-1"
+          class="bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 text-rose-300 font-bold text-[11px] py-1.5 px-2.5 rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-20 flex items-center space-x-1 cursor-pointer"
           title="Delete all submission logs for this form"
         >
           <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
@@ -710,7 +657,7 @@
       </div>
     </div>
 
-    <!-- MAIN GRID CARDS WITH SOLID PIE CHARTS AND RECTANGLE TOOLTIPS -->
+    <!-- MAIN GRID CARDS -->
     <div class="flex-1 overflow-y-auto mt-3 custom-scrollbar pr-1 box-border">
       {#if !selectedSurveyObj || filteredResponses.length === 0}
         <div class="border-2 border-dashed border-slate-800 rounded-2xl p-8 text-center text-slate-500 text-xs">
@@ -745,8 +692,6 @@
 
               {#if isPieEligible}
                 <div class="flex flex-row items-center gap-3 sm:gap-4 pt-0.5 relative">
-                  
-                  <!-- SOLID PIE CHART (NO CENTER HOLE) -->
                   <div class="relative shrink-0 flex items-center justify-center">
                     <svg class="w-28 h-28 transform -rotate-90 drop-shadow-md overflow-visible" viewBox="0 0 100 100">
                       {#each stats.breakdowns as item}
@@ -770,7 +715,6 @@
                     </svg>
                   </div>
 
-                  <!-- INTERACTIVE BREAKDOWN LEGEND LIST -->
                   <div class="flex-1 space-y-1 w-full">
                     {#each stats.breakdowns as item}
                       {@const isHovered = activeHoveredSlice?.qIdx === qIdx && activeHoveredSlice?.label === item.label}
@@ -794,7 +738,6 @@
                 </div>
 
               {:else}
-                <!-- INTERACTIVE BAR PROGRESS METRICS -->
                 <div class="space-y-2">
                   {#each stats.breakdowns as item}
                     {@const isHovered = activeHoveredSlice?.qIdx === qIdx && activeHoveredSlice?.label === item.label}
@@ -826,11 +769,11 @@
         </div>
 
       {:else}
-        <!-- LOG MATRIX TABLE WITH ROW HOVER & ADMIN RENAME -->
+        <!-- LOG MATRIX TABLE -->
         <div class="border border-slate-800 rounded-xl bg-slate-950/40 box-border overflow-x-auto mb-3 shadow-inner">
           <table class="w-full border-collapse text-left text-xs text-slate-300 whitespace-nowrap min-w-full">
-            <thead class="bg-slate-900 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 sticky top-0 z-10 shadow-xs">
-              <tr>
+            <thead>
+              <tr class="bg-slate-900 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 sticky top-0 z-10 shadow-xs">
                 <th class="p-2.5 pl-3 border-r border-slate-800/60 w-10 text-center">Action</th>
                 <th class="p-2.5 border-r border-slate-800/60 w-20">ID Token</th>
                 <th class="p-2.5 border-r border-slate-800/60 w-28">Tablet Site</th>
@@ -846,7 +789,7 @@
                   <td class="p-2 border-r border-slate-800/40 text-center">
                     <button
                       on:click={() => deleteSingleResponse(response._id)}
-                      class="text-slate-500 hover:text-rose-400 bg-slate-900 hover:bg-rose-950/40 border border-slate-800 p-1.5 rounded-md transition-all active:scale-95"
+                      class="text-slate-500 hover:text-rose-400 bg-slate-900 hover:bg-rose-950/40 border border-slate-800 p-1.5 rounded-md transition-all active:scale-95 cursor-pointer"
                       title="Delete entry"
                     >
                       <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
@@ -856,15 +799,10 @@
                     {response._id ? response._id.slice(-6) : 'Log'}
                   </td>
                   <td class="p-2.5 border-r border-slate-800/40">
-                    <button 
-                      on:click={() => renameDeviceGlobally(response.deviceId || 'Tablet-A')}
-                      class="text-emerald-400 bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-800/60 font-mono font-bold px-1.5 py-0.5 rounded text-[10px] flex items-center space-x-1 w-fit group-hover:border-emerald-500/60 transition-all"
-                      title="Admin: Click to rename device retroactively"
-                    >
-                      <svg class="w-3 h-3 fill-current inline-block" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+                    <span class="text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 font-mono font-bold px-2 py-0.5 rounded text-[10px] inline-flex items-center space-x-1">
+                      <svg class="w-3 h-3 fill-current inline-block shrink-0" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
                       <span>{response.deviceId || 'Tablet-A'}</span>
-                      <span class="text-[8px] text-emerald-300 underline pl-1">edit</span>
-                    </button>
+                    </span>
                   </td>
                   <td class="p-2.5 text-slate-400 border-r border-slate-800/40 font-mono text-[10px] group-hover:text-slate-200">
                     {new Date(response.timestamp).toLocaleString()}
@@ -909,7 +847,7 @@
 
         <button
           on:click={() => (isNotificationOpen = false)}
-          class="text-slate-400 hover:text-white bg-slate-950 border border-slate-800 p-2 rounded-lg transition-all active:scale-95 hover:bg-slate-800"
+          class="text-slate-400 hover:text-white bg-slate-950 border border-slate-800 p-2 rounded-lg transition-all active:scale-95 hover:bg-slate-800 cursor-pointer"
         >
           ✕
         </button>
@@ -925,7 +863,6 @@
             {@const isExpanded = expandedAlertIds.has(alert.responseId)}
 
             <div class="bg-slate-950 border border-rose-900/50 hover:border-rose-700/80 p-4 rounded-xl space-y-3 shadow-md transition-all">
-              
               <div class="flex items-center justify-between border-b border-slate-900 pb-2">
                 <div class="flex items-center space-x-2">
                   <span class="text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 font-mono font-bold px-2 py-0.5 rounded text-[10px] flex items-center space-x-1">
@@ -954,7 +891,7 @@
               <div class="pt-0.5">
                 <button
                   on:click={() => toggleExpandAlert(alert.responseId)}
-                  class="w-full bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-800 px-3 py-2 rounded-lg text-xs font-bold font-mono transition-all flex items-center justify-between active:scale-[0.99]"
+                  class="w-full bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-800 px-3 py-2 rounded-lg text-xs font-bold font-mono transition-all flex items-center justify-between active:scale-[0.99] cursor-pointer"
                 >
                   <span>{isExpanded ? "▼ Hide Full Submission" : "▶ Inspect Full Submission"}</span>
                   <span class="text-[10px] text-cyan-400 font-mono">{alert.allAnswers.length} Fields</span>
@@ -986,7 +923,7 @@
       <div class="pt-2 border-t border-slate-800 text-center shrink-0">
         <button
           on:click={() => (isNotificationOpen = false)}
-          class="w-full bg-slate-950 hover:bg-slate-800 text-slate-300 font-bold text-xs py-2.5 rounded-lg border border-slate-800 transition-all shadow-md active:scale-95"
+          class="w-full bg-slate-950 hover:bg-slate-800 text-slate-300 font-bold text-xs py-2.5 rounded-lg border border-slate-800 transition-all shadow-md active:scale-95 cursor-pointer"
         >
           Close Drawer
         </button>
@@ -1018,7 +955,7 @@
 
       <button 
         on:click={closeQuestionModal} 
-        class="text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-700/80 h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold transition-all shadow-lg shrink-0 active:scale-95"
+        class="text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-700/80 h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold transition-all shadow-lg shrink-0 active:scale-95 cursor-pointer"
         title="Exit Focus View"
       >
         ✕
@@ -1028,7 +965,6 @@
     <!-- MAIN FOCUS WORKSPACE -->
     <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 my-4 overflow-hidden box-border">
       
-      <!-- LEFT: FILTER CONTROL PANEL -->
       <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-4 shrink-0 shadow-xl">
         <div class="space-y-3">
           <div class="flex items-center justify-between border-b border-slate-800 pb-2">
@@ -1046,7 +982,7 @@
               {#each [['ALL', 'All'], ['TODAY', 'Today'], ['7DAYS', '7 Days'], ['30DAYS', '30 Days']] as [presetKey, presetLabel]}
                 <button
                   on:click={() => applyDatePreset(presetKey)}
-                  class="py-1.5 rounded-lg text-xs font-bold transition-all border hover:scale-105 active:scale-95 {activePreset === presetKey ? 'bg-cyan-600 border-cyan-500 text-white shadow-sm' : 'bg-slate-950 border-slate-800 text-slate-400'}"
+                  class="py-1.5 rounded-lg text-xs font-bold transition-all border hover:scale-105 active:scale-95 cursor-pointer {activePreset === presetKey ? 'bg-cyan-600 border-cyan-500 text-white shadow-sm' : 'bg-slate-950 border-slate-800 text-slate-400'}"
                 >
                   {presetLabel}
                 </button>
@@ -1084,7 +1020,6 @@
         </div>
       </div>
 
-      <!-- RIGHT: ENLARGED CHART -->
       <div class="lg:col-span-2 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between overflow-hidden shadow-xl">
         
         {#if isPie}
@@ -1140,18 +1075,17 @@
       </div>
     </div>
 
-    <!-- BOTTOM ACTION BAR -->
     <div class="pt-3 border-t border-slate-800 flex items-center justify-between shrink-0 gap-3">
       <button
         on:click={closeQuestionModal}
-        class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700/80 transition-all shadow-md active:scale-95"
+        class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700/80 transition-all shadow-md active:scale-95 cursor-pointer"
       >
         ← Return
       </button>
 
       <button
         on:click={() => exportToExcel(focusedQuestion)}
-        class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all active:scale-95 flex items-center space-x-1.5"
+        class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all active:scale-95 flex items-center space-x-1.5 cursor-pointer"
       >
         <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
         <span>Export Field CSV</span>
