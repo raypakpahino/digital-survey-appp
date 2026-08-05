@@ -205,12 +205,13 @@
     
     <button 
       on:click={loadData} 
-      class="bg-[#1a2b6c] hover:bg-[#e31b23] dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white px-5 py-2.5 rounded-xl font-extrabold text-xs shadow-md transition-all flex items-center space-x-2 shrink-0 border border-transparent cursor-pointer active:scale-95"
+      class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white px-5 py-2.5 rounded-xl font-extrabold text-xs shadow-md transition-all flex items-center space-x-2 shrink-0 border border-transparent cursor-pointer active:scale-95"
+      style="color: #ffffff !important; background-color: #1a2b6c !important;"
     >
-      <svg class="w-4 h-4 fill-current shrink-0 {isLoading ? 'animate-spin' : ''}" viewBox="0 0 24 24">
+      <svg class="w-4 h-4 fill-current shrink-0 text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;">
         <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
       </svg>
-      <span class="font-extrabold">Refresh Devices</span>
+      <span class="font-extrabold" style="color: #ffffff !important;">Refresh Devices</span>
     </button>
   </div>
 
@@ -231,7 +232,7 @@
           </h3>
         </div>
         {#if editingDeviceId}
-          <button on:click={resetForm} class="text-[10px] font-extrabold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">Cancel</button>
+          <button on:click={resetForm} class="text-[10px] font-extrabold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">Cancel</button>
         {/if}
       </div>
       
@@ -244,41 +245,42 @@
       <form on:submit|preventDefault={handleAddOrUpdateDevice} class="space-y-4">
         <!-- 1. DEVICE NAME INPUT -->
         <div class="space-y-1">
-          <label for="dev-name-input" class="text-[10px] font-mono font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-widest block">1. Device Name</label>
+          <label for="dev-name-input" class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">1. Device Name</label>
           <input 
             id="dev-name-input"
             type="text" 
             bind:value={inputDeviceName} 
             placeholder="e.g. Charisse's Phone or Tablet-A" 
-            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-white font-mono font-bold placeholder-slate-400 dark:placeholder-slate-500 rounded-xl p-3 focus:outline-none focus:border-[#e31b23] dark:focus:border-cyan-500" 
+            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-white font-mono font-bold placeholder-slate-500 rounded-xl p-3 focus:outline-none focus:border-[#e31b23]" 
           />
         </div>
 
         <!-- 2. ACCESS PIN INPUT -->
         <div class="space-y-1">
-          <label for="dev-pin-input" class="text-[10px] font-mono font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-widest block">2. Form Access PIN</label>
+          <label for="dev-pin-input" class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">2. Form Access PIN</label>
           <input 
             id="dev-pin-input"
             type="text" 
             maxlength="6"
             bind:value={inputPin} 
             placeholder="e.g. 1234" 
-            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-white font-mono font-bold rounded-xl p-3 focus:outline-none focus:border-[#e31b23] dark:focus:border-cyan-500" 
+            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-white font-mono font-bold rounded-xl p-3 focus:outline-none focus:border-[#e31b23]" 
           />
         </div>
 
         <!-- 3. AUTHORIZED FORM ACCESS MULTI-SELECT -->
         <div class="space-y-2">
-          <span class="text-[10px] font-mono font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-widest block">3. Authorized Form Access</span>
+          <span class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">3. Authorized Form Access</span>
           
-          <div class="max-h-44 overflow-y-auto space-y-1 p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl custom-scrollbar">
+          <div class="max-h-44 overflow-y-auto space-y-1.5 p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl custom-scrollbar">
             <button 
               type="button"
               on:click={() => toggleFormSelection("All Forms")}
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-between cursor-pointer border {selectedForms.includes('All Forms') ? 'bg-[#1a2b6c] dark:bg-cyan-600 border-[#1a2b6c] dark:border-cyan-500 text-white font-extrabold' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'}"
+              class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-between cursor-pointer border {selectedForms.includes('All Forms') ? 'bg-[#1a2b6c] border-[#1a2b6c] text-white font-extrabold' : 'bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'}"
+              style="{selectedForms.includes('All Forms') ? 'background-color: #1a2b6c !important; color: #ffffff !important;' : ''}"
             >
               <span>All Available Forms</span>
-              {#if selectedForms.includes('All Forms')}<span class="text-white">✓</span>{/if}
+              {#if selectedForms.includes('All Forms')}<span style="color: #ffffff !important;">✓</span>{/if}
             </button>
 
             {#each availableSurveys as s}
@@ -286,10 +288,11 @@
               <button 
                 type="button"
                 on:click={() => toggleFormSelection(s.title)}
-                class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-between cursor-pointer border {isSelected ? 'bg-[#1a2b6c] dark:bg-cyan-600 border-[#1a2b6c] dark:border-cyan-500 text-white font-extrabold' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'}"
+                class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-between cursor-pointer border {isSelected ? 'bg-[#1a2b6c] border-[#1a2b6c] text-white font-extrabold' : 'bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'}"
+                style="{isSelected ? 'background-color: #1a2b6c !important; color: #ffffff !important;' : ''}"
               >
                 <span class="truncate pr-2">{s.title}</span>
-                {#if isSelected}<span class="text-white">✓</span>{/if}
+                {#if isSelected}<span style="color: #ffffff !important;">✓</span>{/if}
               </button>
             {/each}
           </div>
@@ -297,9 +300,10 @@
 
         <button 
           type="submit" 
-          class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white font-extrabold py-3 px-4 rounded-xl text-xs transition-all shadow-md cursor-pointer flex items-center justify-center space-x-2 active:scale-95"
+          class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-3.5 px-4 rounded-xl text-xs transition-all shadow-md cursor-pointer flex items-center justify-center space-x-2 active:scale-95"
+          style="color: #ffffff !important; background-color: #1a2b6c !important;"
         >
-          <span class="font-extrabold">
+          <span class="font-extrabold" style="color: #ffffff !important;">
             {editingDeviceId ? 'Save Changes' : 'Save Device Access Rule'}
           </span>
         </button>
@@ -312,14 +316,14 @@
       class="hidden lg:flex w-6 cursor-col-resize items-center justify-center shrink-0 group z-30 self-stretch px-1"
       title="Hold and drag to resize panels"
     >
-      <div class="w-1.5 h-32 rounded-full bg-slate-300 dark:bg-slate-700 group-hover:bg-[#e31b23] dark:group-hover:bg-cyan-400 group-hover:scale-110 transition-all"></div>
+      <div class="w-1.5 h-32 rounded-full bg-slate-300 dark:bg-slate-700 group-hover:bg-[#e31b23] group-hover:scale-110 transition-all"></div>
     </div>
 
     <!-- RIGHT SCROLLABLE ROSTER TABLE -->
     <div class="flex-1 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4 min-w-0">
       <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
         <h3 class="text-xs font-mono font-extrabold text-[#1a2b6c] dark:text-cyan-400 uppercase tracking-wider">Registered Device Roster</h3>
-        <span class="text-xs font-mono font-bold text-slate-600 dark:text-slate-300">{devices.length} Total Registered</span>
+        <span class="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">{devices.length} Total Registered</span>
       </div>
 
       {#if devices.length === 0}
@@ -341,27 +345,31 @@
               {#each devices as dev (dev._id || dev.deviceName)}
                 {@const formatted = formatFormDisplay(dev.allowedFormTitle)}
                 <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                  <!-- DEVICE NAME (EXPLICIT HIGH CONTRAST TEXT) -->
                   <td class="py-3.5 px-3 font-bold">
                     <div class="flex items-center space-x-2">
                       <span class="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
-                      <span class="truncate max-w-[180px] font-black text-slate-900 dark:text-white">
+                      <span class="truncate max-w-[180px] font-black text-slate-900 dark:text-white text-xs tracking-tight">
                         {dev.deviceName}
                       </span>
                     </div>
                   </td>
 
+                  <!-- ACCESS PIN BADGE -->
                   <td class="py-3.5 px-3">
                     <span class="bg-rose-50 dark:bg-rose-950/60 text-[#e31b23] dark:text-rose-400 px-3 py-1 rounded-md font-mono font-black tracking-widest border border-rose-200 dark:border-rose-900/60 inline-block">
                       {dev.accessPin || dev.pinCode || '1234'}
                     </span>
                   </td>
 
+                  <!-- AUTHORIZED FORMS BADGE -->
                   <td class="py-3.5 px-3 font-bold">
                     <span class="px-3 py-1 rounded-md border text-[11px] font-black inline-block max-w-[200px] truncate {formatted === 'All Forms' ? 'bg-cyan-50 dark:bg-cyan-950/60 border-cyan-200 dark:border-cyan-800/60 text-[#1a2b6c] dark:text-cyan-300' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'}" title={formatted}>
                       {formatted}
                     </span>
                   </td>
 
+                  <!-- ACTIONS -->
                   <td class="py-3.5 px-3 text-right">
                     <div class="flex items-center justify-end space-x-2">
                       <button 
@@ -374,8 +382,9 @@
                       <button 
                         on:click={() => handleDeleteDevice(dev._id)}
                         class="text-xs bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-xl font-extrabold shadow-xs cursor-pointer border border-transparent active:scale-95 transition-all"
+                        style="color: #ffffff !important; background-color: #e11d48 !important;"
                       >
-                        Delete
+                        <span style="color: #ffffff !important; font-weight: 800 !important;">Delete</span>
                       </button>
                     </div>
                   </td>
