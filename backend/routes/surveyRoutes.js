@@ -81,17 +81,45 @@ router.put('/surveys/:id', async (req, res) => {
   }
 });
 
+// SMART PIN VERIFICATION: CHECKS DEVICE PINS & SURVEY PIN
 router.post('/surveys/:id/verify-pin', async (req, res) => {
   try {
     const { pinCode } = req.body;
     const survey = await Survey.findById(req.params.id);
     if (!survey) return res.status(404).json({ success: false, message: 'Survey not found.' });
 
-    if (survey.pinCode === pinCode || pinCode === '1234') {
-      return res.json({ success: true, message: 'PIN verified successfully.' });
-    } else {
-      return res.status(401).json({ success: false, message: 'Incorrect Form PIN Code.' });
+    // 1. Check Device Management PIN Rules first
+    const matchedDevice = await Device.findOne({ accessPin: pinCode });
+
+    if (matchedDevice) {
+      if (matchedDevice.allowedFormTitle !== 'All Forms' && matchedDevice.allowedFormTitle !== survey.title) {
+        return res.status(403).json({ 
+          success: false, 
+          message: `This PIN is assigned to '${matchedDevice.deviceName}', but only authorized for form '${matchedDevice.allowedFormTitle}'.` 
+        });
+      }
+
+      // Update Device Last Active
+      matchedDevice.lastActive = new Date();
+      await matchedDevice.save();
+
+      return res.json({ 
+        success: true, 
+        message: 'Device PIN verified.', 
+        deviceName: matchedDevice.deviceName 
+      });
     }
+
+    // 2. Check Specific Survey PIN or Fallback '1234'
+    if (survey.pinCode === pinCode || pinCode === '1234') {
+      return res.json({ 
+        success: true, 
+        message: 'Generic PIN verified.', 
+        deviceName: 'Generic Kiosk Device' 
+      });
+    }
+
+    return res.status(401).json({ success: false, message: 'Invalid Access PIN Code!' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -111,7 +139,7 @@ router.delete('/surveys/:id', async (req, res) => {
 });
 
 // ==========================================
-// DEVICE MANAGEMENT ROUTES (3-SECTION STRUCTURE)
+// DEVICE MANAGEMENT ROUTES
 // ==========================================
 
 router.get('/devices', async (req, res) => {
