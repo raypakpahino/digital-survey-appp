@@ -11,6 +11,7 @@
   let newPassword = "";
   let newRole = "user";
   let userMsg = "";
+  let userMsgType = "info"; // "success" | "error" | "info"
 
   const API_BASE = "/api";
 
@@ -33,7 +34,8 @@
   async function createAccount() {
     userMsg = "";
     if (!newUsername.trim() || !newPassword.trim()) {
-      userMsg = "Username and password required!";
+      userMsg = "Username and password are required.";
+      userMsgType = "error";
       return;
     }
 
@@ -45,20 +47,23 @@
       });
       const data = await res.json();
       if (data.success) {
-        userMsg = `✅ Provisioned user '${newUsername}' successfully!`;
+        userMsg = `Provisioned user '${newUsername}' successfully.`;
+        userMsgType = "success";
         newUsername = "";
         newPassword = "";
         loadData();
       } else {
-        userMsg = `⚠️ ${data.message || "Failed to create user."}`;
+        userMsg = data.message || "Failed to create user account.";
+        userMsgType = "error";
       }
     } catch (err) {
-      userMsg = "⚠️ Connection error.";
+      userMsg = "Unable to connect to provisioning service.";
+      userMsgType = "error";
     }
   }
 
   async function revokeDevice(id) {
-    if (!confirm(`Revoke device session?`)) return;
+    if (!confirm(`Revoke active device session?`)) return;
     try {
       await fetch(`${API_BASE}/devices/${id}`, { method: "DELETE" });
       devices = devices.filter(d => d._id !== id);
@@ -79,15 +84,19 @@
   <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-5 gap-4">
     <div>
       <h1 class="text-2xl font-black tracking-tight text-[#1a2b6c] dark:text-white">Device & Access Management</h1>
-      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Manage active tablet sessions and provision pre-made operator accounts.</p>
+      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Monitor active tablet sessions and provision operator credentials.</p>
     </div>
     
+    <!-- PROFESSIONAL REFRESH BUTTON WITH SVG ICON -->
     <button 
       on:click={loadData} 
-      class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white px-4 py-2.5 rounded-xl font-extrabold text-xs transition-all shadow-md active:scale-95 flex items-center space-x-2 shrink-0 border border-transparent"
+      class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white px-4 py-2.5 rounded-xl font-extrabold text-xs transition-all shadow-md active:scale-95 flex items-center space-x-2 shrink-0 border border-transparent cursor-pointer"
       style="color: #ffffff !important; background-color: #1a2b6c !important;"
     >
-      <span style="color: #ffffff !important; font-weight: 800 !important;">🔄 Refresh Status</span>
+      <svg class="w-4 h-4 fill-current shrink-0 {isLoading ? 'animate-spin' : ''}" viewBox="0 0 24 24" style="fill: #ffffff !important;">
+        <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+      </svg>
+      <span style="color: #ffffff !important; font-weight: 800 !important;">Refresh Status</span>
     </button>
   </div>
 
@@ -98,8 +107,15 @@
       <h3 class="text-xs font-mono font-extrabold text-[#1a2b6c] dark:text-cyan-400 uppercase tracking-wider">Provision Operator Account</h3>
       
       {#if userMsg}
-        <div class="text-xs font-bold p-3 rounded-xl border bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300">
-          {userMsg}
+        <div class="text-xs font-bold p-3 rounded-xl border flex items-center space-x-2 {userMsgType === 'success' ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300' : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300'}">
+          <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
+            {#if userMsgType === 'success'}
+              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            {:else}
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            {/if}
+          </svg>
+          <span>{userMsg}</span>
         </div>
       {/if}
 
@@ -140,10 +156,13 @@
 
         <button 
           type="submit" 
-          class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-3.5 px-4 rounded-xl text-xs transition-all shadow-md active:scale-95 border border-transparent cursor-pointer" 
+          class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-3.5 px-4 rounded-xl text-xs transition-all shadow-md active:scale-95 border border-transparent cursor-pointer flex items-center justify-center space-x-2" 
           style="color: #ffffff !important; background-color: #1a2b6c !important;"
         >
-          <span style="color: #ffffff !important; font-weight: 800 !important;">+ Provision User Account</span>
+          <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24" style="fill: #ffffff !important;">
+            <path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+          </svg>
+          <span style="color: #ffffff !important; font-weight: 800 !important;">Provision User Account</span>
         </button>
       </form>
 
@@ -185,9 +204,12 @@
                 </div>
                 <button 
                   on:click={() => revokeDevice(dev._id)} 
-                  class="text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 px-3 py-1 rounded-lg border border-rose-200 dark:border-rose-900 font-extrabold transition-all cursor-pointer"
+                  class="text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 px-3 py-1 rounded-lg border border-rose-200 dark:border-rose-900 font-extrabold transition-all cursor-pointer flex items-center space-x-1"
                 >
-                  Revoke
+                  <svg class="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                  </svg>
+                  <span>Revoke</span>
                 </button>
               </div>
 
