@@ -15,10 +15,6 @@
   let formMessage = "";
   let formMessageType = "info";
 
-  // INLINE PIN EDITING STATE
-  let inlineEditingId = null;
-  let inlinePinValue = "";
-
   const API_BASE = "/api";
 
   async function loadData() {
@@ -44,7 +40,7 @@
     inputDeviceName = dev.deviceName;
     inputPin = dev.accessPin || "1234";
     selectedFormTitle = dev.allowedFormTitle || "All Forms";
-    formMessage = `Editing '${dev.deviceName}'. Click 'Save Device Access Rule' to apply changes.`;
+    formMessage = `Editing '${dev.deviceName}'. Click 'Save Changes' to update rules.`;
     formMessageType = "info";
   }
 
@@ -108,33 +104,6 @@
     } catch (err) {
       formMessage = "Error connecting to server.";
       formMessageType = "error";
-    }
-  }
-
-  function startInlinePinEdit(dev) {
-    inlineEditingId = dev._id;
-    inlinePinValue = dev.accessPin || "1234";
-  }
-
-  async function saveInlinePin(devId) {
-    if (!inlinePinValue.trim() || inlinePinValue.length < 4) {
-      alert("PIN must be at least 4 digits.");
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API_BASE}/devices/${devId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accessPin: inlinePinValue.trim() })
-      });
-      const data = await res.json();
-      if (data.success) {
-        inlineEditingId = null;
-        loadData();
-      }
-    } catch (err) {
-      console.error("Error updating PIN:", err);
     }
   }
 
@@ -212,7 +181,7 @@
           />
         </div>
 
-        <!-- 2. ACCESS PIN INPUT (EDITABLE HERE) -->
+        <!-- 2. ACCESS PIN INPUT -->
         <div class="space-y-1">
           <label for="dev-pin-input" class="text-[10px] font-mono font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">2. Form Access PIN</label>
           <input 
@@ -255,7 +224,7 @@
       </form>
     </div>
 
-    <!-- RIGHT PANEL: HIGH CONTRAST DEVICE TABLE WITH EDITABLE PIN BADGES -->
+    <!-- RIGHT PANEL: DEVICE TABLE -->
     <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
         <h3 class="text-xs font-mono font-extrabold text-[#1a2b6c] dark:text-cyan-400 uppercase tracking-wider">Registered Device Roster</h3>
@@ -272,7 +241,7 @@
             <thead>
               <tr class="border-b border-slate-200 dark:border-slate-800 text-[10px] font-mono font-extrabold uppercase text-slate-500 dark:text-slate-400 tracking-wider">
                 <th class="py-3 px-3">Device Name</th>
-                <th class="py-3 px-3">Access PIN (Click to Edit)</th>
+                <th class="py-3 px-3">Access PIN</th>
                 <th class="py-3 px-3">Authorized Forms</th>
                 <th class="py-3 px-3 text-right">Actions</th>
               </tr>
@@ -290,35 +259,11 @@
                     </div>
                   </td>
 
-                  <!-- 2. INLINE EDITABLE ACCESS PIN -->
+                  <!-- 2. ACCESS PIN BADGE (STATIC CLEAN DISPLAY) -->
                   <td class="py-3.5 px-3">
-                    {#if inlineEditingId === dev._id}
-                      <div class="flex items-center space-x-1.5">
-                        <input 
-                          type="text" 
-                          maxlength="6" 
-                          bind:value={inlinePinValue}
-                          class="w-20 bg-white dark:bg-slate-950 border-2 border-[#e31b23] text-[#1a2b6c] dark:text-white font-mono font-black text-xs px-2 py-1 rounded-md text-center focus:outline-none"
-                        />
-                        <button 
-                          on:click={() => saveInlinePin(dev._id)}
-                          class="bg-emerald-600 text-white font-bold px-2 py-1 rounded-md text-[10px] hover:bg-emerald-700"
-                        >Save</button>
-                        <button 
-                          on:click={() => inlineEditingId = null}
-                          class="bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold px-2 py-1 rounded-md text-[10px]"
-                        >✕</button>
-                      </div>
-                    {:else}
-                      <button 
-                        on:click={() => startInlinePinEdit(dev)}
-                        class="bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/80 text-[#e31b23] dark:text-rose-400 px-3 py-1 rounded-md font-mono font-black tracking-widest border border-rose-200 dark:border-rose-900/60 cursor-pointer flex items-center space-x-1.5 group"
-                        title="Click to edit PIN"
-                      >
-                        <span>{dev.accessPin || dev.pinCode || '1234'}</span>
-                        <span class="text-[9px] opacity-40 group-hover:opacity-100 transition-opacity">✏️</span>
-                      </button>
-                    {/if}
+                    <span class="bg-rose-50 dark:bg-rose-950/60 text-[#e31b23] dark:text-rose-400 px-3 py-1 rounded-md font-mono font-black tracking-widest border border-rose-200 dark:border-rose-900/60 inline-block">
+                      {dev.accessPin || dev.pinCode || '1234'}
+                    </span>
                   </td>
 
                   <!-- 3. AUTHORIZED FORMS BADGE -->
@@ -328,7 +273,7 @@
                     </span>
                   </td>
 
-                  <!-- EDIT AND DELETE ACTIONS -->
+                  <!-- EDIT RULE AND DELETE ACTIONS -->
                   <td class="py-3.5 px-3 text-right">
                     <div class="flex items-center justify-end space-x-2">
                       <button 
