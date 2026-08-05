@@ -98,7 +98,7 @@
     } else {
       selectedMultipleValues = [...selectedMultipleValues, option];
     }
-  }
+  }r65757
 
   // FIXED CONDITIONAL EVALUATION FUNCTION (MATCHES WITH OR WITHOUT EMOJIS)
   function shouldShowQuestion(qIndex) {
@@ -498,7 +498,7 @@
               </form>
             {/if}
           </div>
-        </div>
+        </div>            
       {/if}
     </main>
 
