@@ -22,7 +22,6 @@
 
   const API_BASE = "/api";
 
-  // GENERATE RANDOM 6-CHAR ALPHANUMERIC PIN
   function generateRandomPin() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let newPin = '';
@@ -74,7 +73,9 @@
     try {
       const devRes = await fetch(`${API_BASE}/devices`);
       const devData = await devRes.json();
-      if (devData.success) devices = devData.devices || [];
+      if (devData.success) {
+        devices = devData.devices || [];
+      }
 
       const surRes = await fetch(`${API_BASE}/surveys`);
       const surData = await surRes.json();
@@ -238,7 +239,7 @@
 
   <div class="flex flex-col lg:flex-row items-start gap-0 w-full relative">
     
-    <!-- LEFT PANEL: FIXED / STICKY ADD/UPDATE FORM CARD -->
+    <!-- LEFT PANEL -->
     <div 
       class="shrink-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5 z-20"
       style="width: {leftPanelWidth}px; position: sticky; top: 1.5rem; height: max-content;"
@@ -276,7 +277,7 @@
           />
         </div>
 
-        <!-- 2. ACCESS PIN INPUT WITH RANDOM CUBE / DICE SVG BUTTON -->
+        <!-- 2. ACCESS PIN INPUT WITH CUBE BUTTON -->
         <div class="space-y-1">
           <label for="dev-pin-input" class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">2. Form Access PIN (6 Alphanumeric)</label>
           
@@ -290,7 +291,6 @@
               class="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-white font-mono font-black tracking-widest uppercase rounded-xl p-3 focus:outline-none focus:border-[#e31b23]" 
             />
 
-            <!-- CLICKABLE CUBE / DICE SVG BUTTON -->
             <button
               type="button"
               on:click={generateRandomPin}
@@ -298,7 +298,6 @@
               title="Generate Random Unique 6-Char PIN"
               style="background-color: #1a2b6c !important;"
             >
-              <!-- 3D CUBE / DICE SVG ICON -->
               <svg class="w-5 h-5 fill-current text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5V12L2 7v10zm20-10l-10 5v10l10-5V7z"/>
               </svg>
@@ -348,7 +347,7 @@
       </form>
     </div>
 
-    <!-- DRAGGABLE RESIZER DIVIDER -->
+    <!-- DRAGGABLE RESIZER -->
     <div
       on:mousedown={startResizing}
       class="hidden lg:flex w-6 cursor-col-resize items-center justify-center shrink-0 group z-30 self-stretch px-1"

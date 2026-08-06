@@ -8,7 +8,7 @@ const router = express.Router();
 
 // Helper to generate a random 6-character alphanumeric PIN
 const generateUniquePin = (existingPins = new Set()) => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Excluded confusing chars (0, O, 1, I)
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let pin = '';
   do {
     pin = '';
@@ -162,17 +162,17 @@ router.delete('/surveys/:id', async (req, res) => {
 });
 
 // ==========================================
-// DEVICE MANAGEMENT ROUTES (AUTO-UNIQUE PIN MIGRATION)
+// DEVICE MANAGEMENT ROUTES (SAFE QUERY & PIN SYNC)
 // ==========================================
 
 router.get('/devices', async (req, res) => {
   try {
-    let devices = await Device.find({}).sort({ updatedAt: -1 });
+    let devices = await Device.find({}).sort({ updatedAt: -1 }).lean();
     const responseDeviceNames = await Response.distinct('deviceId');
     const registeredNames = new Set(devices.map(d => d.deviceName));
 
-    // Register any historical devices from logs
-    const missingNames = responseDeviceNames.filter(name => name && !registeredNames.has(name));
+    // Register missing device names from response logs
+    const missingNames = responseDeviceNames.filter(name => name && name !== 'Tablet-Unassigned' && !registeredNames.has(name));
     if (missingNames.length > 0) {
       const existingPins = new Set(devices.map(d => d.accessPin));
       const newDocs = missingNames.map(name => {
@@ -188,33 +188,38 @@ router.get('/devices', async (req, res) => {
         };
       });
       await Device.insertMany(newDocs);
-      devices = await Device.find({}).sort({ updatedAt: -1 });
+      devices = await Device.find({}).sort({ updatedAt: -1 }).lean();
     }
 
-    // Auto-fix short/duplicate PINs so every single device gets a unique 6-character alphanumeric PIN
+    // Safely update PINs that are missing or not 6-chars without crashing document validation
     const usedPins = new Set();
-    let hasUpdates = false;
+    const bulkUpdates = [];
 
     for (const dev of devices) {
       const currentPin = String(dev.accessPin || '').trim().toUpperCase();
       if (currentPin.length !== 6 || usedPins.has(currentPin)) {
         const freshPin = generateUniquePin(usedPins);
-        dev.accessPin = freshPin;
         usedPins.add(freshPin);
-        await dev.save();
-        hasUpdates = true;
+        bulkUpdates.push({
+          updateOne: {
+            filter: { _id: dev._id },
+            update: { $set: { accessPin: freshPin } }
+          }
+        });
       } else {
         usedPins.add(currentPin);
       }
     }
 
-    if (hasUpdates) {
-      devices = await Device.find({}).sort({ updatedAt: -1 });
+    if (bulkUpdates.length > 0) {
+      await Device.bulkWrite(bulkUpdates);
+      devices = await Device.find({}).sort({ updatedAt: -1 }).lean();
     }
 
     res.json({ success: true, devices });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error("Error in GET /api/devices:", error);
+    res.status(500).json({ success: false, error: error.message, devices: [] });
   }
 });
 
@@ -230,7 +235,6 @@ router.post('/devices/register', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Form Access PIN must be exactly 6 alphanumeric characters.' });
     }
 
-    // Check duplicate PIN
     const duplicate = await Device.findOne({ accessPin: cleanPin, deviceName: { $ne: cleanName } });
     if (duplicate) {
       return res.status(400).json({ success: false, message: `PIN '${cleanPin}' is already assigned to '${duplicate.deviceName}'. PINs must be unique!` });
@@ -274,7 +278,6 @@ router.put('/devices/:id', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Form Access PIN must be exactly 6 alphanumeric characters.' });
     }
 
-    // Ensure PIN is unique across other devices
     const duplicate = await Device.findOne({ accessPin: cleanPin, _id: { $ne: req.params.id } });
     if (duplicate) {
       return res.status(400).json({ success: false, message: `PIN '${cleanPin}' is already assigned to '${duplicate.deviceName}'. PINs must be unique!` });
