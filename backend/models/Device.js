@@ -12,8 +12,8 @@ const deviceSchema = new mongoose.Schema({
     default: '1234'
   },
   allowedFormTitle: {
-    type: String,
-    default: 'All Forms'
+    type: mongoose.Schema.Types.Mixed,
+    default: []
   },
   loggedInUser: {
     type: String,

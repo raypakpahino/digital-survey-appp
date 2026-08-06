@@ -253,16 +253,15 @@ router.post('/devices/register', async (req, res) => {
           lastActive: new Date()
         }
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true, runValidators: false }
     );
 
     res.json({ success: true, device });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// DIRECT SET UPDATE FOR DEVICE EDITING
 router.put('/devices/:id', async (req, res) => {
   try {
     const { accessPin, allowedFormTitle, deviceName } = req.body;
@@ -310,7 +309,8 @@ router.put('/devices/:id', async (req, res) => {
 
     res.json({ success: true, device: updatedDevice });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error("PUT /devices error:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -326,7 +326,7 @@ router.delete('/devices/:id', async (req, res) => {
     }
     res.json({ success: true, message: 'Device permanently removed.' });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
