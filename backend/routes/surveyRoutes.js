@@ -93,7 +93,7 @@ router.put('/surveys/:id', async (req, res) => {
   }
 });
 
-// PIN VERIFICATION ROUTE - SPECIFIC FORMS ONLY
+// PIN VERIFICATION ROUTE
 router.post('/surveys/:id/verify-pin', async (req, res) => {
   try {
     const { pinCode } = req.body;
@@ -238,13 +238,17 @@ router.post('/devices/register', async (req, res) => {
       return res.status(400).json({ success: false, message: `PIN '${cleanPin}' is already assigned to '${duplicate.deviceName}'. PINs must be unique!` });
     }
 
+    const cleanForms = Array.isArray(allowedFormTitle) 
+      ? allowedFormTitle.filter(f => f && f !== 'All Forms') 
+      : [allowedFormTitle];
+
     const device = await Device.findOneAndUpdate(
       { deviceName: cleanName },
       {
         $set: {
           deviceName: cleanName,
           accessPin: cleanPin,
-          allowedFormTitle: Array.isArray(allowedFormTitle) ? allowedFormTitle.filter(f => f !== 'All Forms') : [allowedFormTitle],
+          allowedFormTitle: cleanForms,
           loggedInUser: loggedInUser || 'Operator',
           status: 'paired',
           lastActive: new Date()
@@ -281,11 +285,13 @@ router.put('/devices/:id', async (req, res) => {
       return res.status(400).json({ success: false, message: `PIN '${cleanPin}' is already assigned to '${duplicate.deviceName}'. PINs must be unique!` });
     }
 
+    const cleanForms = Array.isArray(allowedFormTitle) 
+      ? allowedFormTitle.filter(f => f && f !== 'All Forms') 
+      : [allowedFormTitle];
+
     existingDevice.deviceName = newName;
     existingDevice.accessPin = cleanPin;
-    if (allowedFormTitle) {
-      existingDevice.allowedFormTitle = Array.isArray(allowedFormTitle) ? allowedFormTitle.filter(f => f !== 'All Forms') : [allowedFormTitle];
-    }
+    existingDevice.allowedFormTitle = cleanForms;
     await existingDevice.save();
 
     if (oldName !== newName) {

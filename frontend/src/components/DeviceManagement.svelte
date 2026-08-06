@@ -108,14 +108,19 @@
     inputDeviceName = dev.deviceName;
     inputPin = dev.accessPin || "";
     
+    // Clean array parsing ignoring legacy 'All Forms' strings
     if (Array.isArray(dev.allowedFormTitle)) {
-      selectedForms = dev.allowedFormTitle.filter(f => f !== "All Forms");
+      selectedForms = dev.allowedFormTitle.filter(f => f && f !== "All Forms");
     } else if (typeof dev.allowedFormTitle === 'string' && dev.allowedFormTitle.includes(',')) {
-      selectedForms = dev.allowedFormTitle.split(',').map(s => s.trim()).filter(f => f !== "All Forms");
+      selectedForms = dev.allowedFormTitle.split(',').map(s => s.trim()).filter(f => f && f !== "All Forms");
     } else if (dev.allowedFormTitle && dev.allowedFormTitle !== "All Forms") {
       selectedForms = [dev.allowedFormTitle];
     } else {
       selectedForms = availableSurveys.length > 0 ? [availableSurveys[0].title] : [];
+    }
+
+    if (selectedForms.length === 0 && availableSurveys.length > 0) {
+      selectedForms = [availableSurveys[0].title];
     }
 
     formMessage = `Editing '${dev.deviceName}'. Click 'Save Changes' to update rules.`;
@@ -205,7 +210,7 @@
   function formatFormDisplay(allowedForms) {
     if (!allowedForms) return "None";
     if (Array.isArray(allowedForms)) {
-      const cleanList = allowedForms.filter(f => f !== "All Forms");
+      const cleanList = allowedForms.filter(f => f && f !== "All Forms");
       if (cleanList.length === 0) return "None";
       return cleanList.join(", ");
     }
@@ -307,7 +312,7 @@
           </div>
         </div>
 
-        <!-- 3. AUTHORIZED FORM ACCESS MULTI-SELECT (EXCLUSIVE TO SPECIFIC FORMS ONLY) -->
+        <!-- 3. AUTHORIZED FORM ACCESS MULTI-SELECT -->
         <div class="space-y-2">
           <span class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">3. Authorized Form Access (Multi-Select)</span>
           
