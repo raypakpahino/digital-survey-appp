@@ -93,7 +93,6 @@ router.put('/surveys/:id', async (req, res) => {
   }
 });
 
-// PIN VERIFICATION ROUTE
 router.post('/surveys/:id/verify-pin', async (req, res) => {
   try {
     const { pinCode } = req.body;
@@ -263,6 +262,7 @@ router.post('/devices/register', async (req, res) => {
   }
 });
 
+// DIRECT SET UPDATE FOR DEVICE EDITING
 router.put('/devices/:id', async (req, res) => {
   try {
     const { accessPin, allowedFormTitle, deviceName } = req.body;
@@ -289,10 +289,17 @@ router.put('/devices/:id', async (req, res) => {
       ? allowedFormTitle.filter(f => f && f !== 'All Forms') 
       : [allowedFormTitle];
 
-    existingDevice.deviceName = newName;
-    existingDevice.accessPin = cleanPin;
-    existingDevice.allowedFormTitle = cleanForms;
-    await existingDevice.save();
+    const updatedDevice = await Device.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          deviceName: newName,
+          accessPin: cleanPin,
+          allowedFormTitle: cleanForms
+        }
+      },
+      { new: true, runValidators: false }
+    );
 
     if (oldName !== newName) {
       await Response.updateMany(
@@ -301,7 +308,7 @@ router.put('/devices/:id', async (req, res) => {
       );
     }
 
-    res.json({ success: true, device: existingDevice });
+    res.json({ success: true, device: updatedDevice });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

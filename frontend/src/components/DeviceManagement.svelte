@@ -108,7 +108,6 @@
     inputDeviceName = dev.deviceName;
     inputPin = dev.accessPin || "";
     
-    // Clean array parsing ignoring legacy 'All Forms' strings
     if (Array.isArray(dev.allowedFormTitle)) {
       selectedForms = dev.allowedFormTitle.filter(f => f && f !== "All Forms");
     } else if (typeof dev.allowedFormTitle === 'string' && dev.allowedFormTitle.includes(',')) {
@@ -123,7 +122,7 @@
       selectedForms = [availableSurveys[0].title];
     }
 
-    formMessage = `Editing '${dev.deviceName}'. Click 'Save Changes' to update rules.`;
+    formMessage = `Editing '${dev.deviceName}'. Select forms and click 'Save Changes'.`;
     formMessageType = "info";
   }
 
