@@ -9,7 +9,7 @@
 
   let editingDeviceId = null;
   let inputDeviceName = "";
-  let inputPin = "1234";
+  let inputPin = "";
   let selectedForms = ["All Forms"];
   let formMessage = "";
   let formMessageType = "info";
@@ -21,6 +21,22 @@
   let startWidth = 360;
 
   const API_BASE = "/api";
+
+  // GENERATE RANDOM 6-CHAR ALPHANUMERIC PIN
+  function generateRandomPin() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let newPin = '';
+    const existingPins = new Set(devices.map(d => d.accessPin));
+
+    do {
+      newPin = '';
+      for (let i = 0; i < 6; i++) {
+        newPin += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+    } while (existingPins.has(newPin));
+
+    inputPin = newPin;
+  }
 
   function startResizing(event) {
     isResizing = true;
@@ -65,6 +81,10 @@
       if (surData.success) {
         availableSurveys = (surData.surveys || []).filter(s => !s.isDraft && !String(s._id).startsWith("DRAFT-"));
       }
+
+      if (!inputPin && !editingDeviceId) {
+        generateRandomPin();
+      }
     } catch (err) {
       console.warn("Error loading device management data:", err);
     }
@@ -90,7 +110,7 @@
   function startEditDevice(dev) {
     editingDeviceId = dev._id;
     inputDeviceName = dev.deviceName;
-    inputPin = dev.accessPin || "1234";
+    inputPin = dev.accessPin || "";
     
     if (Array.isArray(dev.allowedFormTitle)) {
       selectedForms = dev.allowedFormTitle.length > 0 ? dev.allowedFormTitle : ["All Forms"];
@@ -107,9 +127,9 @@
   function resetForm() {
     editingDeviceId = null;
     inputDeviceName = "";
-    inputPin = "1234";
     selectedForms = ["All Forms"];
     formMessage = "";
+    generateRandomPin();
   }
 
   async function handleAddOrUpdateDevice() {
@@ -120,8 +140,9 @@
       return;
     }
 
-    if (!inputPin.trim() || inputPin.length < 4) {
-      formMessage = "PIN must be at least 4 digits.";
+    const cleanPin = inputPin.trim().toUpperCase();
+    if (cleanPin.length !== 6 || !/^[A-Z0-9]{6}$/.test(cleanPin)) {
+      formMessage = "PIN must be exactly 6 letters/numbers (e.g. A9B2X4).";
       formMessageType = "error";
       return;
     }
@@ -136,7 +157,7 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             deviceName: inputDeviceName.trim(),
-            accessPin: inputPin.trim(),
+            accessPin: cleanPin,
             allowedFormTitle: payloadForms
           })
         });
@@ -146,7 +167,7 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             deviceName: inputDeviceName.trim(),
-            accessPin: inputPin.trim(),
+            accessPin: cleanPin,
             allowedFormTitle: payloadForms,
             loggedInUser: currentUser?.username || "Admin"
           })
@@ -255,17 +276,34 @@
           />
         </div>
 
-        <!-- 2. ACCESS PIN INPUT -->
+        <!-- 2. ACCESS PIN INPUT WITH RANDOM CUBE / DICE SVG BUTTON -->
         <div class="space-y-1">
-          <label for="dev-pin-input" class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">2. Form Access PIN</label>
-          <input 
-            id="dev-pin-input"
-            type="text" 
-            maxlength="6"
-            bind:value={inputPin} 
-            placeholder="e.g. 1234" 
-            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-white font-mono font-bold rounded-xl p-3 focus:outline-none focus:border-[#e31b23]" 
-          />
+          <label for="dev-pin-input" class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">2. Form Access PIN (6 Alphanumeric)</label>
+          
+          <div class="flex items-center space-x-2">
+            <input 
+              id="dev-pin-input"
+              type="text" 
+              maxlength="6"
+              bind:value={inputPin} 
+              placeholder="e.g. A9B2X4" 
+              class="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-white font-mono font-black tracking-widest uppercase rounded-xl p-3 focus:outline-none focus:border-[#e31b23]" 
+            />
+
+            <!-- CLICKABLE CUBE / DICE SVG BUTTON -->
+            <button
+              type="button"
+              on:click={generateRandomPin}
+              class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white p-3 rounded-xl transition-all shadow-md active:scale-90 flex items-center justify-center cursor-pointer shrink-0"
+              title="Generate Random Unique 6-Char PIN"
+              style="background-color: #1a2b6c !important;"
+            >
+              <!-- 3D CUBE / DICE SVG ICON -->
+              <svg class="w-5 h-5 fill-current text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5V12L2 7v10zm20-10l-10 5v10l10-5V7z"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <!-- 3. AUTHORIZED FORM ACCESS MULTI-SELECT -->
@@ -345,7 +383,6 @@
               {#each devices as dev (dev._id || dev.deviceName)}
                 {@const formatted = formatFormDisplay(dev.allowedFormTitle)}
                 <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                  <!-- DEVICE NAME: ENFORCED HIGH CONTRAST INLINE STYLING -->
                   <td class="py-3.5 px-3 font-bold">
                     <div class="flex items-center space-x-2">
                       <span class="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
@@ -355,21 +392,18 @@
                     </div>
                   </td>
 
-                  <!-- ACCESS PIN BADGE -->
                   <td class="py-3.5 px-3">
-                    <span class="bg-rose-50 dark:bg-rose-950/60 text-[#e31b23] dark:text-rose-400 px-3 py-1 rounded-md font-mono font-black tracking-widest border border-rose-200 dark:border-rose-900/60 inline-block">
-                      {dev.accessPin || dev.pinCode || '1234'}
+                    <span class="bg-rose-50 dark:bg-rose-950/60 text-[#e31b23] dark:text-rose-400 px-3 py-1 rounded-md font-mono font-black tracking-widest border border-rose-200 dark:border-rose-900/60 inline-block uppercase">
+                      {dev.accessPin || 'A9B2X4'}
                     </span>
                   </td>
 
-                  <!-- AUTHORIZED FORMS BADGE -->
                   <td class="py-3.5 px-3 font-bold">
                     <span class="px-3 py-1 rounded-md border text-[11px] font-black inline-block max-w-[200px] truncate {formatted === 'All Forms' ? 'bg-slate-100 dark:bg-slate-800 text-[#1a2b6c] dark:text-cyan-300 border-slate-300 dark:border-slate-700' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'}" title={formatted}>
                       {formatted}
                     </span>
                   </td>
 
-                  <!-- ACTIONS -->
                   <td class="py-3.5 px-3 text-right">
                     <div class="flex items-center justify-end space-x-2">
                       <button 
@@ -400,7 +434,6 @@
 </div>
 
 <style>
-  /* STRICT COLOR OVERRIDE TO PREVENT CSS VARIABLE INHERITANCE BLEED */
   .device-text-color {
     color: #0f172a !important;
   }

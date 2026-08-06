@@ -6,6 +6,19 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
+// Helper to generate a random 6-character alphanumeric PIN
+const generateUniquePin = (existingPins = new Set()) => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Excluded confusing chars (0, O, 1, I)
+  let pin = '';
+  do {
+    pin = '';
+    for (let i = 0; i < 6; i++) {
+      pin += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+  } while (existingPins.has(pin));
+  return pin;
+};
+
 const sanitizeQuestions = (questions) => {
   if (!Array.isArray(questions)) return [];
   return questions.map((q) => ({
@@ -49,7 +62,7 @@ router.post('/surveys', async (req, res) => {
     const cleanQuestions = sanitizeQuestions(questions);
     const newSurvey = await Survey.create({ 
       title, 
-      pinCode: pinCode || '1234',
+      pinCode: pinCode || '123456',
       questions: cleanQuestions 
     });
     res.status(201).json({ success: true, survey: newSurvey });
@@ -68,7 +81,7 @@ router.put('/surveys/:id', async (req, res) => {
       { 
         $set: { 
           title, 
-          pinCode: pinCode || '1234',
+          pinCode: pinCode || '123456',
           questions: cleanQuestions 
         } 
       }, 
@@ -81,14 +94,16 @@ router.put('/surveys/:id', async (req, res) => {
   }
 });
 
-// MULTI-FORM PIN VERIFICATION ROUTE
+// PIN VERIFICATION ROUTE
 router.post('/surveys/:id/verify-pin', async (req, res) => {
   try {
     const { pinCode } = req.body;
+    const cleanPin = String(pinCode || '').trim().toUpperCase();
+
     const survey = await Survey.findById(req.params.id);
     if (!survey) return res.status(404).json({ success: false, message: 'Survey not found.' });
 
-    const matchedDevice = await Device.findOne({ accessPin: pinCode });
+    const matchedDevice = await Device.findOne({ accessPin: cleanPin });
 
     if (matchedDevice) {
       let allowed = matchedDevice.allowedFormTitle;
@@ -119,7 +134,7 @@ router.post('/surveys/:id/verify-pin', async (req, res) => {
       });
     }
 
-    if (survey.pinCode === pinCode || pinCode === '1234') {
+    if (survey.pinCode === cleanPin || cleanPin === '123456') {
       return res.json({ 
         success: true, 
         message: 'Generic PIN verified.', 
@@ -147,12 +162,56 @@ router.delete('/surveys/:id', async (req, res) => {
 });
 
 // ==========================================
-// DEVICE MANAGEMENT ROUTES
+// DEVICE MANAGEMENT ROUTES (AUTO-UNIQUE PIN MIGRATION)
 // ==========================================
 
 router.get('/devices', async (req, res) => {
   try {
-    const devices = await Device.find({}).sort({ updatedAt: -1 });
+    let devices = await Device.find({}).sort({ updatedAt: -1 });
+    const responseDeviceNames = await Response.distinct('deviceId');
+    const registeredNames = new Set(devices.map(d => d.deviceName));
+
+    // Register any historical devices from logs
+    const missingNames = responseDeviceNames.filter(name => name && !registeredNames.has(name));
+    if (missingNames.length > 0) {
+      const existingPins = new Set(devices.map(d => d.accessPin));
+      const newDocs = missingNames.map(name => {
+        const uniquePin = generateUniquePin(existingPins);
+        existingPins.add(uniquePin);
+        return {
+          deviceName: name.trim(),
+          accessPin: uniquePin,
+          allowedFormTitle: ['All Forms'],
+          loggedInUser: 'Operator',
+          status: 'paired',
+          lastActive: new Date()
+        };
+      });
+      await Device.insertMany(newDocs);
+      devices = await Device.find({}).sort({ updatedAt: -1 });
+    }
+
+    // Auto-fix short/duplicate PINs so every single device gets a unique 6-character alphanumeric PIN
+    const usedPins = new Set();
+    let hasUpdates = false;
+
+    for (const dev of devices) {
+      const currentPin = String(dev.accessPin || '').trim().toUpperCase();
+      if (currentPin.length !== 6 || usedPins.has(currentPin)) {
+        const freshPin = generateUniquePin(usedPins);
+        dev.accessPin = freshPin;
+        usedPins.add(freshPin);
+        await dev.save();
+        hasUpdates = true;
+      } else {
+        usedPins.add(currentPin);
+      }
+    }
+
+    if (hasUpdates) {
+      devices = await Device.find({}).sort({ updatedAt: -1 });
+    }
+
     res.json({ success: true, devices });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -165,13 +224,24 @@ router.post('/devices/register', async (req, res) => {
     if (!deviceName) return res.status(400).json({ success: false, message: 'deviceName is required' });
 
     const cleanName = deviceName.trim();
+    const cleanPin = String(accessPin || '').trim().toUpperCase();
+
+    if (cleanPin.length !== 6) {
+      return res.status(400).json({ success: false, message: 'Form Access PIN must be exactly 6 alphanumeric characters.' });
+    }
+
+    // Check duplicate PIN
+    const duplicate = await Device.findOne({ accessPin: cleanPin, deviceName: { $ne: cleanName } });
+    if (duplicate) {
+      return res.status(400).json({ success: false, message: `PIN '${cleanPin}' is already assigned to '${duplicate.deviceName}'. PINs must be unique!` });
+    }
 
     const device = await Device.findOneAndUpdate(
       { deviceName: cleanName },
       {
         $set: {
           deviceName: cleanName,
-          accessPin: accessPin || '1234',
+          accessPin: cleanPin,
           allowedFormTitle: allowedFormTitle || ['All Forms'],
           loggedInUser: loggedInUser || 'Operator',
           status: 'paired',
@@ -198,9 +268,20 @@ router.put('/devices/:id', async (req, res) => {
 
     const oldName = existingDevice.deviceName;
     const newName = deviceName ? deviceName.trim() : oldName;
+    const cleanPin = accessPin ? String(accessPin).trim().toUpperCase() : existingDevice.accessPin;
+
+    if (cleanPin.length !== 6) {
+      return res.status(400).json({ success: false, message: 'Form Access PIN must be exactly 6 alphanumeric characters.' });
+    }
+
+    // Ensure PIN is unique across other devices
+    const duplicate = await Device.findOne({ accessPin: cleanPin, _id: { $ne: req.params.id } });
+    if (duplicate) {
+      return res.status(400).json({ success: false, message: `PIN '${cleanPin}' is already assigned to '${duplicate.deviceName}'. PINs must be unique!` });
+    }
 
     existingDevice.deviceName = newName;
-    if (accessPin) existingDevice.accessPin = accessPin.trim();
+    existingDevice.accessPin = cleanPin;
     if (allowedFormTitle) existingDevice.allowedFormTitle = allowedFormTitle;
     await existingDevice.save();
 
