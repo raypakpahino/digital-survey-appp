@@ -10,7 +10,7 @@
   let editingDeviceId = null;
   let inputDeviceName = "";
   let inputPin = "";
-  let selectedForms = ["All Forms"];
+  let selectedForms = [];
   let formMessage = "";
   let formMessageType = "info";
 
@@ -81,6 +81,9 @@
       const surData = await surRes.json();
       if (surData.success) {
         availableSurveys = (surData.surveys || []).filter(s => !s.isDraft && !String(s._id).startsWith("DRAFT-"));
+        if (availableSurveys.length > 0 && selectedForms.length === 0 && !editingDeviceId) {
+          selectedForms = [availableSurveys[0].title];
+        }
       }
 
       if (!inputPin && !editingDeviceId) {
@@ -93,16 +96,8 @@
   }
 
   function toggleFormSelection(title) {
-    if (title === "All Forms") {
-      selectedForms = ["All Forms"];
-      return;
-    }
-
-    selectedForms = selectedForms.filter(f => f !== "All Forms");
-
     if (selectedForms.includes(title)) {
       selectedForms = selectedForms.filter(f => f !== title);
-      if (selectedForms.length === 0) selectedForms = ["All Forms"];
     } else {
       selectedForms = [...selectedForms, title];
     }
@@ -114,11 +109,13 @@
     inputPin = dev.accessPin || "";
     
     if (Array.isArray(dev.allowedFormTitle)) {
-      selectedForms = dev.allowedFormTitle.length > 0 ? dev.allowedFormTitle : ["All Forms"];
+      selectedForms = dev.allowedFormTitle.filter(f => f !== "All Forms");
     } else if (typeof dev.allowedFormTitle === 'string' && dev.allowedFormTitle.includes(',')) {
-      selectedForms = dev.allowedFormTitle.split(',').map(s => s.trim());
+      selectedForms = dev.allowedFormTitle.split(',').map(s => s.trim()).filter(f => f !== "All Forms");
+    } else if (dev.allowedFormTitle && dev.allowedFormTitle !== "All Forms") {
+      selectedForms = [dev.allowedFormTitle];
     } else {
-      selectedForms = [dev.allowedFormTitle || "All Forms"];
+      selectedForms = availableSurveys.length > 0 ? [availableSurveys[0].title] : [];
     }
 
     formMessage = `Editing '${dev.deviceName}'. Click 'Save Changes' to update rules.`;
@@ -128,7 +125,7 @@
   function resetForm() {
     editingDeviceId = null;
     inputDeviceName = "";
-    selectedForms = ["All Forms"];
+    selectedForms = availableSurveys.length > 0 ? [availableSurveys[0].title] : [];
     formMessage = "";
     generateRandomPin();
   }
@@ -148,7 +145,11 @@
       return;
     }
 
-    const payloadForms = selectedForms.length > 0 ? selectedForms : ["All Forms"];
+    if (selectedForms.length === 0) {
+      formMessage = "Please select at least one authorized form.";
+      formMessageType = "error";
+      return;
+    }
 
     try {
       let res, data;
@@ -159,7 +160,7 @@
           body: JSON.stringify({
             deviceName: inputDeviceName.trim(),
             accessPin: cleanPin,
-            allowedFormTitle: payloadForms
+            allowedFormTitle: selectedForms
           })
         });
       } else {
@@ -169,7 +170,7 @@
           body: JSON.stringify({
             deviceName: inputDeviceName.trim(),
             accessPin: cleanPin,
-            allowedFormTitle: payloadForms,
+            allowedFormTitle: selectedForms,
             loggedInUser: currentUser?.username || "Admin"
           })
         });
@@ -202,12 +203,13 @@
   }
 
   function formatFormDisplay(allowedForms) {
-    if (!allowedForms) return "All Forms";
+    if (!allowedForms) return "None";
     if (Array.isArray(allowedForms)) {
-      if (allowedForms.length === 0 || allowedForms.includes("All Forms")) return "All Forms";
-      return allowedForms.join(", ");
+      const cleanList = allowedForms.filter(f => f !== "All Forms");
+      if (cleanList.length === 0) return "None";
+      return cleanList.join(", ");
     }
-    return allowedForms;
+    return allowedForms === "All Forms" ? "None" : allowedForms;
   }
 
   onMount(() => {
@@ -305,33 +307,27 @@
           </div>
         </div>
 
-        <!-- 3. AUTHORIZED FORM ACCESS MULTI-SELECT -->
+        <!-- 3. AUTHORIZED FORM ACCESS MULTI-SELECT (EXCLUSIVE TO SPECIFIC FORMS ONLY) -->
         <div class="space-y-2">
-          <span class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">3. Authorized Form Access</span>
+          <span class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">3. Authorized Form Access (Multi-Select)</span>
           
           <div class="max-h-44 overflow-y-auto space-y-1.5 p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl custom-scrollbar">
-            <button 
-              type="button"
-              on:click={() => toggleFormSelection("All Forms")}
-              class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-between cursor-pointer border {selectedForms.includes('All Forms') ? 'bg-[#1a2b6c] border-[#1a2b6c] text-white font-extrabold' : 'bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'}"
-              style="{selectedForms.includes('All Forms') ? 'background-color: #1a2b6c !important; color: #ffffff !important;' : ''}"
-            >
-              <span>All Available Forms</span>
-              {#if selectedForms.includes('All Forms')}<span style="color: #ffffff !important;">✓</span>{/if}
-            </button>
-
-            {#each availableSurveys as s}
-              {@const isSelected = selectedForms.includes(s.title)}
-              <button 
-                type="button"
-                on:click={() => toggleFormSelection(s.title)}
-                class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-between cursor-pointer border {isSelected ? 'bg-[#1a2b6c] border-[#1a2b6c] text-white font-extrabold' : 'bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'}"
-                style="{isSelected ? 'background-color: #1a2b6c !important; color: #ffffff !important;' : ''}"
-              >
-                <span class="truncate pr-2">{s.title}</span>
-                {#if isSelected}<span style="color: #ffffff !important;">✓</span>{/if}
-              </button>
-            {/each}
+            {#if availableSurveys.length === 0}
+              <p class="text-xs text-slate-500 p-2 italic">No available forms created yet.</p>
+            {:else}
+              {#each availableSurveys as s}
+                {@const isSelected = selectedForms.includes(s.title)}
+                <button 
+                  type="button"
+                  on:click={() => toggleFormSelection(s.title)}
+                  class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-between cursor-pointer border {isSelected ? 'bg-[#1a2b6c] border-[#1a2b6c] text-white font-extrabold' : 'bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'}"
+                  style="{isSelected ? 'background-color: #1a2b6c !important; color: #ffffff !important;' : ''}"
+                >
+                  <span class="truncate pr-2">{s.title}</span>
+                  {#if isSelected}<span style="color: #ffffff !important;">✓</span>{/if}
+                </button>
+              {/each}
+            {/if}
           </div>
         </div>
 
@@ -398,7 +394,7 @@
                   </td>
 
                   <td class="py-3.5 px-3 font-bold">
-                    <span class="px-3 py-1 rounded-md border text-[11px] font-black inline-block max-w-[200px] truncate {formatted === 'All Forms' ? 'bg-slate-100 dark:bg-slate-800 text-[#1a2b6c] dark:text-cyan-300 border-slate-300 dark:border-slate-700' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'}" title={formatted}>
+                    <span class="px-3 py-1 rounded-md border text-[11px] font-black inline-block max-w-[200px] truncate bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" title={formatted}>
                       {formatted}
                     </span>
                   </td>

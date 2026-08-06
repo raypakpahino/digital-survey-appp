@@ -6,7 +6,6 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
-// Helper to generate a random 6-character alphanumeric PIN
 const generateUniquePin = (existingPins = new Set()) => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let pin = '';
@@ -94,7 +93,7 @@ router.put('/surveys/:id', async (req, res) => {
   }
 });
 
-// PIN VERIFICATION ROUTE
+// PIN VERIFICATION ROUTE - SPECIFIC FORMS ONLY
 router.post('/surveys/:id/verify-pin', async (req, res) => {
   try {
     const { pinCode } = req.body;
@@ -109,12 +108,10 @@ router.post('/surveys/:id/verify-pin', async (req, res) => {
       let allowed = matchedDevice.allowedFormTitle;
       let isAllowed = false;
 
-      if (!allowed || allowed === 'All Forms' || (Array.isArray(allowed) && allowed.includes('All Forms'))) {
-        isAllowed = true;
-      } else if (Array.isArray(allowed)) {
-        isAllowed = allowed.includes(survey.title);
+      if (Array.isArray(allowed)) {
+        isAllowed = allowed.includes(survey.title) || allowed.includes('All Forms');
       } else if (typeof allowed === 'string') {
-        isAllowed = allowed === survey.title || allowed.includes(survey.title);
+        isAllowed = allowed === survey.title || allowed === 'All Forms' || allowed.includes(survey.title);
       }
 
       if (!isAllowed) {
@@ -162,7 +159,7 @@ router.delete('/surveys/:id', async (req, res) => {
 });
 
 // ==========================================
-// DEVICE MANAGEMENT ROUTES (SAFE QUERY & PIN SYNC)
+// DEVICE MANAGEMENT ROUTES
 // ==========================================
 
 router.get('/devices', async (req, res) => {
@@ -171,17 +168,19 @@ router.get('/devices', async (req, res) => {
     const responseDeviceNames = await Response.distinct('deviceId');
     const registeredNames = new Set(devices.map(d => d.deviceName));
 
-    // Register missing device names from response logs
     const missingNames = responseDeviceNames.filter(name => name && name !== 'Tablet-Unassigned' && !registeredNames.has(name));
     if (missingNames.length > 0) {
       const existingPins = new Set(devices.map(d => d.accessPin));
+      const firstSurvey = await Survey.findOne({});
+      const defaultFormList = firstSurvey ? [firstSurvey.title] : [];
+
       const newDocs = missingNames.map(name => {
         const uniquePin = generateUniquePin(existingPins);
         existingPins.add(uniquePin);
         return {
           deviceName: name.trim(),
           accessPin: uniquePin,
-          allowedFormTitle: ['All Forms'],
+          allowedFormTitle: defaultFormList,
           loggedInUser: 'Operator',
           status: 'paired',
           lastActive: new Date()
@@ -191,7 +190,6 @@ router.get('/devices', async (req, res) => {
       devices = await Device.find({}).sort({ updatedAt: -1 }).lean();
     }
 
-    // Safely update PINs that are missing or not 6-chars without crashing document validation
     const usedPins = new Set();
     const bulkUpdates = [];
 
@@ -246,7 +244,7 @@ router.post('/devices/register', async (req, res) => {
         $set: {
           deviceName: cleanName,
           accessPin: cleanPin,
-          allowedFormTitle: allowedFormTitle || ['All Forms'],
+          allowedFormTitle: Array.isArray(allowedFormTitle) ? allowedFormTitle.filter(f => f !== 'All Forms') : [allowedFormTitle],
           loggedInUser: loggedInUser || 'Operator',
           status: 'paired',
           lastActive: new Date()
@@ -285,7 +283,9 @@ router.put('/devices/:id', async (req, res) => {
 
     existingDevice.deviceName = newName;
     existingDevice.accessPin = cleanPin;
-    if (allowedFormTitle) existingDevice.allowedFormTitle = allowedFormTitle;
+    if (allowedFormTitle) {
+      existingDevice.allowedFormTitle = Array.isArray(allowedFormTitle) ? allowedFormTitle.filter(f => f !== 'All Forms') : [allowedFormTitle];
+    }
     await existingDevice.save();
 
     if (oldName !== newName) {
