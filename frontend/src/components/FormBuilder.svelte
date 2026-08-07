@@ -3,12 +3,14 @@
   export let questions = [];
   export let surveys = [];
   export let activeSurveyId = "";
-  export let onSaveSurvey = (title, qs) => {};
+  export let onSaveSurvey = (title, qs, thankYouMsg, autoRefreshSec) => {};
   export let onSelectSurvey = (id) => {};
   export let onCreateNewSurvey = () => {};
 
   let localTitle = "";
   let localQuestions = [];
+  let localThankYouMessage = "Thank you for your feedback! This screen will automatically refresh in a few seconds.";
+  let localAutoRefreshSeconds = 4;
   let saveContainerRef;
   let lastLoadedSurveyId = "";
 
@@ -50,6 +52,16 @@
   $: if (activeSurveyId !== lastLoadedSurveyId || localQuestions.length === 0) {
     lastLoadedSurveyId = activeSurveyId;
     localTitle = surveyTitle || "";
+    
+    const activeSurvey = surveys.find(s => s._id === activeSurveyId);
+    if (activeSurvey) {
+      localThankYouMessage = activeSurvey.thankYouMessage || "Thank you for your feedback! This screen will automatically refresh in a few seconds.";
+      localAutoRefreshSeconds = activeSurvey.autoRefreshSeconds ?? 4;
+    } else {
+      localThankYouMessage = "Thank you for your feedback! This screen will automatically refresh in a few seconds.";
+      localAutoRefreshSeconds = 4;
+    }
+
     localQuestions = (questions || []).map((q) => ({
       ...q,
       skipLogic: q.skipLogic ? {
@@ -125,7 +137,6 @@
     ];
   }
 
-  // REORDER QUESTION UP/DOWN WITH SKIP LOGIC RE-INDEX SAFETY
   function moveQuestion(index, direction) {
     const targetIndex = index + direction;
     if (targetIndex < 0 || targetIndex >= localQuestions.length) return;
@@ -134,7 +145,6 @@
     const [movedItem] = updated.splice(index, 1);
     updated.splice(targetIndex, 0, movedItem);
 
-    // Auto-adjust skip logic pointers so dependencies remain accurate after swap
     updated.forEach((q, idx) => {
       if (q.skipLogic && q.skipLogic.enabled) {
         if (q.skipLogic.dependsOnIndex === index) {
@@ -142,7 +152,6 @@
         } else if (q.skipLogic.dependsOnIndex === targetIndex) {
           q.skipLogic.dependsOnIndex = index;
         }
-        // Safety check: Question 1 can never depend on a previous question
         if (idx === 0) {
           q.skipLogic.enabled = false;
         }
@@ -219,8 +228,8 @@
   }
 
   function triggerExplicitSave() {
-    onSaveSurvey(localTitle, localQuestions);
-    alert("💾 Form schema committed and deployed successfully!");
+    onSaveSurvey(localTitle, localQuestions, localThankYouMessage, localAutoRefreshSeconds);
+    alert("💾 Form schema and ending page committed successfully!");
   }
 
   function getNormalizedType(qType) {
@@ -368,6 +377,54 @@
         class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-5 py-3.5 text-base text-[#1a2b6c] dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-[#e31b23] transition-all font-semibold shadow-inner"
         placeholder="Enter survey identity..."
       />
+    </div>
+
+    <!-- ENDING PAGE & AUTO-REFRESH CONFIGURATION CARD -->
+    <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-inner mt-6 space-y-4 shrink-0">
+      <div class="border-b border-slate-200 dark:border-slate-800 pb-2 flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-mono font-extrabold text-[#1a2b6c] dark:text-cyan-400 uppercase tracking-wider">
+            Ending Page & Submission Reset Settings
+          </h3>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+            Configure the message shown upon response submission and set the auto-refresh countdown delay.
+          </p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <!-- ENDING MESSAGE TEXTAREA -->
+        <div class="sm:col-span-2 space-y-1">
+          <label for="thank-you-message-input" class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">
+            Custom Ending / Thank You Message
+          </label>
+          <textarea
+            id="thank-you-message-input"
+            rows="2"
+            bind:value={localThankYouMessage}
+            placeholder="e.g. Thank you for your feedback! Have a great day."
+            class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-[#1a2b6c] dark:text-white font-semibold rounded-xl p-3 focus:outline-none focus:border-[#e31b23] resize-none"
+          ></textarea>
+        </div>
+
+        <!-- AUTO-REFRESH TIMER INPUT -->
+        <div class="space-y-1">
+          <label for="refresh-seconds-input" class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">
+            Reset Countdown (Seconds)
+          </label>
+          <div class="relative">
+            <input
+              id="refresh-seconds-input"
+              type="number"
+              min="1"
+              max="60"
+              bind:value={localAutoRefreshSeconds}
+              class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-[#1a2b6c] dark:text-white font-mono font-black rounded-xl p-3 focus:outline-none focus:border-[#e31b23]"
+            />
+            <span class="absolute right-3 top-3 text-[10px] font-mono text-slate-400 font-bold pointer-events-none">SEC</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <hr class="border-slate-200 dark:border-slate-800/80 my-6 shrink-0" />

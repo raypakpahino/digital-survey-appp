@@ -58,7 +58,7 @@ router.get('/surveys', async (req, res) => {
 router.post('/surveys', async (req, res) => {
   try {
     const { title, questions, pinCode } = req.body;
-    const cleanQuestions = sanitizeQuestions(questions);
+    const cleanQuestions = sanitizeQuestions(questions);  
     const newSurvey = await Survey.create({ 
       title, 
       pinCode: pinCode || '123456',

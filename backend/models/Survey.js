@@ -19,8 +19,16 @@ const QuestionSchema = new mongoose.Schema({
 const SurveySchema = new mongoose.Schema({
   title: { type: String, required: true, default: 'Untitled Digital Form Template' },
   isDraft: { type: Boolean, default: false },
-  pinCode: { type: String, default: '1234' }, // 4-digit PIN protection per form
-  questions: [QuestionSchema]
+  pinCode: { type: String, default: '1234' },
+  questions: [QuestionSchema],
+  thankYouMessage: { 
+    type: String, 
+    default: 'Thank you for your feedback! This screen will automatically refresh in a few seconds.' 
+  },
+  autoRefreshSeconds: { 
+    type: Number, 
+    default: 4 
+  }
 }, { 
   timestamps: true,
   strict: false

@@ -29,6 +29,7 @@
   let isPinVerifiedForCurrentSurvey = false;
 
   $: currentQuestion = questions[currentQuestionIndex] || null;
+  $: currentSurvey = surveys.find(s => s._id === activeSurveyId) || null;
 
   onMount(() => {
     const hash = window.location.hash;
@@ -188,7 +189,7 @@
   }
 
   function startAutoResetLoop() {
-    countdownSeconds = 4;
+    countdownSeconds = currentSurvey?.autoRefreshSeconds ?? 4;
     clearInterval(autoResetTimer);
     autoResetTimer = setInterval(() => {
       countdownSeconds -= 1;
@@ -344,16 +345,16 @@
       </div>
 
     {:else if isSubmitted}
-      <!-- SUBMISSION CONFIRMATION -->
+      <!-- DYNAMIC SUBMISSION CONFIRMATION -->
       <div in:scale={{ duration: 400, start: 0.95 }} class="w-full max-w-xl mx-auto bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-xl flex flex-col items-center justify-center text-center space-y-4 my-auto">
         <div class="h-16 w-16 bg-emerald-100 border border-emerald-300 rounded-full flex items-center justify-center text-emerald-600 shadow-sm shrink-0">
           <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
         </div>
-        <h2 class="text-2xl sm:text-4xl font-black tracking-tight text-[#1a2b6c]">
-          Thank You!
+        <h2 class="text-xl sm:text-3xl font-black tracking-tight text-[#1a2b6c] leading-snug">
+          {currentSurvey?.thankYouMessage || "Thank you for your feedback! This screen will automatically refresh in a few seconds."}
         </h2>
-        <p class="text-xs sm:text-base text-slate-600 max-w-md leading-relaxed">
-          Your response has been securely registered under <span class="font-bold text-[#1a2b6c]">{deviceId}</span>. Resets in 
+        <p class="text-xs sm:text-sm text-slate-600 max-w-md leading-relaxed">
+          Registered under <span class="font-bold text-[#1a2b6c]">{deviceId}</span>. Resets to question 1 in 
           <span class="text-[#e31b23] font-mono font-bold text-base sm:text-lg px-1">{countdownSeconds}s</span>...
         </p>
       </div>
