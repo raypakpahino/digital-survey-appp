@@ -53,10 +53,12 @@
     lastLoadedSurveyId = activeSurveyId;
     localTitle = surveyTitle || "";
     
-    const activeSurvey = surveys.find(s => s._id === activeSurveyId);
+    const activeSurvey = surveys.find(s => String(s._id) === String(activeSurveyId));
     if (activeSurvey) {
       localThankYouMessage = activeSurvey.thankYouMessage || "Thank you for your feedback! This screen will automatically refresh in a few seconds.";
-      localAutoRefreshSeconds = Number(activeSurvey.autoRefreshSeconds) || 4;
+      localAutoRefreshSeconds = activeSurvey.autoRefreshSeconds !== undefined && activeSurvey.autoRefreshSeconds !== null 
+        ? Number(activeSurvey.autoRefreshSeconds) 
+        : 4;
     }
 
     localQuestions = (questions || []).map((q) => ({
@@ -225,7 +227,7 @@
   }
 
   function triggerExplicitSave() {
-    const cleanSeconds = Math.max(1, Number(localAutoRefreshSeconds) || 4);
+    const cleanSeconds = Math.max(1, parseInt(localAutoRefreshSeconds, 10) || 4);
     onSaveSurvey(localTitle, localQuestions, localThankYouMessage, cleanSeconds);
     alert("💾 Form schema and ending page committed successfully!");
   }

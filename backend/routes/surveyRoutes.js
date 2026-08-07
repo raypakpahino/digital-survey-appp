@@ -57,12 +57,14 @@ router.get('/surveys', async (req, res) => {
 
 router.post('/surveys', async (req, res) => {
   try {
-    const { title, questions, pinCode } = req.body;
+    const { title, questions, pinCode, thankYouMessage, autoRefreshSeconds } = req.body;
     const cleanQuestions = sanitizeQuestions(questions);  
     const newSurvey = await Survey.create({ 
       title, 
       pinCode: pinCode || '123456',
-      questions: cleanQuestions 
+      questions: cleanQuestions,
+      thankYouMessage: thankYouMessage || 'Thank you for your feedback! This screen will automatically refresh in a few seconds.',
+      autoRefreshSeconds: Number(autoRefreshSeconds) || 4
     });
     res.status(201).json({ success: true, survey: newSurvey });
   } catch (error) {
@@ -72,18 +74,21 @@ router.post('/surveys', async (req, res) => {
 
 router.put('/surveys/:id', async (req, res) => {
   try {
-    const { title, questions, pinCode } = req.body;
+    const { title, questions, pinCode, thankYouMessage, autoRefreshSeconds } = req.body;
     const cleanQuestions = sanitizeQuestions(questions);
+
+    const updatePayload = { 
+      title, 
+      pinCode: pinCode || '123456',
+      questions: cleanQuestions 
+    };
+
+    if (thankYouMessage !== undefined) updatePayload.thankYouMessage = thankYouMessage;
+    if (autoRefreshSeconds !== undefined) updatePayload.autoRefreshSeconds = Number(autoRefreshSeconds);
 
     const updatedSurvey = await Survey.findByIdAndUpdate(
       req.params.id, 
-      { 
-        $set: { 
-          title, 
-          pinCode: pinCode || '123456',
-          questions: cleanQuestions 
-        } 
-      }, 
+      { $set: updatePayload }, 
       { new: true, runValidators: false }
     );
 
