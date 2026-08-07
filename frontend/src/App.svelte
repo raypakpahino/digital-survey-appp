@@ -74,6 +74,8 @@
     return {
       ...s,
       pinCode: s.pinCode || "1234",
+      thankYouMessage: s.thankYouMessage || "Thank you for your feedback! This screen will automatically refresh in a few seconds.",
+      autoRefreshSeconds: s.autoRefreshSeconds !== undefined && s.autoRefreshSeconds !== null ? Number(s.autoRefreshSeconds) : 4,
       questions: (s.questions || []).map((q) => ({
         ...q,
         questionImage: q.questionImage || "",
@@ -230,7 +232,9 @@
   $: activeSurvey = surveysList.find((s) => s._id === activeSurveyId) || {
     title: "",
     questions: [],
-    pinCode: "1234"
+    pinCode: "1234",
+    thankYouMessage: "Thank you for your feedback! This screen will automatically refresh in a few seconds.",
+    autoRefreshSeconds: 4
   };
 
   function handleCreateNewSurvey() {
@@ -240,6 +244,8 @@
       _id: draftId,
       title: "New Custom Form Schema",
       pinCode: "1234",
+      thankYouMessage: "Thank you for your feedback! This screen will automatically refresh in a few seconds.",
+      autoRefreshSeconds: 4,
       questions: [],
       isDraft: true,
     };
@@ -249,25 +255,32 @@
     switchTab("builder");
   }
 
-  async function persistActiveSurveyState(updatedTitle, updatedQuestions, updatedPin) {
+  async function persistActiveSurveyState(updatedTitle, updatedQuestions, updatedThankYouMessage, updatedAutoRefreshSeconds, updatedPin) {
     if (!activeSurveyId || currentUser?.role !== "admin") return;
 
     const questionsToSave = JSON.parse(JSON.stringify(updatedQuestions));
+    const cleanSeconds = Math.max(1, Number(updatedAutoRefreshSeconds) || 4);
 
     activeSurvey.title = updatedTitle;
     activeSurvey.questions = questionsToSave;
+    if (updatedThankYouMessage !== undefined) activeSurvey.thankYouMessage = updatedThankYouMessage;
+    if (updatedAutoRefreshSeconds !== undefined) activeSurvey.autoRefreshSeconds = cleanSeconds;
     if (updatedPin) activeSurvey.pinCode = updatedPin;
+
+    const payload = {
+      title: activeSurvey.title,
+      pinCode: activeSurvey.pinCode || "1234",
+      questions: questionsToSave,
+      thankYouMessage: activeSurvey.thankYouMessage,
+      autoRefreshSeconds: cleanSeconds
+    };
 
     if (String(activeSurveyId).startsWith("DRAFT-") || activeSurvey.isDraft) {
       try {
         const res = await fetch(`${API_BASE}/surveys`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: activeSurvey.title,
-            pinCode: activeSurvey.pinCode || "1234",
-            questions: questionsToSave,
-          }),
+          body: JSON.stringify(payload),
         });
         const data = await res.json();
         if (data.success && data.survey) {
@@ -287,11 +300,7 @@
       const res = await fetch(`${API_BASE}/surveys/${activeSurveyId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: activeSurvey.title,
-          pinCode: activeSurvey.pinCode || "1234",
-          questions: questionsToSave,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.success && data.survey) {
