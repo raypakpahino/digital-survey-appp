@@ -189,7 +189,7 @@
   }
 
   function startAutoResetLoop() {
-    countdownSeconds = currentSurvey?.autoRefreshSeconds ?? 4;
+    countdownSeconds = Number(currentSurvey?.autoRefreshSeconds) || 4;
     clearInterval(autoResetTimer);
     autoResetTimer = setInterval(() => {
       countdownSeconds -= 1;
