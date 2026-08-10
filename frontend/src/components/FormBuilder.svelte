@@ -676,21 +676,23 @@
           ></textarea>
         </div>
 
-        <!-- AUTO-REFRESH TIMER INPUT -->
+        <!-- AUTO-REFRESH TIMER INPUT (CLEAN OVERLAP-FREE UI) -->
         <div class="space-y-1">
           <label for="refresh-seconds-input" class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">
             Reset Countdown (Seconds)
           </label>
-          <div class="relative">
+          <div class="relative flex items-center">
             <input
               id="refresh-seconds-input"
               type="number"
               min="1"
               max="60"
               bind:value={localAutoRefreshSeconds}
-              class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-[#1a2b6c] dark:text-white font-mono font-black rounded-xl p-3 focus:outline-none focus:border-[#e31b23]"
+              class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-[#1a2b6c] dark:text-white font-mono font-black rounded-xl p-3 pr-16 focus:outline-none focus:border-[#e31b23] appearance-none no-spinners"
             />
-            <span class="absolute right-3 top-3 text-[10px] font-mono text-slate-400 font-bold pointer-events-none">SEC</span>
+            <span class="absolute right-3 text-[10px] font-mono text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md pointer-events-none border border-slate-200 dark:border-slate-700">
+              SEC
+            </span>
           </div>
         </div>
       </div>
@@ -733,6 +735,16 @@
 {/if}
 
 <style>
+  /* HIDE NATIVE NUMBER SPINNER ARROWS ACROSS BROWSERS */
+  .no-spinners::-webkit-outer-spin-button,
+  .no-spinners::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .no-spinners[type=number] {
+    -moz-appearance: textfield;
+  }
+
   .custom-scrollbar::-webkit-scrollbar { width: 6px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
