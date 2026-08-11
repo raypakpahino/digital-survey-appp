@@ -257,15 +257,17 @@
     }
   }
 
-  // DYNAMIC TIMEZONE FORMATTER FOR EXPORT (e.g. WIB, WITA, WIT)
+  // BULLETPROOF TIMEZONE FORMATTER (WIB / WITA / WIT)
   function formatTimestampWithTimezone(rawTimestamp) {
     if (!rawTimestamp) return "N/A";
-    const date = new Date(rawTimestamp);
-    if (isNaN(date.getTime())) return rawTimestamp;
+    const dateObj = new Date(rawTimestamp);
+    if (isNaN(dateObj.getTime())) return rawTimestamp;
 
     try {
       const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta';
-      return new Intl.DateTimeFormat('id-ID', {
+      
+      // Formats date part: DD/MM/YYYY, HH:mm:ss
+      const dateStr = new Intl.DateTimeFormat('en-GB', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
@@ -273,11 +275,27 @@
         minute: '2-digit',
         second: '2-digit',
         hour12: false,
-        timeZone: userTz,
-        timeZoneName: 'short'
-      }).format(date);
+        timeZone: userTz
+      }).format(dateObj);
+
+      // Detect UTC Offset to guarantee WIB / WITA / WIT label display
+      const tzNameLower = userTz.toLowerCase();
+      let zoneLabel = "WIB"; // Default for Sumatra & Java
+
+      if (tzNameLower.includes('makassar') || tzNameLower.includes('denpasar') || tzNameLower.includes('uata')) {
+        zoneLabel = "WITA";
+      } else if (tzNameLower.includes('jayapura') || tzNameLower.includes('wit')) {
+        zoneLabel = "WIT";
+      } else {
+        // Fallback offset calculation if timeZone string is custom
+        const offsetMinutes = -dateObj.getTimezoneOffset();
+        if (offsetMinutes === 480) zoneLabel = "WITA";
+        else if (offsetMinutes === 540) zoneLabel = "WIT";
+      }
+
+      return `${dateStr} ${zoneLabel}`;
     } catch (err) {
-      return date.toLocaleString();
+      return new Date(rawTimestamp).toLocaleString();
     }
   }
 
@@ -318,39 +336,7 @@
     let rowsHtml = filteredResponses.map((r, index) => {
       let recId = r._id ? r._id.slice(-8) : `LOG-${index + 1}`;
       let tabletId = r.deviceId || "Tablet-A";
-
-      // Explicitly format date and append local timezone abbreviation (WIB / WITA / WIT)
-      let timestamp = (function(rawDate) {
-        if (!rawDate) return "N/A";
-        const dateObj = new Date(rawDate);
-        if (isNaN(dateObj.getTime())) return rawDate;
-
-        try {
-          const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta';
-          
-          // Formats date part: DD/MM/YYYY, HH:mm:ss
-          const dateStr = new Intl.DateTimeFormat('en-GB', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false,
-            timeZone: userTz
-          }).format(dateObj);
-
-          // Formats timezone abbreviation explicitly: WIB, WITA, WIT
-          const tzAbbr = new Intl.DateTimeFormat('id-ID', {
-            timeZone: userTz,
-            timeZoneName: 'short'
-          }).formatToParts(dateObj).find(p => p.type === 'timeZoneName')?.value || '';
-
-          return `${dateStr} ${tzAbbr}`.trim();
-        } catch (err) {
-          return new Date(rawDate).toLocaleString();
-        }
-      })(r.timestamp);
+      let timestamp = formatTimestampWithTimezone(r.timestamp);
 
       let rowCells = [
         `<td style="font-family: 'Consolas', monospace; font-weight: bold; color: #0284c7; text-align: center; padding: 8px 12px;">${recId}</td>`,
