@@ -257,14 +257,12 @@
     }
   }
 
-  // GUARANTEED TIMEZONE ATTACHER FOR LOG MATRIX & EXPORT
+  // GUARANTEED TIMEZONE FORMATTER (WIB / WITA / WIT)
   function formatTimestampWithTimezone(rawTimestamp) {
     if (!rawTimestamp) return "N/A";
     const strVal = String(rawTimestamp).trim();
-    
-    // If string already contains WIB, WITA, or WIT, return as-is
-    if (/WIB|WITA|WIT/i.test(strVal)) return strVal;
 
+    // Determine Indonesian zone label based on client timezone
     let zoneLabel = "WIB";
     try {
       const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta';
@@ -278,6 +276,7 @@
       zoneLabel = "WIB";
     }
 
+    // Check if the input is a valid date (raw ISO string from DB)
     const dateObj = new Date(rawTimestamp);
     if (!isNaN(dateObj.getTime())) {
       const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta';
@@ -295,8 +294,10 @@
       return `${dateStr} ${zoneLabel}`;
     }
 
-    // Direct string append fallback for pre-formatted strings
-    return `${strVal} ${zoneLabel}`;
+    // If already pre-formatted string (e.g. "8/11/2026, 12:57:54 PM"), strip AM/PM and attach zone
+    if (/WIB|WITA|WIT/i.test(strVal)) return strVal;
+    const cleanStr = strVal.replace(/\s*(AM|PM|am|pm)/gi, '').trim();
+    return `${cleanStr} ${zoneLabel}`;
   }
 
   function exportToExcel(specificQuestion = null) {
@@ -840,7 +841,7 @@
                     </span>
                   </td>
                   <td class="p-2.5 text-slate-400 border-r border-slate-800/40 font-mono text-[10px] group-hover:text-slate-200">
-                    {formatTimestampWithTimezone(response.formattedTimestamp || response.timestamp)}
+                    {formatTimestampWithTimezone(response.timestamp || response.createdAt)}
                   </td>
                   {#each displayedQuestions as question}
                     {@const answerVal = (response.answers || []).find((a) => cleanString(a.questionText) === cleanString(question.questionText))?.value || 'N/A'}
