@@ -257,15 +257,14 @@
     }
   }
 
-  // TIMEZONE FORMATTER FOR LOG MATRIX & EXPORTS (WIB / WITA / WIT)
-  // ABSOLUTE FORCED TIMEZONE FORMATTER (LOG MATRIX & EXPORTS)
+  // GUARANTEED TIMEZONE ATTACHER FOR LOG MATRIX & EXPORT
   function formatTimestampWithTimezone(rawTimestamp) {
     if (!rawTimestamp) return "N/A";
+    const strVal = String(rawTimestamp).trim();
     
-    // Parse the date
-    const dateObj = new Date(rawTimestamp);
-    
-    // Determine target Indonesian zone label
+    // If string already contains WIB, WITA, or WIT, return as-is
+    if (/WIB|WITA|WIT/i.test(strVal)) return strVal;
+
     let zoneLabel = "WIB";
     try {
       const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta';
@@ -274,16 +273,12 @@
         zoneLabel = "WITA";
       } else if (tzLower.includes('jayapura') || tzLower.includes('wit')) {
         zoneLabel = "WIT";
-      } else {
-        const offsetMinutes = -dateObj.getTimezoneOffset();
-        if (offsetMinutes === 480) zoneLabel = "WITA";
-        else if (offsetMinutes === 540) zoneLabel = "WIT";
       }
     } catch (e) {
       zoneLabel = "WIB";
     }
 
-    // If date object is valid (raw ISO string from DB)
+    const dateObj = new Date(rawTimestamp);
     if (!isNaN(dateObj.getTime())) {
       const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta';
       const dateStr = new Intl.DateTimeFormat('en-GB', {
@@ -300,9 +295,8 @@
       return `${dateStr} ${zoneLabel}`;
     }
 
-    // Fallback: If it's already a formatted string like "8/11/2026, 12:57:54 PM", clean and attach zone label
-    const cleanStr = String(rawTimestamp).replace(/\s*(AM|PM|am|pm)/gi, '').trim();
-    return `${cleanStr} ${zoneLabel}`;
+    // Direct string append fallback for pre-formatted strings
+    return `${strVal} ${zoneLabel}`;
   }
 
   function exportToExcel(specificQuestion = null) {
@@ -846,7 +840,7 @@
                     </span>
                   </td>
                   <td class="p-2.5 text-slate-400 border-r border-slate-800/40 font-mono text-[10px] group-hover:text-slate-200">
-                    {formatTimestampWithTimezone(response.timestamp)}
+                    {formatTimestampWithTimezone(response.formattedTimestamp || response.timestamp)}
                   </td>
                   {#each displayedQuestions as question}
                     {@const answerVal = (response.answers || []).find((a) => cleanString(a.questionText) === cleanString(question.questionText))?.value || 'N/A'}
