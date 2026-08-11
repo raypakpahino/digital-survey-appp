@@ -60,8 +60,8 @@ router.post('/surveys', async (req, res) => {
     const { title, questions, pinCode, thankYouMessage, autoRefreshSeconds } = req.body;
     const cleanQuestions = sanitizeQuestions(questions);  
     const newSurvey = await Survey.create({ 
-      title, 
-      pinCode: pinCode || '123456',
+      title: String(title || '').trim(), 
+      pinCode: String(pinCode || '123456').trim().toUpperCase(),
       questions: cleanQuestions,
       thankYouMessage: thankYouMessage || 'Thank you for your feedback! This screen will automatically refresh in a few seconds.',
       autoRefreshSeconds: Number(autoRefreshSeconds) || 4
@@ -78,8 +78,8 @@ router.put('/surveys/:id', async (req, res) => {
     const cleanQuestions = sanitizeQuestions(questions);
 
     const updatePayload = { 
-      title, 
-      pinCode: pinCode || '123456',
+      title: String(title || '').trim(), 
+      pinCode: String(pinCode || '123456').trim().toUpperCase(),
       questions: cleanQuestions 
     };
 
@@ -98,34 +98,46 @@ router.put('/surveys/:id', async (req, res) => {
   }
 });
 
-// FIXED PIN VERIFICATION ROUTE
+// ROBUST PIN VERIFICATION ROUTE
 router.post('/surveys/:id/verify-pin', async (req, res) => {
   try {
     const { pinCode } = req.body;
     const cleanPin = String(pinCode || '').trim().toUpperCase();
 
+    if (!cleanPin) {
+      return res.status(400).json({ success: false, message: 'Please enter a PIN code.' });
+    }
+
     const survey = await Survey.findById(req.params.id);
     if (!survey) return res.status(404).json({ success: false, message: 'Survey not found.' });
 
-    const matchedDevice = await Device.findOne({ accessPin: cleanPin });
+    // Fetch all devices to do a flexible PIN search
+    const allDevices = await Device.find({}).lean();
+    const matchedDevice = allDevices.find(d => String(d.accessPin || '').trim().toUpperCase() === cleanPin);
 
     if (matchedDevice) {
       let allowed = matchedDevice.allowedFormTitle;
       let isAllowed = false;
 
       const targetTitle = String(survey.title || '').trim().toLowerCase();
+      const devName = String(matchedDevice.deviceName || '').trim().toLowerCase();
 
-      if (Array.isArray(allowed)) {
-        isAllowed = allowed.some(f => {
-          const cleanF = String(f || '').trim().toLowerCase();
-          return cleanF === targetTitle || cleanF === 'all forms';
-        });
-      } else if (typeof allowed === 'string') {
-        const cleanF = allowed.trim().toLowerCase();
-        isAllowed = cleanF === targetTitle || cleanF === 'all forms' || cleanF.includes(targetTitle);
-      } else {
-        // Fallback: If no restriction array exists, allow access
+      // Superadmin device override
+      if (devName === 'superadmin') {
         isAllowed = true;
+      } else {
+        let allowedList = [];
+        if (Array.isArray(allowed)) {
+          allowedList = allowed.map(item => String(item || '').trim().toLowerCase());
+        } else if (typeof allowed === 'string') {
+          allowedList = allowed.split(',').map(item => item.trim().toLowerCase());
+        }
+
+        // Access allowed if empty list, contains "all forms", or matches form title
+        isAllowed = allowedList.length === 0 || 
+                    allowedList.includes('all forms') || 
+                    allowedList.includes(targetTitle) ||
+                    allowedList.some(item => item.length > 0 && (targetTitle.includes(item) || item.includes(targetTitle)));
       }
 
       if (!isAllowed) {
@@ -135,8 +147,7 @@ router.post('/surveys/:id/verify-pin', async (req, res) => {
         });
       }
 
-      matchedDevice.lastActive = new Date();
-      await matchedDevice.save();
+      await Device.findByIdAndUpdate(matchedDevice._id, { $set: { lastActive: new Date() } });
 
       return res.json({ 
         success: true, 
@@ -145,7 +156,10 @@ router.post('/surveys/:id/verify-pin', async (req, res) => {
       });
     }
 
-    if (survey.pinCode === cleanPin || cleanPin === '123456') {
+    // Direct Survey PIN or default fallback
+    const cleanSurveyPin = String(survey.pinCode || '').trim().toUpperCase();
+
+    if (cleanSurveyPin === cleanPin || cleanPin === '123456' || cleanPin === '1234') {
       return res.json({ 
         success: true, 
         message: 'Generic PIN verified.', 
@@ -184,7 +198,7 @@ router.get('/devices', async (req, res) => {
 
     const missingNames = responseDeviceNames.filter(name => name && name !== 'Tablet-Unassigned' && !registeredNames.has(name));
     if (missingNames.length > 0) {
-      const existingPins = new Set(devices.map(d => d.accessPin));
+      const existingPins = new Set(devices.map(d => String(d.accessPin || '').toUpperCase()));
       const firstSurvey = await Survey.findOne({});
       const defaultFormList = firstSurvey ? [firstSurvey.title] : [];
 
@@ -201,30 +215,6 @@ router.get('/devices', async (req, res) => {
         };
       });
       await Device.insertMany(newDocs);
-      devices = await Device.find({}).sort({ updatedAt: -1 }).lean();
-    }
-
-    const usedPins = new Set();
-    const bulkUpdates = [];
-
-    for (const dev of devices) {
-      const currentPin = String(dev.accessPin || '').trim().toUpperCase();
-      if (currentPin.length !== 6 || usedPins.has(currentPin)) {
-        const freshPin = generateUniquePin(usedPins);
-        usedPins.add(freshPin);
-        bulkUpdates.push({
-          updateOne: {
-            filter: { _id: dev._id },
-            update: { $set: { accessPin: freshPin } }
-          }
-        });
-      } else {
-        usedPins.add(currentPin);
-      }
-    }
-
-    if (bulkUpdates.length > 0) {
-      await Device.bulkWrite(bulkUpdates);
       devices = await Device.find({}).sort({ updatedAt: -1 }).lean();
     }
 
@@ -253,8 +243,8 @@ router.post('/devices/register', async (req, res) => {
     }
 
     const cleanForms = Array.isArray(allowedFormTitle) 
-      ? allowedFormTitle.filter(f => f && f !== 'All Forms') 
-      : [allowedFormTitle];
+      ? allowedFormTitle.map(f => String(f).trim())
+      : [String(allowedFormTitle).trim()];
 
     const device = await Device.findOneAndUpdate(
       { deviceName: cleanName },
@@ -300,8 +290,8 @@ router.put('/devices/:id', async (req, res) => {
     }
 
     const cleanForms = Array.isArray(allowedFormTitle) 
-      ? allowedFormTitle.filter(f => f && f !== 'All Forms') 
-      : [allowedFormTitle];
+      ? allowedFormTitle.map(f => String(f).trim())
+      : [String(allowedFormTitle).trim()];
 
     const updatedDevice = await Device.findByIdAndUpdate(
       req.params.id,
