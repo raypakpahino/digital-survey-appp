@@ -98,6 +98,7 @@ router.put('/surveys/:id', async (req, res) => {
   }
 });
 
+// FIXED PIN VERIFICATION ROUTE
 router.post('/surveys/:id/verify-pin', async (req, res) => {
   try {
     const { pinCode } = req.body;
@@ -112,10 +113,19 @@ router.post('/surveys/:id/verify-pin', async (req, res) => {
       let allowed = matchedDevice.allowedFormTitle;
       let isAllowed = false;
 
+      const targetTitle = String(survey.title || '').trim().toLowerCase();
+
       if (Array.isArray(allowed)) {
-        isAllowed = allowed.includes(survey.title) || allowed.includes('All Forms');
+        isAllowed = allowed.some(f => {
+          const cleanF = String(f || '').trim().toLowerCase();
+          return cleanF === targetTitle || cleanF === 'all forms';
+        });
       } else if (typeof allowed === 'string') {
-        isAllowed = allowed === survey.title || allowed === 'All Forms' || allowed.includes(survey.title);
+        const cleanF = allowed.trim().toLowerCase();
+        isAllowed = cleanF === targetTitle || cleanF === 'all forms' || cleanF.includes(targetTitle);
+      } else {
+        // Fallback: If no restriction array exists, allow access
+        isAllowed = true;
       }
 
       if (!isAllowed) {
