@@ -257,7 +257,7 @@
     }
   }
 
-  // GUARANTEED TIMEZONE FORMATTER (WIB / WITA / WIT)
+  // TIMEZONE FORMATTER FOR LOG MATRIX & EXPORTS (WIB / WITA / WIT)
   function formatTimestampWithTimezone(rawTimestamp) {
     if (!rawTimestamp) return "N/A";
     const dateObj = new Date(rawTimestamp);
@@ -266,7 +266,7 @@
     try {
       const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta';
       
-      // Formats date part cleanly: YYYY-MM-DD HH:mm:ss
+      // Formats date part: DD/MM/YYYY, HH:mm:ss
       const dateStr = new Intl.DateTimeFormat('en-GB', {
         year: 'numeric',
         month: '2-digit',
@@ -278,9 +278,9 @@
         timeZone: userTz
       }).format(dateObj);
 
-      // Map timezone to WIB / WITA / WIT
+      // Detect timezone abbreviation (WIB / WITA / WIT)
       const tzNameLower = userTz.toLowerCase();
-      let zoneLabel = "WIB"; // Default for Sumatra & Java
+      let zoneLabel = "WIB"; // Default for Java & Sumatra
 
       if (tzNameLower.includes('makassar') || tzNameLower.includes('denpasar') || tzNameLower.includes('uata')) {
         zoneLabel = "WITA";
@@ -340,7 +340,7 @@
       let rowCells = [
         `<td style="font-family: 'Consolas', monospace; font-weight: bold; color: #0284c7; text-align: center; padding: 8px 12px;">${recId}</td>`,
         `<td style="font-family: 'Consolas', monospace; font-weight: bold; color: #059669; text-align: center; padding: 8px 12px;">${tabletId}</td>`,
-        `<td style="white-space: nowrap; color: #475569; text-align: center; padding: 8px 12px;">${timestamp}</td>`
+        `<td style="white-space: nowrap; color: #475569; text-align: center; padding: 8px 12px; mso-number-format:'\\@';">${timestamp}</td>`
       ];
 
       targetQuestions.forEach((q) => {
