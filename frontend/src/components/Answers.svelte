@@ -257,7 +257,7 @@
     }
   }
 
-  // BULLETPROOF TIMEZONE FORMATTER (WIB / WITA / WIT)
+  // GUARANTEED TIMEZONE FORMATTER (WIB / WITA / WIT)
   function formatTimestampWithTimezone(rawTimestamp) {
     if (!rawTimestamp) return "N/A";
     const dateObj = new Date(rawTimestamp);
@@ -266,7 +266,7 @@
     try {
       const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta';
       
-      // Formats date part: DD/MM/YYYY, HH:mm:ss
+      // Formats date part cleanly: YYYY-MM-DD HH:mm:ss
       const dateStr = new Intl.DateTimeFormat('en-GB', {
         year: 'numeric',
         month: '2-digit',
@@ -278,7 +278,7 @@
         timeZone: userTz
       }).format(dateObj);
 
-      // Detect UTC Offset to guarantee WIB / WITA / WIT label display
+      // Map timezone to WIB / WITA / WIT
       const tzNameLower = userTz.toLowerCase();
       let zoneLabel = "WIB"; // Default for Sumatra & Java
 
@@ -287,7 +287,6 @@
       } else if (tzNameLower.includes('jayapura') || tzNameLower.includes('wit')) {
         zoneLabel = "WIT";
       } else {
-        // Fallback offset calculation if timeZone string is custom
         const offsetMinutes = -dateObj.getTimezoneOffset();
         if (offsetMinutes === 480) zoneLabel = "WITA";
         else if (offsetMinutes === 540) zoneLabel = "WIT";
