@@ -42,6 +42,30 @@ const sanitizeQuestions = (questions) => {
   }));
 };
 
+// HELPER: Formats ISO timestamp with local timezone abbreviation (e.g., WIB, WITA, WIT)
+const formatToLocalTimezone = (isoString, timeZone = 'Asia/Jakarta') => {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  if (isNaN(date.getTime())) return isoString;
+
+  try {
+    const formatter = new Intl.DateTimeFormat('id-ID', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+      timeZone: timeZone,
+      timeZoneName: 'short'
+    });
+    return formatter.format(date);
+  } catch (err) {
+    return date.toISOString();
+  }
+};
+
 // ==========================================
 // SURVEY ROUTES
 // ==========================================
@@ -111,7 +135,6 @@ router.post('/surveys/:id/verify-pin', async (req, res) => {
     const survey = await Survey.findById(req.params.id);
     if (!survey) return res.status(404).json({ success: false, message: 'Survey not found.' });
 
-    // Fetch all devices to do a flexible PIN search
     const allDevices = await Device.find({}).lean();
     const matchedDevice = allDevices.find(d => String(d.accessPin || '').trim().toUpperCase() === cleanPin);
 
@@ -122,7 +145,6 @@ router.post('/surveys/:id/verify-pin', async (req, res) => {
       const targetTitle = String(survey.title || '').trim().toLowerCase();
       const devName = String(matchedDevice.deviceName || '').trim().toLowerCase();
 
-      // Superadmin device override
       if (devName === 'superadmin') {
         isAllowed = true;
       } else {
@@ -133,7 +155,6 @@ router.post('/surveys/:id/verify-pin', async (req, res) => {
           allowedList = allowed.split(',').map(item => item.trim().toLowerCase());
         }
 
-        // Access allowed if empty list, contains "all forms", or matches form title
         isAllowed = allowedList.length === 0 || 
                     allowedList.includes('all forms') || 
                     allowedList.includes(targetTitle) ||
@@ -156,7 +177,6 @@ router.post('/surveys/:id/verify-pin', async (req, res) => {
       });
     }
 
-    // Direct Survey PIN or default fallback
     const cleanSurveyPin = String(survey.pinCode || '').trim().toUpperCase();
 
     if (cleanSurveyPin === cleanPin || cleanPin === '123456' || cleanPin === '1234') {
@@ -359,7 +379,14 @@ router.post('/responses', async (req, res) => {
 
 router.get('/responses', async (req, res) => {
   try {
-    const responses = await Response.find({}).sort({ createdAt: -1 });
+    const targetTz = req.query.tz || 'Asia/Jakarta'; // Default to WIB
+    const rawResponses = await Response.find({}).sort({ createdAt: -1 }).lean();
+
+    const responses = rawResponses.map(r => ({
+      ...r,
+      formattedTimestamp: formatToLocalTimezone(r.timestamp || r.createdAt, targetTz)
+    }));
+
     res.json({ success: true, responses });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

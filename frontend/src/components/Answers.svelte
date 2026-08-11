@@ -257,6 +257,30 @@
     }
   }
 
+  // DYNAMIC TIMEZONE FORMATTER FOR EXPORT (e.g. WIB, WITA, WIT)
+  function formatTimestampWithTimezone(rawTimestamp) {
+    if (!rawTimestamp) return "N/A";
+    const date = new Date(rawTimestamp);
+    if (isNaN(date.getTime())) return rawTimestamp;
+
+    try {
+      const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta';
+      return new Intl.DateTimeFormat('id-ID', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZone: userTz,
+        timeZoneName: 'short'
+      }).format(date);
+    } catch (err) {
+      return date.toLocaleString();
+    }
+  }
+
   function exportToExcel(specificQuestion = null) {
     if (!selectedSurveyObj || filteredResponses.length === 0) return;
 
@@ -294,14 +318,7 @@
     let rowsHtml = filteredResponses.map((r, index) => {
       let recId = r._id ? r._id.slice(-8) : `LOG-${index + 1}`;
       let tabletId = r.deviceId || "Tablet-A";
-      let timestamp = new Date(r.timestamp).toLocaleString('en-US', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      });
+      let timestamp = r.formattedTimestamp || formatTimestampWithTimezone(r.timestamp);
 
       let rowCells = [
         `<td style="font-family: 'Consolas', monospace; font-weight: bold; color: #0284c7; text-align: center; padding: 8px 12px;">${recId}</td>`,
@@ -339,7 +356,7 @@
       </head>
       <body>
         <h2 style="font-family: 'Segoe UI', Arial, sans-serif; color: #0284c7; font-weight: bold; font-size: 14pt; margin-bottom: 2px;">${titleText} — Response Matrix</h2>
-        <p style="font-family: 'Segoe UI', Arial, sans-serif; color: #64748b; font-size: 8pt; margin-top: 0; margin-bottom: 10px;">Generated Report Timestamp: ${new Date().toLocaleString()}</p>
+        <p style="font-family: 'Segoe UI', Arial, sans-serif; color: #64748b; font-size: 8pt; margin-top: 0; margin-bottom: 10px;">Generated Report Timestamp: ${formatTimestampWithTimezone(new Date())}</p>
         <table>
           <thead>
             <tr>${headerCells}</tr>
@@ -805,7 +822,7 @@
                     </span>
                   </td>
                   <td class="p-2.5 text-slate-400 border-r border-slate-800/40 font-mono text-[10px] group-hover:text-slate-200">
-                    {new Date(response.timestamp).toLocaleString()}
+                    {formatTimestampWithTimezone(response.timestamp)}
                   </td>
                   {#each displayedQuestions as question}
                     {@const answerVal = (response.answers || []).find((a) => cleanString(a.questionText) === cleanString(question.questionText))?.value || 'N/A'}
@@ -874,7 +891,7 @@
                   </span>
                 </div>
                 <span class="text-[10px] font-mono text-slate-400 font-semibold">
-                  {new Date(alert.timestamp).toLocaleString()}
+                  {formatTimestampWithTimezone(alert.timestamp)}
                 </span>
               </div>
 
