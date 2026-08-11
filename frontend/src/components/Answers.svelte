@@ -257,49 +257,6 @@
     }
   }
 
-  // GUARANTEED TIMEZONE FORMATTER (WIB / WITA / WIT)
-  function formatTimestampWithTimezone(rawTimestamp) {
-    if (!rawTimestamp) return "N/A";
-    const strVal = String(rawTimestamp).trim();
-
-    // Determine Indonesian zone label based on client timezone
-    let zoneLabel = "WIB";
-    try {
-      const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta';
-      const tzLower = userTz.toLowerCase();
-      if (tzLower.includes('makassar') || tzLower.includes('denpasar') || tzLower.includes('uata')) {
-        zoneLabel = "WITA";
-      } else if (tzLower.includes('jayapura') || tzLower.includes('wit')) {
-        zoneLabel = "WIT";
-      }
-    } catch (e) {
-      zoneLabel = "WIB";
-    }
-
-    // Check if the input is a valid date (raw ISO string from DB)
-    const dateObj = new Date(rawTimestamp);
-    if (!isNaN(dateObj.getTime())) {
-      const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta';
-      const dateStr = new Intl.DateTimeFormat('en-GB', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-        timeZone: userTz
-      }).format(dateObj);
-
-      return `${dateStr} ${zoneLabel}`;
-    }
-
-    // If already pre-formatted string (e.g. "8/11/2026, 12:57:54 PM"), strip AM/PM and attach zone
-    if (/WIB|WITA|WIT/i.test(strVal)) return strVal;
-    const cleanStr = strVal.replace(/\s*(AM|PM|am|pm)/gi, '').trim();
-    return `${cleanStr} ${zoneLabel}`;
-  }
-
   function exportToExcel(specificQuestion = null) {
     if (!selectedSurveyObj || filteredResponses.length === 0) return;
 
@@ -337,12 +294,12 @@
     let rowsHtml = filteredResponses.map((r, index) => {
       let recId = r._id ? r._id.slice(-8) : `LOG-${index + 1}`;
       let tabletId = r.deviceId || "Tablet-A";
-      let timestamp = formatTimestampWithTimezone(r.timestamp);
+      let timestamp = new Date(r.timestamp).toLocaleString();
 
       let rowCells = [
         `<td style="font-family: 'Consolas', monospace; font-weight: bold; color: #0284c7; text-align: center; padding: 8px 12px;">${recId}</td>`,
         `<td style="font-family: 'Consolas', monospace; font-weight: bold; color: #059669; text-align: center; padding: 8px 12px;">${tabletId}</td>`,
-        `<td style="white-space: nowrap; color: #475569; text-align: center; padding: 8px 12px; mso-number-format:'\\@';">${timestamp}</td>`
+        `<td style="white-space: nowrap; color: #475569; text-align: center; padding: 8px 12px;">${timestamp}</td>`
       ];
 
       targetQuestions.forEach((q) => {
@@ -375,7 +332,7 @@
       </head>
       <body>
         <h2 style="font-family: 'Segoe UI', Arial, sans-serif; color: #0284c7; font-weight: bold; font-size: 14pt; margin-bottom: 2px;">${titleText} — Response Matrix</h2>
-        <p style="font-family: 'Segoe UI', Arial, sans-serif; color: #64748b; font-size: 8pt; margin-top: 0; margin-bottom: 10px;">Generated Report Timestamp: ${formatTimestampWithTimezone(new Date())}</p>
+        <p style="font-family: 'Segoe UI', Arial, sans-serif; color: #64748b; font-size: 8pt; margin-top: 0; margin-bottom: 10px;">Generated Report Timestamp: ${new Date().toLocaleString()}</p>
         <table>
           <thead>
             <tr>${headerCells}</tr>
@@ -841,7 +798,7 @@
                     </span>
                   </td>
                   <td class="p-2.5 text-slate-400 border-r border-slate-800/40 font-mono text-[10px] group-hover:text-slate-200">
-                    {formatTimestampWithTimezone(response.timestamp || response.createdAt)}
+                    {new Date(response.timestamp).toLocaleString()}
                   </td>
                   {#each displayedQuestions as question}
                     {@const answerVal = (response.answers || []).find((a) => cleanString(a.questionText) === cleanString(question.questionText))?.value || 'N/A'}
@@ -910,7 +867,7 @@
                   </span>
                 </div>
                 <span class="text-[10px] font-mono text-slate-400 font-semibold">
-                  {formatTimestampWithTimezone(alert.timestamp)}
+                  {new Date(alert.timestamp).toLocaleString()}
                 </span>
               </div>
 
