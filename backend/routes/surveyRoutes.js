@@ -30,6 +30,7 @@ const sanitizeQuestions = (questions) => {
     enableOptionImages: Boolean(q.enableOptionImages),
     options: Array.isArray(q.options) ? q.options : [],
     optionImages: q.optionImages && typeof q.optionImages === 'object' ? q.optionImages : {},
+    alertTriggerValues: Array.isArray(q.alertTriggerValues) ? q.alertTriggerValues : [],
     skipLogic: q.skipLogic ? {
       enabled: Boolean(q.skipLogic.enabled),
       dependsOnIndex: Number(q.skipLogic.dependsOnIndex) || 0,
