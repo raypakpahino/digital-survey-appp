@@ -11,6 +11,18 @@
   let endDate = "";
   let activePreset = "ALL";
   
+  // MULTI-FORM SELECTION STATE
+  let selectedSurveyIds = [];
+
+  // Initialize selectedSurveyIds when surveys load
+  $: if (surveys.length > 0 && selectedSurveyIds.length === 0) {
+    if (activeSurveyId && surveys.some(s => s._id === activeSurveyId)) {
+      selectedSurveyIds = [activeSurveyId];
+    } else {
+      selectedSurveyIds = [surveys[0]._id];
+    }
+  }
+
   // MULTI-TABLET FILTERING STATE
   let selectedDevices = [];
 
@@ -77,12 +89,6 @@
     window.removeEventListener("mouseup", stopResizing);
   }
 
-  $: selectedSurveyObj = surveys.find((s) => s._id === activeSurveyId) || surveys[0] || null;
-
-  $: if (surveys.length > 0 && (!activeSurveyId || !surveys.some(s => s._id === activeSurveyId))) {
-    activeSurveyId = surveys[0]._id;
-  }
-
   const SLICE_COLORS = [
     '#06b6d4', // cyan-500
     '#f59e0b', // amber-500
@@ -97,18 +103,32 @@
     return String(str || '').trim().toLowerCase();
   }
 
-  $: displayedQuestions = selectedSurveyObj ? selectedSurveyObj.questions : [];
+  // Active Selected Survey Objects
+  $: selectedSurveys = surveys.filter(s => selectedSurveyIds.includes(s._id));
+
+  // Form Titles array for clean matching
+  $: selectedSurveyTitles = selectedSurveys.map(s => cleanString(s.title));
+
+  // Dynamically collect distinct questions across all selected forms
+  $: displayedQuestions = selectedSurveys.reduce((acc, survey) => {
+    (survey.questions || []).forEach(q => {
+      if (!acc.some(existingQ => cleanString(existingQ.questionText) === cleanString(q.questionText))) {
+        acc.push({ ...q, parentSurveyTitle: survey.title });
+      }
+    });
+    return acc;
+  }, []);
 
   $: availableDevices = Array.from(new Set(
     responses
-      .filter((r) => selectedSurveyObj && cleanString(r.surveyTitle) === cleanString(selectedSurveyObj.title))
+      .filter((r) => selectedSurveyTitles.includes(cleanString(r.surveyTitle)))
       .map((r) => r.deviceId || "Tablet-A")
   )).sort();
 
   $: filteredResponses = responses.filter((r) => {
-    if (!selectedSurveyObj) return false;
+    if (selectedSurveys.length === 0) return false;
     
-    if (cleanString(r.surveyTitle) !== cleanString(selectedSurveyObj.title)) return false;
+    if (!selectedSurveyTitles.includes(cleanString(r.surveyTitle))) return false;
 
     if (selectedDevices.length > 0) {
       const respDevice = r.deviceId || "Tablet-A";
@@ -132,19 +152,19 @@
     return true;
   });
 
-  // DYNAMIC LOW RATING INCIDENT DETECTION
+  // DYNAMIC LOW RATING INCIDENT DETECTION ACROSS MULTIPLE FORMS
   $: lowRatingAlerts = filteredResponses.filter((r) => {
-    if (!selectedSurveyObj || !selectedSurveyObj.questions) return false;
+    const parentSurvey = surveys.find(s => cleanString(s.title) === cleanString(r.surveyTitle));
+    if (!parentSurvey || !parentSurvey.questions) return false;
 
     return (r.answers || []).some((ans) => {
-      const q = selectedSurveyObj.questions.find(sq => cleanString(sq.questionText) === cleanString(ans.questionText));
+      const q = parentSurvey.questions.find(sq => cleanString(sq.questionText) === cleanString(ans.questionText));
       const val = String(ans.value || '').toUpperCase();
 
       if (q && Array.isArray(q.alertTriggerValues) && q.alertTriggerValues.length > 0) {
         return q.alertTriggerValues.some(trig => String(trig).toUpperCase() === val);
       }
 
-      // Hardcoded fallback for untagged legacy forms
       return (
         val.includes('ANGRY') || 
         val.includes('SAD') || 
@@ -155,8 +175,9 @@
       );
     });
   }).map((r) => {
+    const parentSurvey = surveys.find(s => cleanString(s.title) === cleanString(r.surveyTitle));
     const badRatings = (r.answers || []).filter((ans) => {
-      const q = selectedSurveyObj ? selectedSurveyObj.questions.find(sq => cleanString(sq.questionText) === cleanString(ans.questionText)) : null;
+      const q = parentSurvey ? parentSurvey.questions.find(sq => cleanString(sq.questionText) === cleanString(ans.questionText)) : null;
       const val = String(ans.value || '').toUpperCase();
 
       if (q && Array.isArray(q.alertTriggerValues) && q.alertTriggerValues.length > 0) {
@@ -175,12 +196,33 @@
 
     return {
       responseId: r._id,
+      formTitle: r.surveyTitle || "Form",
       deviceId: r.deviceId || "Tablet-A",
       timestamp: r.timestamp,
       badRatings,
       allAnswers: r.answers || []
     };
   });
+
+  function toggleSurveySelection(surveyId) {
+    if (selectedSurveyIds.includes(surveyId)) {
+      if (selectedSurveyIds.length > 1) {
+        selectedSurveyIds = selectedSurveyIds.filter(id => id !== surveyId);
+      }
+    } else {
+      selectedSurveyIds = [...selectedSurveyIds, surveyId];
+    }
+  }
+
+  function selectAllSurveys() {
+    selectedSurveyIds = surveys.map(s => s._id);
+  }
+
+  function deselectAllSurveys() {
+    if (surveys.length > 0) {
+      selectedSurveyIds = [surveys[0]._id];
+    }
+  }
 
   function toggleExpandAlert(id) {
     if (expandedAlertIds.has(id)) {
@@ -255,29 +297,34 @@
   }
 
   async function clearAllSurveyResponses() {
-    if (!selectedSurveyObj) return;
-    if (!confirm(`Are you sure you want to permanently delete ALL submission logs for "${selectedSurveyObj.title}"?`)) return;
+    if (selectedSurveys.length === 0) return;
+    const titlesText = selectedSurveys.map(s => `"${s.title}"`).join(', ');
+    if (!confirm(`Are you sure you want to permanently delete ALL submission logs for ${titlesText}?`)) return;
 
-    const targetTitle = selectedSurveyObj.title;
-    responses = responses.filter((r) => cleanString(r.surveyTitle) !== cleanString(targetTitle));
+    for (const survey of selectedSurveys) {
+      const targetTitle = survey.title;
+      responses = responses.filter((r) => cleanString(r.surveyTitle) !== cleanString(targetTitle));
 
-    try {
-      await fetch(`${API_BASE}/responses/clear-by-title`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: targetTitle })
-      });
-      await onRefreshData();
-    } catch (err) {
-      console.warn("Backend link delay, local state cleared.");
+      try {
+        await fetch(`${API_BASE}/responses/clear-by-title`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: targetTitle })
+        });
+      } catch (err) {
+        console.warn("Backend link delay, local state cleared.");
+      }
     }
+    await onRefreshData();
   }
 
   function exportToExcel(specificQuestion = null) {
-    if (!selectedSurveyObj || filteredResponses.length === 0) return;
+    if (selectedSurveys.length === 0 || filteredResponses.length === 0) return;
 
     let targetQuestions = specificQuestion ? [specificQuestion] : displayedQuestions;
-    let titleText = selectedSurveyObj.title || "Form Matrix";
+    let titleText = selectedSurveys.length === 1 
+      ? selectedSurveys[0].title 
+      : `Combined_Report_${selectedSurveys.length}_Forms`;
 
     function formatValueForExcel(rawVal, qType) {
       if (!rawVal || rawVal === "N/A" || rawVal === "Skipped") return "N/A";
@@ -304,16 +351,18 @@
         .trim() || rawVal;
     }
 
-    let headers = ["Record ID", "Tablet Site ID", "Submission Timestamp"];
+    let headers = ["Record ID", "Form Title", "Tablet Site ID", "Submission Timestamp"];
     targetQuestions.forEach((q) => headers.push(q.questionText));
 
     let rowsHtml = filteredResponses.map((r, index) => {
       let recId = r._id ? r._id.slice(-8) : `LOG-${index + 1}`;
+      let formName = r.surveyTitle || "Form";
       let tabletId = r.deviceId || "Tablet-A";
       let timestamp = new Date(r.timestamp).toLocaleString();
 
       let rowCells = [
         `<td style="font-family: 'Consolas', monospace; font-weight: bold; color: #0284c7; text-align: center; padding: 8px 12px;">${recId}</td>`,
+        `<td style="font-family: 'Segoe UI', sans-serif; font-weight: bold; color: #0284c7; text-align: left; padding: 8px 12px;">${formName}</td>`,
         `<td style="font-family: 'Consolas', monospace; font-weight: bold; color: #059669; text-align: center; padding: 8px 12px;">${tabletId}</td>`,
         `<td style="white-space: nowrap; color: #475569; text-align: center; padding: 8px 12px;">${timestamp}</td>`
       ];
@@ -347,7 +396,7 @@
         </style>
       </head>
       <body>
-        <h2 style="font-family: 'Segoe UI', Arial, sans-serif; color: #0284c7; font-weight: bold; font-size: 14pt; margin-bottom: 2px;">${titleText} — Response Matrix</h2>
+        <h2 style="font-family: 'Segoe UI', Arial, sans-serif; color: #0284c7; font-weight: bold; font-size: 14pt; margin-bottom: 2px;">${titleText} — Multi-Form Response Matrix</h2>
         <p style="font-family: 'Segoe UI', Arial, sans-serif; color: #64748b; font-size: 8pt; margin-top: 0; margin-bottom: 10px;">Generated Report Timestamp: ${new Date().toLocaleString()}</p>
         <table>
           <thead>
@@ -362,7 +411,7 @@
     `;
 
     const fileName = specificQuestion 
-      ? `${titleText.replace(/[^\w\s]/gi, '').replace(/\s+/g, "_")}_${specificQuestion.questionText.replace(/[^\w\s]/gi, '').replace(/\s+/g, "_")}_Field_Report.xls`
+      ? `${titleText.replace(/[^\w\s]/gi, '').replace(/\s+/g, "_")}_Field_Report.xls`
       : `${titleText.replace(/[^\w\s]/gi, '').replace(/\s+/g, "_")}_Response_Matrix.xls`;
 
     const blob = new Blob([excelHtml], { type: "application/vnd.ms-excel;charset=utf-8;" });
@@ -474,36 +523,53 @@
     style="width: {leftPanelWidth}px;"
   >
     
-    <!-- TARGET FORM SELECTOR -->
+    <!-- MULTI-TARGET FORM SELECTOR -->
     <div class="flex-1 space-y-2">
-      <div>
-        <h3 class="text-[11px] font-bold text-white uppercase tracking-wider">Select Target Form</h3>
-        <p class="text-[10px] text-slate-400 mt-0.5 leading-tight hidden lg:block">
-          Choose an active form sequence to analyze metrics and export logs.
-        </p>
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-[11px] font-bold text-white uppercase tracking-wider">Select Forms ({selectedSurveyIds.length})</h3>
+          <p class="text-[10px] text-slate-400 mt-0.5 leading-tight hidden lg:block">
+            Check multiple forms to compare metrics and export logs.
+          </p>
+        </div>
+        <div class="flex items-center space-x-1">
+          <button on:click={selectAllSurveys} class="text-[9px] font-bold text-cyan-400 hover:underline">All</button>
+          <span class="text-slate-600 text-[9px]">•</span>
+          <button on:click={deselectAllSurveys} class="text-[9px] font-bold text-rose-400 hover:underline">Reset</button>
+        </div>
       </div>
 
-      <div class="flex flex-row lg:flex-col gap-1.5 overflow-x-auto lg:overflow-y-auto custom-scrollbar max-h-32 lg:max-h-48 pb-1 lg:pb-0">
+      <div class="flex flex-row lg:flex-col gap-1.5 overflow-x-auto lg:overflow-y-auto custom-scrollbar max-h-36 lg:max-h-52 pb-1 lg:pb-0">
         {#each surveys as survey}
+          {@const isSelected = selectedSurveyIds.includes(survey._id)}
           <button
-            on:click={() => {
-              activeSurveyId = survey._id;
-              clearFilters();
-            }}
-            class="min-w-[130px] lg:w-full text-left border px-3 py-2 rounded-xl transition-all duration-200 flex flex-col gap-0.5 active:scale-[0.98] hover:scale-[1.01] group shrink-0 {activeSurveyId === survey._id ? 'bg-cyan-600/10 border-cyan-500 text-white shadow-sm ring-1 ring-cyan-500/30' : 'bg-slate-950/40 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/60 text-slate-400'}"
+            on:click={() => toggleSurveySelection(survey._id)}
+            class="min-w-[140px] lg:w-full text-left border px-3 py-2 rounded-xl transition-all duration-200 flex items-center justify-between group shrink-0 active:scale-[0.98] cursor-pointer {isSelected ? 'bg-cyan-950/80 border-cyan-500 text-white shadow-sm ring-1 ring-cyan-500/30' : 'bg-slate-950/40 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/60 text-slate-400'}"
           >
-            <span class="text-xs font-bold transition-colors truncate {activeSurveyId === survey._id ? 'text-cyan-400' : 'text-slate-300 group-hover:text-cyan-400'}">
-              {survey.title}
-            </span>
-            <span class="text-[9px] text-slate-500 font-medium uppercase font-mono tracking-wider">
-              {responses.filter((r) => cleanString(r.surveyTitle) === cleanString(survey.title)).length} Logs
-            </span>
+            <div class="flex items-center space-x-2 truncate pr-1">
+              <input 
+                type="checkbox" 
+                checked={isSelected} 
+                class="accent-cyan-500 w-3.5 h-3.5 rounded shrink-0 pointer-events-none"
+              />
+              <div class="flex flex-col truncate">
+                <span class="text-xs font-bold transition-colors truncate {isSelected ? 'text-cyan-300' : 'text-slate-300 group-hover:text-cyan-400'}">
+                  {survey.title}
+                </span>
+                <span class="text-[9px] text-slate-500 font-medium uppercase font-mono tracking-wider">
+                  {responses.filter((r) => cleanString(r.surveyTitle) === cleanString(survey.title)).length} Logs
+                </span>
+              </div>
+            </div>
+            {#if isSelected}
+              <span class="text-cyan-400 font-bold text-xs shrink-0 ml-1">✓</span>
+            {/if}
           </button>
         {/each}
       </div>
     </div>
 
-    <!-- READ-ONLY TABLET SITE FILTER CHIPS (NO INLINE EDITING) -->
+    <!-- READ-ONLY TABLET SITE FILTER CHIPS -->
     <div class="flex-1 pt-2 sm:pt-0 lg:pt-2 border-t sm:border-t-0 lg:border-t sm:border-l lg:border-l-0 sm:pl-3 lg:pl-0 border-slate-800/80 space-y-1.5 shrink-0">
       <div class="flex items-center justify-between">
         <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Tablet Site Filter</span>
@@ -514,7 +580,7 @@
         {/if}
       </div>
 
-      <div class="grid grid-cols-2 gap-1 max-h-36 overflow-y-auto custom-scrollbar pt-0.5">
+      <div class="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto custom-scrollbar pt-0.5">
         {#if availableDevices.length === 0}
           <span class="text-[9px] text-slate-500 font-mono col-span-2">No device logs available</span>
         {:else}
@@ -601,7 +667,13 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800/40 pb-3 shrink-0 gap-2">
       <div>
         <h2 class="text-sm sm:text-base font-bold text-white tracking-tight border-l-2 border-cyan-500 pl-2.5">
-          {selectedSurveyObj ? selectedSurveyObj.title : 'No Layout Selected'}
+          {#if selectedSurveys.length === 1}
+            {selectedSurveys[0].title}
+          {:else if selectedSurveys.length > 1}
+            Aggregated Matrix ({selectedSurveys.length} Forms Selected)
+          {:else}
+            No Forms Selected
+          {/if}
         </h2>
         <p class="text-[11px] text-slate-400 mt-0.5">
           Showing <span class="text-cyan-400 font-bold">{filteredResponses.length}</span> matching submission records 
@@ -651,14 +723,14 @@
           class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] py-1.5 px-2.5 rounded-lg transition-all hover:scale-105 active:scale-95 flex items-center space-x-1 disabled:opacity-20 cursor-pointer"
         >
           <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-          <span>Export CSV</span>
+          <span>Export Excel</span>
         </button>
 
         <button
           on:click={clearAllSurveyResponses}
           disabled={filteredResponses.length === 0}
           class="bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 text-rose-300 font-bold text-[11px] py-1.5 px-2.5 rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-20 flex items-center space-x-1 cursor-pointer"
-          title="Delete all submission logs for this form"
+          title="Delete all submission logs for selected forms"
         >
           <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
           <span>Clear All</span>
@@ -668,123 +740,146 @@
 
     <!-- MAIN GRID CARDS -->
     <div class="flex-1 overflow-y-auto mt-3 custom-scrollbar pr-1 box-border">
-      {#if !selectedSurveyObj || filteredResponses.length === 0}
+      {#if selectedSurveys.length === 0 || filteredResponses.length === 0}
         <div class="border-2 border-dashed border-slate-800 rounded-2xl p-8 text-center text-slate-500 text-xs">
           No submission records match your active search filter parameters.
         </div>
 
       {:else if activeViewMode === "analytics"}
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4 pb-4">
-          {#each displayedQuestions as question, qIdx}
-            {@const stats = getQuestionAnalytics(question, filteredResponses)}
-            {@const isPieEligible = isPieChartType(question.type)}
-            
-            <div 
-              on:click={() => openQuestionModal(question)}
-              class="bg-slate-950/60 hover:bg-slate-950/95 border border-slate-800 hover:border-cyan-500/60 hover:shadow-xl hover:shadow-cyan-950/20 rounded-xl p-3.5 sm:p-4 space-y-3 shadow-xs cursor-pointer transition-all duration-300 group relative overflow-visible"
-            >
-              <div class="flex items-start justify-between gap-2 border-b border-slate-800/60 pb-2">
-                <div class="space-y-0.5">
-                  <span class="text-[9px] font-bold text-cyan-400 uppercase font-mono tracking-wider flex items-center space-x-1">
-                    <span>Field #{selectedSurveyObj.questions.findIndex(q => cleanString(q.questionText) === cleanString(question.questionText)) + 1} • {question.type}</span>
-                    <span class="text-slate-500 text-[9px] hidden sm:inline-flex items-center space-x-0.5 group-hover:text-cyan-300 transition-colors">
-                      <svg class="w-3 h-3 fill-current inline-block ml-1" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                      <span>Click to enlarge</span>
-                    </span>
+        <div class="space-y-6 pb-4">
+          {#each selectedSurveys as survey}
+            {@const surveyQs = survey.questions || []}
+            {@const surveyResponses = filteredResponses.filter(r => cleanString(r.surveyTitle) === cleanString(survey.title))}
+
+            {#if surveyQs.length > 0}
+              <div class="space-y-3">
+                <!-- FORM GROUP SECTION HEADER -->
+                <div class="bg-slate-950 border-l-4 border-cyan-500 px-3 py-2 rounded-r-xl flex items-center justify-between shadow-xs">
+                  <div class="flex items-center space-x-2">
+                    <span class="text-xs font-black text-cyan-400 uppercase tracking-wider">{survey.title}</span>
+                    <span class="text-[10px] text-slate-500 font-mono font-bold">({surveyQs.length} Fields)</span>
+                  </div>
+                  <span class="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded font-bold">
+                    {surveyResponses.length} Submissions
                   </span>
-                  <h4 class="text-xs sm:text-sm font-bold text-white group-hover:text-cyan-100 transition-colors leading-snug">{question.questionText}</h4>
-                </div>
-                <span class="text-[10px] font-bold bg-slate-900 px-2 py-0.5 rounded text-slate-400 border border-slate-800 shrink-0 group-hover:border-cyan-500/40 group-hover:text-cyan-300 transition-all">
-                  {stats.total} {stats.total === 1 ? 'entry' : 'entries'}
-                </span>
-              </div>
-
-              {#if isPieEligible}
-                <div class="flex flex-row items-center gap-3 sm:gap-4 pt-0.5 relative">
-                  <div class="relative shrink-0 flex items-center justify-center">
-                    <svg class="w-28 h-28 transform -rotate-90 drop-shadow-md overflow-visible" viewBox="0 0 100 100">
-                      {#each stats.breakdowns as item}
-                        {@const isHovered = activeHoveredSlice?.qIdx === qIdx && activeHoveredSlice?.label === item.label}
-                        <path
-                          d={item.svgPath}
-                          fill={item.color}
-                          stroke="#1e293b"
-                          stroke-width="0.8"
-                          class="transition-all duration-300 cursor-pointer origin-center"
-                          style="
-                            transform: {isHovered ? 'scale(1.06)' : 'scale(1)'};
-                            opacity: {activeHoveredSlice?.qIdx === qIdx && !isHovered ? 0.4 : 1};
-                            filter: {isHovered ? 'drop-shadow(0px 0px 8px ' + item.color + ')' : 'none'};
-                          "
-                          on:mouseenter={(e) => { e.stopPropagation(); handleSliceMouseEnter(qIdx, item, e); }}
-                          on:mousemove={(e) => handleSliceMouseMove(e)}
-                          on:mouseleave={(e) => { e.stopPropagation(); handleSliceMouseLeave(); }}
-                        />
-                      {/each}
-                    </svg>
-                  </div>
-
-                  <div class="flex-1 space-y-1 w-full">
-                    {#each stats.breakdowns as item}
-                      {@const isHovered = activeHoveredSlice?.qIdx === qIdx && activeHoveredSlice?.label === item.label}
-                      
-                      <div 
-                        on:mouseenter={(e) => { e.stopPropagation(); handleSliceMouseEnter(qIdx, item, e); }}
-                        on:mousemove={(e) => handleSliceMouseMove(e)}
-                        on:mouseleave={(e) => { e.stopPropagation(); handleSliceMouseLeave(); }}
-                        class="flex items-center justify-between text-[11px] px-2.5 py-1 rounded-md transition-all duration-200 border cursor-pointer relative {isHovered ? 'bg-slate-800/90 border-cyan-500 shadow-md translate-x-1 scale-[1.02]' : 'bg-slate-900/80 border-slate-800/60 hover:bg-slate-850 hover:border-slate-700'}"
-                      >
-                        <div class="flex items-center space-x-1.5 truncate pr-1">
-                          <span class="w-2.5 h-2.5 rounded-full shrink-0 transition-transform {isHovered ? 'scale-125 ring-2 ring-white/20' : ''}" style="background-color: {item.color};"></span>
-                          <span class="text-slate-200 font-medium truncate text-[10px] sm:text-[11px] {isHovered ? 'text-white font-bold' : ''}">{item.label}</span>
-                        </div>
-                        <span class="font-mono font-bold text-[10px] shrink-0 {isHovered ? 'text-cyan-300' : 'text-cyan-400'}">
-                          {item.percentage}% <span class="text-slate-500 text-[9px]">({item.count})</span>
-                        </span>
-                      </div>
-                    {/each}
-                  </div>
                 </div>
 
-              {:else}
-                <div class="space-y-2">
-                  {#each stats.breakdowns as item}
-                    {@const isHovered = activeHoveredSlice?.qIdx === qIdx && activeHoveredSlice?.label === item.label}
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4">
+                  {#each surveyQs as question, qIdx}
+                    {@const stats = getQuestionAnalytics(question, surveyResponses)}
+                    {@const isPieEligible = isPieChartType(question.type)}
                     
                     <div 
-                      on:mouseenter={(e) => { e.stopPropagation(); handleSliceMouseEnter(qIdx, item, e); }}
-                      on:mousemove={(e) => handleSliceMouseMove(e)}
-                      on:mouseleave={(e) => { e.stopPropagation(); handleSliceMouseLeave(); }}
-                      class="space-y-0.5 p-1 rounded-lg transition-all duration-200 cursor-pointer relative {isHovered ? 'bg-slate-900/90 ring-1 ring-cyan-500/40' : ''}"
+                      on:click={() => openQuestionModal({ ...question, parentSurveyTitle: survey.title })}
+                      class="bg-slate-950/60 hover:bg-slate-950/95 border border-slate-800 hover:border-cyan-500/60 hover:shadow-xl hover:shadow-cyan-950/20 rounded-xl p-3.5 sm:p-4 space-y-3 shadow-xs cursor-pointer transition-all duration-300 group relative overflow-visible"
                     >
-                      <div class="flex items-center justify-between text-[11px]">
-                        <span class="text-slate-300 font-semibold truncate max-w-[160px] sm:max-w-[200px] {isHovered ? 'text-white font-bold' : ''}">{item.label}</span>
-                        <span class="font-mono font-bold text-[10px] {isHovered ? 'text-cyan-300' : 'text-cyan-400'}">{item.percentage}% <span class="text-slate-500 text-[9px]">({item.count})</span></span>
+                      <div class="flex items-start justify-between gap-2 border-b border-slate-800/60 pb-2">
+                        <div class="space-y-0.5">
+                          <span class="text-[9px] font-bold text-cyan-400 uppercase font-mono tracking-wider flex items-center space-x-1">
+                            <span>Field #{qIdx + 1} • {question.type}</span>
+                            <span class="text-slate-500 text-[9px] hidden sm:inline-flex items-center space-x-0.5 group-hover:text-cyan-300 transition-colors">
+                              <svg class="w-3 h-3 fill-current inline-block ml-1" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                              <span>Click to enlarge</span>
+                            </span>
+                          </span>
+                          <h4 class="text-xs sm:text-sm font-bold text-white group-hover:text-cyan-100 transition-colors leading-snug">{question.questionText}</h4>
+                        </div>
+                        <span class="text-[10px] font-bold bg-slate-900 px-2 py-0.5 rounded text-slate-400 border border-slate-800 shrink-0 group-hover:border-cyan-500/40 group-hover:text-cyan-300 transition-all">
+                          {stats.total} {stats.total === 1 ? 'entry' : 'entries'}
+                        </span>
                       </div>
-                      
-                      <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800/80">
-                        <div
-                          class="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500 {isHovered ? 'from-cyan-400 to-emerald-400 shadow-md shadow-cyan-500/20' : ''}"
-                          style="width: {item.percentage}%"
-                        ></div>
-                      </div>
+
+                      {#if isPieEligible}
+                        <div class="flex flex-row items-center gap-3 sm:gap-4 pt-0.5 relative">
+                          <div class="relative shrink-0 flex items-center justify-center">
+                            <svg class="w-28 h-28 transform -rotate-90 drop-shadow-md overflow-visible" viewBox="0 0 100 100">
+                              {#each stats.breakdowns as item}
+                                {@const isHovered = activeHoveredSlice?.qIdx === qIdx && activeHoveredSlice?.label === item.label}
+                                <path
+                                  d={item.svgPath}
+                                  fill={item.color}
+                                  stroke="#1e293b"
+                                  stroke-width="0.8"
+                                  class="transition-all duration-300 cursor-pointer origin-center"
+                                  style="
+                                    transform: {isHovered ? 'scale(1.06)' : 'scale(1)'};
+                                    opacity: {activeHoveredSlice?.qIdx === qIdx && !isHovered ? 0.4 : 1};
+                                    filter: {isHovered ? 'drop-shadow(0px 0px 8px ' + item.color + ')' : 'none'};
+                                  "
+                                  on:mouseenter={(e) => { e.stopPropagation(); handleSliceMouseEnter(qIdx, item, e); }}
+                                  on:mousemove={(e) => handleSliceMouseMove(e)}
+                                  on:mouseleave={(e) => { e.stopPropagation(); handleSliceMouseLeave(); }}
+                                />
+                              {/each}
+                            </svg>
+                          </div>
+
+                          <div class="flex-1 space-y-1 w-full">
+                            {#each stats.breakdowns as item}
+                              {@const isHovered = activeHoveredSlice?.qIdx === qIdx && activeHoveredSlice?.label === item.label}
+                              
+                              <div 
+                                on:mouseenter={(e) => { e.stopPropagation(); handleSliceMouseEnter(qIdx, item, e); }}
+                                on:mousemove={(e) => handleSliceMouseMove(e)}
+                                on:mouseleave={(e) => { e.stopPropagation(); handleSliceMouseLeave(); }}
+                                class="flex items-center justify-between text-[11px] px-2.5 py-1 rounded-md transition-all duration-200 border cursor-pointer relative {isHovered ? 'bg-slate-800/90 border-cyan-500 shadow-md translate-x-1 scale-[1.02]' : 'bg-slate-900/80 border-slate-800/60 hover:bg-slate-850 hover:border-slate-700'}"
+                              >
+                                <div class="flex items-center space-x-1.5 truncate pr-1">
+                                  <span class="w-2.5 h-2.5 rounded-full shrink-0 transition-transform {isHovered ? 'scale-125 ring-2 ring-white/20' : ''}" style="background-color: {item.color};"></span>
+                                  <span class="text-slate-200 font-medium truncate text-[10px] sm:text-[11px] {isHovered ? 'text-white font-bold' : ''}">{item.label}</span>
+                                </div>
+                                <span class="font-mono font-bold text-[10px] shrink-0 {isHovered ? 'text-cyan-300' : 'text-cyan-400'}">
+                                  {item.percentage}% <span class="text-slate-500 text-[9px]">({item.count})</span>
+                                </span>
+                              </div>
+                            {/each}
+                          </div>
+                        </div>
+
+                      {:else}
+                        <div class="space-y-2">
+                          {#each stats.breakdowns as item}
+                            {@const isHovered = activeHoveredSlice?.qIdx === qIdx && activeHoveredSlice?.label === item.label}
+                            
+                            <div 
+                              on:mouseenter={(e) => { e.stopPropagation(); handleSliceMouseEnter(qIdx, item, e); }}
+                              on:mousemove={(e) => handleSliceMouseMove(e)}
+                              on:mouseleave={(e) => { e.stopPropagation(); handleSliceMouseLeave(); }}
+                              class="space-y-0.5 p-1 rounded-lg transition-all duration-200 cursor-pointer relative {isHovered ? 'bg-slate-900/90 ring-1 ring-cyan-500/40' : ''}"
+                            >
+                              <div class="flex items-center justify-between text-[11px]">
+                                <span class="text-slate-300 font-semibold truncate max-w-[160px] sm:max-w-[200px] {isHovered ? 'text-white font-bold' : ''}">{item.label}</span>
+                                <span class="font-mono font-bold text-[10px] {isHovered ? 'text-cyan-300' : 'text-cyan-400'}">{item.percentage}% <span class="text-slate-500 text-[9px]">({item.count})</span></span>
+                              </div>
+                              
+                              <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800/80">
+                                <div
+                                  class="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500 {isHovered ? 'from-cyan-400 to-emerald-400 shadow-md shadow-cyan-500/20' : ''}"
+                                  style="width: {item.percentage}%"
+                                ></div>
+                              </div>
+                            </div>
+                          {/each}
+                        </div>
+                      {/if}
+
                     </div>
                   {/each}
                 </div>
-              {/if}
-
-            </div>
+              </div>
+            {/if}
           {/each}
         </div>
 
       {:else}
-        <!-- LOG MATRIX TABLE -->
+        <!-- MULTI-FORM LOG MATRIX TABLE -->
         <div class="border border-slate-800 rounded-xl bg-slate-950/40 box-border overflow-x-auto mb-3 shadow-inner">
           <table class="w-full border-collapse text-left text-xs text-slate-300 whitespace-nowrap min-w-full">
             <thead>
               <tr class="bg-slate-900 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 sticky top-0 z-10 shadow-xs">
                 <th class="p-2.5 pl-3 border-r border-slate-800/60 w-10 text-center">Action</th>
                 <th class="p-2.5 border-r border-slate-800/60 w-20">ID Token</th>
+                <th class="p-2.5 border-r border-slate-800/60 w-32">Form Identity</th>
                 <th class="p-2.5 border-r border-slate-800/60 w-28">Tablet Site</th>
                 <th class="p-2.5 border-r border-slate-800/60 w-36">Date & Time</th>
                 {#each displayedQuestions as question}
@@ -806,6 +901,11 @@
                   </td>
                   <td class="p-2.5 font-mono text-cyan-400 font-semibold border-r border-slate-800/40 truncate max-w-[90px] group-hover:text-cyan-300">
                     {response._id ? response._id.slice(-6) : 'Log'}
+                  </td>
+                  <td class="p-2.5 border-r border-slate-800/40">
+                    <span class="text-cyan-300 bg-cyan-950/60 border border-cyan-800/60 font-semibold px-2 py-0.5 rounded text-[10px] inline-block truncate max-w-[140px]">
+                      {response.surveyTitle || 'Form'}
+                    </span>
                   </td>
                   <td class="p-2.5 border-r border-slate-800/40">
                     <span class="text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 font-mono font-bold px-2 py-0.5 rounded text-[10px] inline-flex items-center space-x-1">
@@ -848,8 +948,8 @@
           <div>
             <h2 class="text-base font-black text-white tracking-tight">Low Rating Incident Log</h2>
             <p class="text-xs text-slate-400 mt-0.5">
-              Found <strong class="text-rose-400 font-mono">{lowRatingAlerts.length}</strong> flagged submissions for 
-              <strong class="text-cyan-400">{selectedSurveyObj?.title || 'Form'}</strong>
+              Found <strong class="text-rose-400 font-mono">{lowRatingAlerts.length}</strong> flagged submissions across 
+              <strong class="text-cyan-400">{selectedSurveys.length} Selected Forms</strong>
             </p>
           </div>
         </div>
@@ -865,7 +965,7 @@
       <div class="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1">
         {#if lowRatingAlerts.length === 0}
           <div class="border-2 border-dashed border-slate-800 rounded-2xl p-8 text-center text-slate-500 text-xs">
-            No below-average ratings recorded for this form.
+            No below-average ratings recorded for the selected form(s).
           </div>
         {:else}
           {#each lowRatingAlerts as alert}
@@ -874,12 +974,12 @@
             <div class="bg-slate-950 border border-rose-900/50 hover:border-rose-700/80 p-4 rounded-xl space-y-3 shadow-md transition-all">
               <div class="flex items-center justify-between border-b border-slate-900 pb-2">
                 <div class="flex items-center space-x-2">
+                  <span class="text-cyan-300 bg-cyan-950/80 border border-cyan-800/80 font-bold px-2 py-0.5 rounded text-[10px]">
+                    {alert.formTitle}
+                  </span>
                   <span class="text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 font-mono font-bold px-2 py-0.5 rounded text-[10px] flex items-center space-x-1">
                     <svg class="w-3 h-3 fill-current inline-block" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
                     <span>{alert.deviceId}</span>
-                  </span>
-                  <span class="text-[10px] font-mono text-slate-500">
-                    ID: {alert.responseId ? alert.responseId.slice(-6) : 'Log'}
                   </span>
                 </div>
                 <span class="text-[10px] font-mono text-slate-400 font-semibold">
@@ -944,7 +1044,7 @@
 
 <!-- FULLSCREEN FOCUS MODE -->
 {#if focusedQuestion}
-  {@const modalStats = getQuestionAnalytics(focusedQuestion, filteredResponses)}
+  {@const modalStats = getQuestionAnalytics(focusedQuestion, filteredResponses.filter(r => cleanString(r.surveyTitle) === cleanString(focusedQuestion.parentSurveyTitle)))}
   {@const isPie = isPieChartType(focusedQuestion.type)}
 
   <div class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl p-4 sm:p-6 flex flex-col justify-between animate-fullscreen-expand overflow-y-auto custom-scrollbar box-border">
@@ -955,8 +1055,8 @@
           <span class="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-widest bg-cyan-950/80 border border-cyan-800/60 px-2 py-0.5 rounded">
             {focusedQuestion.type} Focused Inspection
           </span>
-          <span class="text-xs font-bold text-slate-500">
-            Field #{selectedSurveyObj.questions.findIndex(q => cleanString(q.questionText) === cleanString(focusedQuestion.questionText)) + 1}
+          <span class="text-xs font-bold text-slate-400">
+            Form: <span class="text-cyan-300 font-semibold">{focusedQuestion.parentSurveyTitle}</span>
           </span>
         </div>
         <h1 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight leading-tight">{focusedQuestion.questionText}</h1>
