@@ -86,7 +86,7 @@ router.post('/surveys', async (req, res) => {
     const cleanQuestions = sanitizeQuestions(questions);  
     const newSurvey = await Survey.create({ 
       title: String(title || '').trim(), 
-      pinCode: String(pinCode || '123456').trim().toUpperCase(),
+      pinCode: String(pinCode || '123456').trim().toLowerCase(),
       questions: cleanQuestions,
       thankYouMessage: thankYouMessage || 'Thank you for your feedback! This screen will automatically refresh in a few seconds.',
       autoRefreshSeconds: Number(autoRefreshSeconds) || 4
@@ -104,7 +104,7 @@ router.put('/surveys/:id', async (req, res) => {
 
     const updatePayload = { 
       title: String(title || '').trim(), 
-      pinCode: String(pinCode || '123456').trim().toUpperCase(),
+      pinCode: String(pinCode || '123456').trim().toLowerCase(),
       questions: cleanQuestions 
     };
 
@@ -123,11 +123,12 @@ router.put('/surveys/:id', async (req, res) => {
   }
 });
 
-// ROBUST PIN VERIFICATION ROUTE
+// ROBUST CASE-INSENSITIVE PIN VERIFICATION ROUTE
 router.post('/surveys/:id/verify-pin', async (req, res) => {
   try {
     const { pinCode } = req.body;
-    const cleanPin = String(pinCode || '').trim().toUpperCase();
+    // Strip non-alphanumeric/invisible control characters from copy-pasting
+    const cleanPin = String(pinCode || '').replace(/[\s\u200B-\u200D\uFEFF]/g, '').trim().toLowerCase();
 
     if (!cleanPin) {
       return res.status(400).json({ success: false, message: 'Please enter a PIN code.' });
@@ -137,10 +138,13 @@ router.post('/surveys/:id/verify-pin', async (req, res) => {
     if (!survey) return res.status(404).json({ success: false, message: 'Survey not found.' });
 
     const targetTitle = String(survey.title || '').trim().toLowerCase();
-    const cleanSurveyPin = String(survey.pinCode || '').trim().toUpperCase();
+    const cleanSurveyPin = String(survey.pinCode || '').replace(/[\s\u200B-\u200D\uFEFF]/g, '').trim().toLowerCase();
 
     const allDevices = await Device.find({}).lean();
-    const matchedDevice = allDevices.find(d => String(d.accessPin || '').trim().toUpperCase() === cleanPin);
+    // Compare PIN case-insensitively
+    const matchedDevice = allDevices.find(d => 
+      String(d.accessPin || '').replace(/[\s\u200B-\u200D\uFEFF]/g, '').trim().toLowerCase() === cleanPin
+    );
 
     if (matchedDevice) {
       let allowed = matchedDevice.allowedFormTitle;
@@ -221,7 +225,7 @@ router.get('/devices', async (req, res) => {
 
     const missingNames = responseDeviceNames.filter(name => name && name !== 'Tablet-Unassigned' && !registeredNames.has(name));
     if (missingNames.length > 0) {
-      const existingPins = new Set(devices.map(d => String(d.accessPin || '').toUpperCase()));
+      const existingPins = new Set(devices.map(d => String(d.accessPin || '').toLowerCase()));
       const firstSurvey = await Survey.findOne({});
       const defaultFormList = firstSurvey ? [firstSurvey.title] : [];
 
@@ -254,7 +258,7 @@ router.post('/devices/register', async (req, res) => {
     if (!deviceName) return res.status(400).json({ success: false, message: 'deviceName is required' });
 
     const cleanName = deviceName.trim();
-    const cleanPin = String(accessPin || '').trim().toUpperCase();
+    const cleanPin = String(accessPin || '').replace(/[\s\u200B-\u200D\uFEFF]/g, '').trim().toLowerCase();
 
     if (cleanPin.length !== 6) {
       return res.status(400).json({ success: false, message: 'Form Access PIN must be exactly 6 alphanumeric characters.' });
@@ -301,7 +305,7 @@ router.put('/devices/:id', async (req, res) => {
 
     const oldName = existingDevice.deviceName;
     const newName = deviceName ? deviceName.trim() : oldName;
-    const cleanPin = accessPin ? String(accessPin).trim().toUpperCase() : existingDevice.accessPin;
+    const cleanPin = accessPin ? String(accessPin).replace(/[\s\u200B-\u200D\uFEFF]/g, '').trim().toLowerCase() : existingDevice.accessPin;
 
     if (cleanPin.length !== 6) {
       return res.status(400).json({ success: false, message: 'Form Access PIN must be exactly 6 alphanumeric characters.' });
