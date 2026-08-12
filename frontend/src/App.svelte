@@ -619,11 +619,11 @@
             <!-- HIGH-CONTRAST LIGHT/DARK ADAPTIVE MODE SWITCHER BUTTON -->
             <button
               on:click={toggleAppMode}
-              class="px-3 py-1.5 rounded-xl text-xs font-mono font-bold border transition-all flex items-center space-x-2 shadow-xs cursor-pointer {isQrMode ? 'bg-cyan-50 dark:bg-cyan-950 border-cyan-300 dark:border-cyan-500 text-cyan-800 dark:text-cyan-200' : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-cyan-400 hover:bg-slate-200 dark:hover:bg-slate-700'}"
+              class="px-3 py-1.5 rounded-xl text-xs font-mono font-bold border transition-all flex items-center space-x-2 shadow-xs cursor-pointer {isQrMode ? 'bg-cyan-50 dark:bg-cyan-950 border-cyan-300 dark:border-cyan-500 text-cyan-900 dark:text-cyan-200' : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-cyan-400 hover:bg-slate-200 dark:hover:bg-slate-700'}"
               title="Toggle App Program Engine (Ctrl + M)"
             >
               <span class="font-bold">{isQrMode ? "📱 Mode: Web QR Hub" : "🖥️ Mode: Enterprise Kiosk"}</span>
-              <kbd class="bg-slate-200 dark:bg-slate-900 px-1.5 py-0.5 text-[10px] rounded text-slate-800 dark:text-slate-200 font-mono font-bold border border-slate-300 dark:border-slate-700">Ctrl+M</kbd>
+              <kbd class="bg-[#1a2b6c] dark:bg-slate-900 text-white dark:text-slate-100 px-2 py-0.5 text-[10px] rounded font-mono font-black border border-[#1a2b6c] dark:border-slate-700 shadow-xs">Ctrl+M</kbd>
             </button>
 
             <button
