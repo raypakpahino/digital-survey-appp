@@ -616,14 +616,21 @@
           </div>
 
           <div class="flex items-center space-x-3 shrink-0">
-            <!-- DYNAMIC HIGH-CONTRAST MODE SWITCHER BUTTON WITH ADAPTIVE KBD BADGE -->
+            <!-- ABSOLUTE HIGH-CONTRAST MODE SWITCHER WITH HARDCODED INLINE STYLES FOR LIGHT/DARK MODE -->
             <button
               on:click={toggleAppMode}
               class="px-3 py-1.5 rounded-xl text-xs font-mono font-bold border transition-all flex items-center space-x-2 shadow-xs cursor-pointer {isQrMode ? 'bg-cyan-50 dark:bg-cyan-950 border-cyan-300 dark:border-cyan-500 text-cyan-900 dark:text-cyan-200' : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-cyan-400 hover:bg-slate-200 dark:hover:bg-slate-700'}"
               title="Toggle App Program Engine (Ctrl + M)"
             >
               <span class="font-bold">{isQrMode ? "📱 Mode: Web QR Hub" : "🖥️ Mode: Enterprise Kiosk"}</span>
-              <kbd class="bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-1.5 py-0.5 text-[10px] rounded font-mono font-black border border-slate-300 dark:border-slate-600 shadow-xs">Ctrl+M</kbd>
+              <kbd 
+                class="px-2 py-0.5 text-[10px] rounded font-mono font-extrabold border shadow-xs"
+                style={isDarkMode 
+                  ? "background-color: #0f172a !important; color: #f8fafc !important; border-color: #334155 !important;" 
+                  : "background-color: #ffffff !important; color: #0f172a !important; border-color: #cbd5e1 !important;"}
+              >
+                Ctrl+M
+              </kbd>
             </button>
 
             <button
