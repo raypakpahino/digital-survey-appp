@@ -234,7 +234,7 @@
 <div class="w-full h-full min-h-full flex-1 bg-slate-100 text-slate-800 p-3 sm:p-5 font-sans box-border overflow-hidden flex flex-col justify-between select-none">
   <main class="w-full max-w-6xl mx-auto flex-1 flex flex-col justify-between min-h-0 py-1 box-border relative">
     
-    <!-- PURE BLUR OVERLAY (NO DARK/GREY BACKGROUND TINT) -->
+    <!-- PURE BLUR OVERLAY -->
     {#if selectedSurveyForPin || (!isPinVerifiedForCurrentSurvey && activeSurveyId)}
       <div in:scale={{ duration: 200 }} class="fixed inset-0 z-50 backdrop-blur-xl bg-white/15 flex items-center justify-center p-4">
         <div class="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center space-y-4 shadow-2xl relative">
@@ -492,6 +492,26 @@
                 </button>
               {/if}
             </div>
+
+          {:else if getNormalizedType(currentQuestion.type) === 'date'}
+            <!-- DATE PICKER KIOSK INPUT -->
+            <form on:submit|preventDefault={advanceStep} class="w-full max-w-md mx-auto space-y-4 my-auto">
+              <div class="relative flex items-center">
+                <input 
+                  type="date" 
+                  bind:value={selectedValue}
+                  on:input={() => (validationError = "")}
+                  class="w-full bg-slate-50 border border-slate-200 text-[#1a2b6c] font-bold rounded-2xl p-4 text-lg outline-none transition-all shadow-inner focus:border-[#e31b23] focus:ring-2 focus:ring-rose-500/20 cursor-pointer"
+                />
+              </div>
+              <button 
+                type="submit"
+                class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-4 px-5 text-base rounded-2xl transition-all shadow-md active:scale-[0.98] flex items-center justify-center space-x-2 cursor-pointer"
+                style="color: #ffffff !important; background-color: #1a2b6c !important;"
+              >
+                <span style="color: #ffffff !important; font-weight: 800 !important;">Submit Date ➔</span>
+              </button>
+            </form>
 
           {:else}
             <form on:submit|preventDefault={advanceStep} class="w-full max-w-xl mx-auto space-y-3 my-auto">
