@@ -491,6 +491,12 @@
     return ['SMILEY', 'STARS', 'MULTIPLE-CHOICE', 'MULTIPLECHOICE', 'CHOICE', 'RATING'].includes(normalized);
   }
 
+  function isAnalyticsEligible(qType) {
+    if (!qType) return false;
+    const normalized = String(qType).toUpperCase().replace(/_/g, '-');
+    return normalized !== 'TEXT' && normalized !== 'SHORT-ANSWER' && normalized !== 'SHORTANSWER';
+  }
+
   function openQuestionModal(q) {
     focusedQuestion = q;
   }
@@ -748,7 +754,7 @@
       {:else if activeViewMode === "analytics"}
         <div class="space-y-6 pb-4">
           {#each selectedSurveys as survey}
-            {@const surveyQs = survey.questions || []}
+            {@const surveyQs = (survey.questions || []).filter(q => isAnalyticsEligible(q.type))}
             {@const surveyResponses = filteredResponses.filter(r => cleanString(r.surveyTitle) === cleanString(survey.title))}
 
             {#if surveyQs.length > 0}
@@ -757,7 +763,7 @@
                 <div class="bg-slate-950 border-l-4 border-cyan-500 px-3 py-2 rounded-r-xl flex items-center justify-between shadow-xs">
                   <div class="flex items-center space-x-2">
                     <span class="text-xs font-black text-cyan-400 uppercase tracking-wider">{survey.title}</span>
-                    <span class="text-[10px] text-slate-500 font-mono font-bold">({surveyQs.length} Fields)</span>
+                    <span class="text-[10px] text-slate-500 font-mono font-bold">({surveyQs.length} Analytics Fields)</span>
                   </div>
                   <span class="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded font-bold">
                     {surveyResponses.length} Submissions
