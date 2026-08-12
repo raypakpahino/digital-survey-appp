@@ -1091,7 +1091,7 @@
 <style>
   .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-  .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 8px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius:  8px; }
 
   @keyframes fullscreenExpand {
     0% { transform: scale(0.97); opacity: 0; }
