@@ -66,11 +66,13 @@
     pinError = "";
     if (!selectedSurveyForPin) return;
 
+    const cleanPin = String(enteredFormPin || "").trim();
+
     try {
       const res = await fetch(`/api/surveys/${selectedSurveyForPin._id}/verify-pin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pinCode: enteredFormPin })
+        body: JSON.stringify({ pinCode: cleanPin })
       });
 
       const data = await res.json();

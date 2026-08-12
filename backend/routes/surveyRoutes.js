@@ -136,14 +136,15 @@ router.post('/surveys/:id/verify-pin', async (req, res) => {
     const survey = await Survey.findById(req.params.id);
     if (!survey) return res.status(404).json({ success: false, message: 'Survey not found.' });
 
+    const targetTitle = String(survey.title || '').trim().toLowerCase();
+    const cleanSurveyPin = String(survey.pinCode || '').trim().toUpperCase();
+
     const allDevices = await Device.find({}).lean();
     const matchedDevice = allDevices.find(d => String(d.accessPin || '').trim().toUpperCase() === cleanPin);
 
     if (matchedDevice) {
       let allowed = matchedDevice.allowedFormTitle;
       let isAllowed = false;
-
-      const targetTitle = String(survey.title || '').trim().toLowerCase();
       const devName = String(matchedDevice.deviceName || '').trim().toLowerCase();
 
       if (devName === 'superadmin') {
@@ -158,33 +159,34 @@ router.post('/surveys/:id/verify-pin', async (req, res) => {
 
         isAllowed = allowedList.length === 0 || 
                     allowedList.includes('all forms') || 
+                    allowedList.includes('all') ||
                     allowedList.includes(targetTitle) ||
                     allowedList.some(item => item.length > 0 && (targetTitle.includes(item) || item.includes(targetTitle)));
       }
 
-      if (!isAllowed) {
-        return res.status(403).json({ 
-          success: false, 
-          message: `This PIN belongs to '${matchedDevice.deviceName}', but is not authorized for form '${survey.title}'.` 
+      if (isAllowed) {
+        await Device.findByIdAndUpdate(matchedDevice._id, { $set: { lastActive: new Date() } });
+
+        return res.json({ 
+          success: true, 
+          message: 'Device PIN verified.', 
+          deviceName: matchedDevice.deviceName 
         });
       }
-
-      await Device.findByIdAndUpdate(matchedDevice._id, { $set: { lastActive: new Date() } });
-
-      return res.json({ 
-        success: true, 
-        message: 'Device PIN verified.', 
-        deviceName: matchedDevice.deviceName 
-      });
     }
-
-    const cleanSurveyPin = String(survey.pinCode || '').trim().toUpperCase();
 
     if (cleanSurveyPin === cleanPin || cleanPin === '123456' || cleanPin === '1234') {
       return res.json({ 
         success: true, 
         message: 'Generic PIN verified.', 
-        deviceName: 'Generic Kiosk Device' 
+        deviceName: matchedDevice ? matchedDevice.deviceName : 'Generic Kiosk Device' 
+      });
+    }
+
+    if (matchedDevice) {
+      return res.status(403).json({ 
+        success: false, 
+        message: `This PIN belongs to '${matchedDevice.deviceName}', but is not authorized for form '${survey.title}'.` 
       });
     }
 
