@@ -45,7 +45,13 @@
     if (urlSurveyId) {
       const targetSurvey = surveys.find(s => s._id === urlSurveyId);
       if (targetSurvey) {
-        selectedSurveyForPin = targetSurvey;
+        if (isQrMode) {
+          isPinVerifiedForCurrentSurvey = true;
+          onSelectSurvey(targetSurvey._id);
+          resetTerminal();
+        } else {
+          selectedSurveyForPin = targetSurvey;
+        }
       }
     }
   });
@@ -53,11 +59,24 @@
   $: if (activeSurveyId && surveys.length > 0 && !isPinVerifiedForCurrentSurvey && !selectedSurveyForPin) {
     const matched = surveys.find(s => s._id === activeSurveyId);
     if (matched) {
-      selectedSurveyForPin = matched;
+      if (isQrMode) {
+        isPinVerifiedForCurrentSurvey = true;
+      } else {
+        selectedSurveyForPin = matched;
+      }
     }
   }
 
   function handlePromptSurveyPin(survey) {
+    if (isQrMode) {
+      // Direct instant launch without PIN in QR Mode
+      isPinVerifiedForCurrentSurvey = true;
+      onSelectSurvey(survey._id);
+      selectedSurveyForPin = null;
+      resetTerminal();
+      return;
+    }
+
     selectedSurveyForPin = survey;
     enteredFormPin = "";
     pinError = "";
@@ -66,6 +85,14 @@
   async function verifyFormPinAndLaunch() {
     pinError = "";
     if (!selectedSurveyForPin) return;
+
+    if (isQrMode) {
+      isPinVerifiedForCurrentSurvey = true;
+      onSelectSurvey(selectedSurveyForPin._id);
+      selectedSurveyForPin = null;
+      resetTerminal();
+      return;
+    }
 
     const cleanPin = String(enteredFormPin || "").trim();
 
@@ -237,7 +264,7 @@
 <div class="w-full h-full min-h-full flex-1 bg-slate-100 text-slate-800 p-3 sm:p-5 font-sans box-border overflow-hidden flex flex-col justify-between select-none">
   <main class="w-full max-w-6xl mx-auto flex-1 flex flex-col justify-between min-h-0 py-1 box-border relative">
     
-    <!-- PURE BLUR OVERLAY (BYPASSED WHEN isQrMode IS TRUE) -->
+    <!-- PURE BLUR OVERLAY (EXCLUSIVELY FOR KIOSK MODE) -->
     {#if !isQrMode && (selectedSurveyForPin || (!isPinVerifiedForCurrentSurvey && activeSurveyId))}
       <div in:scale={{ duration: 200 }} class="fixed inset-0 z-50 backdrop-blur-xl bg-white/15 flex items-center justify-center p-4">
         <div class="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center space-y-4 shadow-2xl relative">
@@ -281,17 +308,19 @@
         
         <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
           <div class="flex items-center space-x-2">
-            <div class="h-2.5 w-2.5 rounded-full bg-[#e31b23] animate-pulse"></div>
+            <div class="h-2.5 w-2.5 rounded-full {isQrMode ? 'bg-cyan-600' : 'bg-[#e31b23]'} animate-pulse"></div>
             <span class="text-xs font-black font-mono tracking-widest text-[#1a2b6c] uppercase">
-              {surveyTitle || "FEEDBACK TERMINAL"}
+              {isQrMode ? "WEB QR SURVEY HUB" : (surveyTitle || "FEEDBACK TERMINAL")}
             </span>
           </div>
 
           <div class="flex items-center space-x-2">
-            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 hidden sm:inline">TABLET ID:</span>
+            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 hidden sm:inline">
+              {isQrMode ? "PUBLIC SCAN" : "TABLET ID:"}
+            </span>
             <span class="bg-[#1a2b6c] text-white font-mono font-bold text-xs px-3 py-1 rounded-full flex items-center space-x-1.5 shadow-xs" style="background-color: #1a2b6c !important; color: #ffffff !important;">
               <svg class="w-3.5 h-3.5 fill-current text-white shrink-0" viewBox="0 0 24 24" style="fill: #ffffff !important;"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
-              <span style="color: #ffffff !important; font-weight: 700 !important;">{deviceId}</span>
+              <span style="color: #ffffff !important; font-weight: 700 !important;">{isQrMode ? "Web-Client" : deviceId}</span>
             </span>
           </div>
         </div>
@@ -299,13 +328,13 @@
         <div class="text-center space-y-1 mb-4">
           <h1 class="text-2xl font-black tracking-tight text-[#1a2b6c]">Select Survey Form</h1>
           <p class="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-            Choose an active form sequence below to launch Live Kiosk Mode.
+            {isQrMode ? "Choose a web form sequence below to launch directly." : "Choose an active form sequence below to launch Live Kiosk Mode."}
           </p>
         </div>
 
         {#if surveys.length === 0}
           <div class="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center text-xs text-slate-400 my-auto">
-            No active forms available in system storage. Please create a form first in the Form Designer.
+            No active forms available in storage. Please create a form first in the QR Form Designer.
           </div>
         {:else}
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[22rem] overflow-y-auto custom-scrollbar my-2 pr-1">
@@ -330,10 +359,13 @@
                 </div>
 
                 <div class="flex items-center justify-between pt-3 border-t border-slate-200">
-                  <span class="text-[11px] text-slate-600 font-semibold group-hover:text-slate-900 transition-colors">PIN Protected</span>
+                  <span class="text-[11px] text-slate-600 font-semibold group-hover:text-slate-900 transition-colors">
+                    {isQrMode ? "Public Web Access" : "PIN Protected"}
+                  </span>
                   <span class="text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition-all flex items-center space-x-1.5 group-hover:scale-105 bg-[#1a2b6c] group-hover:bg-[#e31b23] text-white" style="color: #ffffff !important; background-color: #1a2b6c !important;">
-                    <span style="color: #ffffff !important; font-weight: 800 !important;">Enter PIN & Launch</span>
-                    <span class="transform group-hover:translate-x-1 transition-transform" style="color: #ffffff !important;">➔</span>
+                    <span style="color: #ffffff !important; font-weight: 800 !important;">
+                      {isQrMode ? "Launch Web Form ➔" : "Enter PIN & Launch ➔"}
+                    </span>
                   </span>
                 </div>
               </button>
@@ -342,8 +374,8 @@
         {/if}
 
         <div class="pt-4 mt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-mono tracking-wider font-semibold">
-          <span>🔒 Secure Enterprise Client Terminal</span>
-          <span>Terminal Kiosk Mode</span>
+          <span>{isQrMode ? "📱 Web Scan Responsive Terminal" : "🔒 Secure Enterprise Client Terminal"}</span>
+          <span>{isQrMode ? "Public Web QR Mode" : "Terminal Kiosk Mode"}</span>
         </div>
       </div>
 
@@ -357,7 +389,7 @@
           {currentSurvey?.thankYouMessage || "Thank you for your feedback! This screen will automatically refresh in a few seconds."}
         </h2>
         <p class="text-xs sm:text-sm text-slate-600 max-w-md leading-relaxed">
-          Registered under <span class="font-bold text-[#1a2b6c]">{deviceId}</span>. Resets to question 1 in 
+          Registered under <span class="font-bold text-[#1a2b6c]">{isQrMode ? "Web Scan" : deviceId}</span>. Resets to question 1 in 
           <span class="text-[#e31b23] font-mono font-bold text-base sm:text-lg px-1">{countdownSeconds}s</span>...
         </p>
       </div>
@@ -538,8 +570,8 @@
         </div>
 
         <div class="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-mono tracking-wider font-semibold">
-          <span>🔒 Secure Enterprise Client Terminal</span>
-          <span>Terminal Kiosk Mode</span>
+          <span>{isQrMode ? "📱 Web Scan Responsive Terminal" : "🔒 Secure Enterprise Client Terminal"}</span>
+          <span>{isQrMode ? "Public Web QR Mode" : "Terminal Kiosk Mode"}</span>
         </div>
       </div>
     {/if}
