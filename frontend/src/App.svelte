@@ -19,6 +19,9 @@
   let isSidebarExpanded = true;
   let isDarkMode = true;
 
+  // SIMPLE QR PUBLIC MODE STATE (TOGGLED VIA CTRL + M)
+  let isQrMode = false;
+
   // SHARE HUB MODAL STATE
   let activeShareSurvey = null;
   let showShareModal = false;
@@ -38,7 +41,19 @@
     }
   }
 
+  function handleKeyDown(event) {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'm') {
+      event.preventDefault();
+      isQrMode = !isQrMode;
+    }
+  }
+
   function switchTab(tab) {
+    if (currentUser && currentUser.role === "site_leader") {
+      activeTab = "answers";
+      return;
+    }
+
     if (currentUser && currentUser.role !== "admin" && (tab === "surveys" || tab === "builder" || tab === "devices")) {
       activeTab = "kiosk";
       return;
@@ -113,6 +128,8 @@
   }
 
   onMount(async () => {
+    window.addEventListener('keydown', handleKeyDown);
+
     const savedTheme = localStorage.getItem('sdx_theme');
     if (savedTheme === 'light') {
       isDarkMode = false;
@@ -128,11 +145,23 @@
     );
     
     const urlSurveyId = urlParams.get("id");
+    const modeParam = urlParams.get("mode");
     const savedSurveyId = localStorage.getItem("sdx_active_survey_id");
     const targetSurveyId = urlSurveyId || savedSurveyId || "";
 
     if (targetSurveyId) {
       activeSurveyId = targetSurveyId;
+    }
+
+    // Direct QR Code Scan Detection
+    if (modeParam === 'qr' || window.location.search.includes("mode=qr")) {
+      isQrMode = true;
+      activeTab = "kiosk";
+      isDedicatedKioskMode = true;
+      isSidebarExpanded = false;
+      isAuthChecking = false;
+      await refreshDataLedger();
+      return;
     }
 
     if (urlSurveyId && (hash.startsWith("#/kiosk") || window.location.search.includes("id="))) {
@@ -153,7 +182,9 @@
         const data = await res.json();
         if (data.success && data.user) {
           currentUser = data.user;
-          if (currentUser.role !== "admin") {
+          if (currentUser.role === "site_leader") {
+            activeTab = "answers";
+          } else if (currentUser.role !== "admin") {
             activeTab = "kiosk";
           } else {
             const route = hash.replace("#/", "").split("?")[0];
@@ -181,7 +212,9 @@
 
   function handleLoginSuccess(user, token) {
     currentUser = user;
-    if (currentUser.role !== "admin") {
+    if (currentUser.role === "site_leader") {
+      switchTab("answers");
+    } else if (currentUser.role !== "admin") {
       switchTab("kiosk");
     } else {
       switchTab("surveys");
@@ -215,7 +248,16 @@
       if (responseRes.ok) {
         const responseData = await responseRes.json();
         if (responseData.success && responseData.responses) {
-          responses = responseData.responses;
+          let rawResp = responseData.responses;
+
+          // Scope responses for Site Leader role
+          if (currentUser && currentUser.role === "site_leader" && currentUser.assignedSite) {
+            rawResp = rawResp.filter(r => 
+              String(r.deviceId || '').toLowerCase().trim() === String(currentUser.assignedSite).toLowerCase().trim()
+            );
+          }
+
+          responses = rawResp;
         }
       }
     } catch (err) {
@@ -374,19 +416,20 @@
     activeShareSurvey = null;
   }
 
-  function getKioskLink(surveyId) {
+  function getKioskLink(surveyId, qrMode = false) {
     let host = window.location.hostname;
     if (host === 'localhost' || host === '127.0.0.1') {
       host = '10.136.33.33'; 
     }
     const port = window.location.port ? `:${window.location.port}` : '';
-    return `http://${host}${port}/#/kiosk?id=${surveyId}`;
+    const modeString = qrMode ? '&mode=qr' : '';
+    return `http://${host}${port}/?id=${surveyId}${modeString}#/kiosk`;
   }
 
-  function copyKioskLink(surveyId) {
-    const directLink = getKioskLink(surveyId);
+  function copyKioskLink(surveyId, qrMode = false) {
+    const directLink = getKioskLink(surveyId, qrMode);
     navigator.clipboard.writeText(directLink);
-    alert("🚀 Network-accessible Kiosk Link copied to clipboard!");
+    alert(qrMode ? "📱 Quick Scan Web Link copied!" : "🚀 Network Kiosk Link copied!");
   }
 </script>
 
@@ -398,9 +441,37 @@
     </div>
   </div>
 
-{:else if !currentUser && !isDedicatedKioskMode}
+{:else if !currentUser && !isDedicatedKioskMode && !isQrMode}
   <!-- UNAUTHENTICATED USER VIEW -->
   <Login onLoginSuccess={handleLoginSuccess} />
+
+{:else if isQrMode}
+  <!-- SIMPLE QR PUBLIC VIEW (TOGGLED VIA CTRL + M OR QR SCAN) -->
+  <div class="h-screen w-screen bg-slate-900 text-white flex flex-col justify-between overflow-hidden">
+    <header class="h-14 bg-slate-950 border-b border-slate-800 px-6 flex items-center justify-between shrink-0">
+      <div class="flex items-center space-x-2">
+        <div class="h-3 w-3 rounded-full bg-cyan-500 animate-pulse"></div>
+        <span class="font-black text-sm tracking-wider uppercase text-cyan-400">DigitalSurvey • Public QR Mode</span>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span class="text-[10px] font-mono text-slate-400">Press <kbd class="bg-slate-800 px-1.5 py-0.5 rounded text-white border border-slate-700">Ctrl + M</kbd> to exit</span>
+        <button on:click={() => (isQrMode = false)} class="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded-lg border border-slate-700 font-bold transition-all">Exit QR Mode</button>
+      </div>
+    </header>
+
+    <main class="flex-1 p-4 overflow-y-auto flex items-center justify-center">
+      <div class="w-full max-w-4xl h-full">
+        <Kiosk
+          surveyTitle={activeSurvey.title}
+          questions={activeSurvey.questions}
+          surveys={surveysList}
+          {activeSurveyId}
+          onSelectSurvey={(id) => (activeSurveyId = id)}
+          onSubmitResponse={registerResponse}
+        />
+      </div>
+    </main>
+  </div>
 
 {:else}
   <!-- AUTHENTICATED PORTAL WORKSPACE -->
@@ -435,7 +506,7 @@
               </div>
             </div>
 
-            <!-- NAVIGATION ITEMS (5 SUB-MENUS WITH HIGH-CONTRAST LABELS) -->
+            <!-- NAVIGATION ITEMS -->
             <nav class="p-3 space-y-2">
               {#if currentUser?.role === "admin"}
                 <!-- 1. SURVEYS PORTAL -->
@@ -471,34 +542,38 @@
                 </button>
               {/if}
 
-              <!-- 3. LIVE KIOSK MODE -->
-              <button
-                class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'kiosk' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
-                on:click={() => switchTab("kiosk")}
-                title="Live Kiosk Mode"
-              >
-                <svg class="w-5 h-5 shrink-0 fill-current" viewBox="0 0 24 24">
-                  <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
-                </svg>
-                {#if isSidebarExpanded}
-                  <span class="truncate">Live Kiosk Mode</span>
-                {/if}
-              </button>
+              <!-- 3. LIVE KIOSK MODE (Hidden for Site Leaders) -->
+              {#if currentUser?.role !== "site_leader"}
+                <button
+                  class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'kiosk' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
+                  on:click={() => switchTab("kiosk")}
+                  title="Live Kiosk Mode"
+                >
+                  <svg class="w-5 h-5 shrink-0 fill-current" viewBox="0 0 24 24">
+                    <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
+                  </svg>
+                  {#if isSidebarExpanded}
+                    <span class="truncate">Live Kiosk Mode</span>
+                  {/if}
+                </button>
+              {/if}
 
-              <!-- 4. ANSWERS LOG -->
+              <!-- 4. ANSWERS LOG (ACCESSIBLE TO ADMIN & SITE LEADER) -->
               <button
                 class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'answers' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                 on:click={async () => {
                   switchTab("answers");
                   await refreshDataLedger();
                 }}
-                title="Answers Log"
+                title={currentUser?.role === "site_leader" ? `Answers Log (${currentUser.assignedSite || 'Site'})` : "Answers Log"}
               >
                 <svg class="w-5 h-5 shrink-0 fill-current" viewBox="0 0 24 24">
                   <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
                 </svg>
                 {#if isSidebarExpanded}
-                  <span class="truncate">Answers Log</span>
+                  <span class="truncate">
+                    Answers Log {#if currentUser?.role === "site_leader"}<span class="text-[10px] text-cyan-300 font-mono">({currentUser.assignedSite})</span>{/if}
+                  </span>
                 {/if}
               </button>
 
@@ -538,7 +613,7 @@
     <!-- MAIN BODY CANVAS -->
     <div class="flex-1 flex flex-col h-full min-w-0 max-w-full overflow-hidden relative">
       
-      <!-- STICKY TOP NAVIGATION BAR WITH DYNAMIC HIGH-CONTRAST LABELS -->
+      <!-- STICKY TOP NAVIGATION BAR -->
       {#if !isDedicatedKioskMode}
         <header class="sticky top-0 z-30 w-full h-16 theme-bg-card theme-border border-b flex items-center justify-between px-4 sm:px-6 shrink-0 box-border transition-colors duration-300 theme-shadow">
           <div class="flex items-center space-x-3 min-w-0">
@@ -553,6 +628,15 @@
           </div>
 
           <div class="flex items-center space-x-3 shrink-0">
+            <button
+              on:click={() => (isQrMode = true)}
+              class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 font-mono text-xs font-bold border border-slate-700 transition-all flex items-center space-x-1"
+              title="Launch QR Mode (Ctrl + M)"
+            >
+              <span>📱 QR Mode</span>
+              <kbd class="bg-slate-900 px-1 py-0.5 text-[9px] rounded text-slate-400">Ctrl+M</kbd>
+            </button>
+
             <button
               on:click={toggleTheme}
               class="relative flex items-center px-3 py-1.5 rounded-full theme-border border theme-bg-inner hover:opacity-80 transition-all duration-300 active:scale-95 shadow-inner cursor-pointer"
@@ -574,9 +658,9 @@
                 <span class="theme-text-secondary truncate">User: <strong class="theme-text-primary">{currentUser.username}</strong></span>
                 <span 
                   class="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase shrink-0"
-                  style={currentUser.role === 'admin' ? 'background-color: #1a2b6c !important; color: #ffffff !important;' : 'background-color: #e2e8f0 !important; color: #1e293b !important;'}
+                  style={currentUser.role === 'admin' ? 'background-color: #1a2b6c !important; color: #ffffff !important;' : 'background-color: #0284c7 !important; color: #ffffff !important;'}
                 >
-                  {currentUser.role}
+                  {currentUser.role === 'site_leader' ? 'Site Leader' : currentUser.role}
                 </span>
               </div>
 
@@ -626,7 +710,7 @@
                 onSaveSurvey={persistActiveSurveyState}
               />
             </div>
-          {:else if activeTab === "kiosk"}
+          {:else if activeTab === "kiosk" && currentUser?.role !== "site_leader"}
             <div class="w-full h-full min-w-0 flex items-center justify-center">
               <Kiosk
                 surveyTitle={activeSurvey.title}
@@ -659,9 +743,9 @@
     </div>
   </div>
 
-  <!-- ROOT-LEVEL SHARE HUB MODAL OVERLAY -->
+  <!-- ROOT-LEVEL SHARE HUB MODAL OVERLAY WITH QR CODE TOGGLES -->
   {#if showShareModal && activeShareSurvey}
-    {@const dynamicKioskUrl = getKioskLink(activeShareSurvey._id)}
+    {@const dynamicKioskUrl = getKioskLink(activeShareSurvey._id, true)}
     <div class="fixed inset-0 z-[9999] w-screen h-screen bg-slate-900/30 dark:bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4">
       <div 
         in:scale={{ duration: 250, start: 0.95 }}
@@ -672,32 +756,32 @@
         </button>
 
         <div class="space-y-1">
-          <span class="text-[10px] font-bold text-[#e31b23] dark:text-rose-400 tracking-widest uppercase block font-mono">Direct Form Access</span>
+          <span class="text-[10px] font-bold text-[#e31b23] dark:text-rose-400 tracking-widest uppercase block font-mono">Public Scan QR Code</span>
           <h3 class="text-base sm:text-lg font-extrabold text-[#1a2b6c] dark:text-white truncate max-w-[280px] mx-auto">{activeShareSurvey.title}</h3>
         </div>
 
         <div class="bg-white p-4 rounded-2xl inline-block shadow-lg mx-auto border-4 border-slate-100 dark:border-slate-800">
           <img 
             src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={encodeURIComponent(dynamicKioskUrl)}&color=1a2b6c" 
-            alt="Survey Kiosk Link QR Code" 
+            alt="Survey QR Code Link" 
             class="h-44 w-44 block"
           />
         </div>
 
         <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto px-2 leading-relaxed">
-          Scan this QR code to load this specific survey configuration directly in full-screen mode on any mobile or tablet device.
+          Scan this QR code to load and complete this survey directly on any phone or browser without PIN gates.
         </p>
 
         <div class="pt-2 border-t border-slate-100 dark:border-slate-800/60">
           <button 
-            on:click={() => copyKioskLink(activeShareSurvey._id)} 
+            on:click={() => copyKioskLink(activeShareSurvey._id, true)} 
             class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] font-bold py-3.5 px-4 text-xs rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center space-x-2 cursor-pointer"
             style="color: #ffffff !important; font-weight: 700 !important; background-color: #1a2b6c !important;"
           >
             <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" style="fill: #ffffff !important;">
               <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
             </svg>
-            <span style="color: #ffffff !important; font-weight: 700 !important;">Copy Direct Form Link</span>
+            <span style="color: #ffffff !important; font-weight: 700 !important;">Copy Public QR Scan Link</span>
           </button>
         </div>
       </div>

@@ -14,8 +14,12 @@ const UserSchema = new mongoose.Schema({
   },
   role: { 
     type: String, 
-    enum: ['admin', 'user'], 
+    enum: ['admin', 'site_leader', 'user'], 
     default: 'user' 
+  },
+  assignedSite: {
+    type: String,
+    default: '' // e.g. "Ray's LOQ 2" or "Bali Site"
   }
 }, { timestamps: true });
 
