@@ -49,6 +49,19 @@
     window.removeEventListener("mouseup", stopResizing);
   }
 
+  function getDefaultAlertTriggers(type, options = []) {
+    const norm = String(type || '').toLowerCase().replace(/_/g, '-');
+    if (norm === 'smiley') return ["ANGRY", "SAD"];
+    if (norm === 'stars') return ["1 Stars", "2 Stars"];
+    if (norm === 'multiple-choice') {
+      return options.filter(opt => {
+        const u = opt.toUpperCase();
+        return u === 'NO' || u.includes('BAD') || u.includes('POOR');
+      });
+    }
+    return [];
+  }
+
   $: if (activeSurveyId !== lastLoadedSurveyId || localQuestions.length === 0) {
     lastLoadedSurveyId = activeSurveyId;
     localTitle = surveyTitle || "";
@@ -61,18 +74,25 @@
         : 4;
     }
 
-    localQuestions = (questions || []).map((q) => ({
-      ...q,
-      skipLogic: q.skipLogic ? {
-        enabled: Boolean(q.skipLogic.enabled),
-        dependsOnIndex: q.skipLogic.dependsOnIndex ?? 0,
-        requiredValue: q.skipLogic.requiredValue || ""
-      } : {
-        enabled: false,
-        dependsOnIndex: 0,
-        requiredValue: ""
-      }
-    }));
+    localQuestions = (questions || []).map((q) => {
+      const type = q.type;
+      const opts = q.options || [];
+      return {
+        ...q,
+        alertTriggerValues: Array.isArray(q.alertTriggerValues) 
+          ? q.alertTriggerValues 
+          : getDefaultAlertTriggers(type, opts),
+        skipLogic: q.skipLogic ? {
+          enabled: Boolean(q.skipLogic.enabled),
+          dependsOnIndex: q.skipLogic.dependsOnIndex ?? 0,
+          requiredValue: q.skipLogic.requiredValue || ""
+        } : {
+          enabled: false,
+          dependsOnIndex: 0,
+          requiredValue: ""
+        }
+      };
+    });
   }
 
   const availableComponents = [
@@ -116,6 +136,8 @@
     }
     if (type === "text") defaultText = "Do you have any additional comments?";
 
+    const defaultAlerts = getDefaultAlertTriggers(type, defaultOptions);
+
     localQuestions = [
       ...localQuestions,
       { 
@@ -127,6 +149,7 @@
         enableOptionImages: false, 
         options: defaultOptions,
         optionImages: {},
+        alertTriggerValues: defaultAlerts,
         skipLogic: {
           enabled: false,
           dependsOnIndex: 0,
@@ -179,6 +202,9 @@
     if (localQuestions[qIndex].optionImages && localQuestions[qIndex].optionImages[optionName]) {
       delete localQuestions[qIndex].optionImages[optionName];
     }
+    if (Array.isArray(localQuestions[qIndex].alertTriggerValues)) {
+      localQuestions[qIndex].alertTriggerValues = localQuestions[qIndex].alertTriggerValues.filter(v => v !== optionName);
+    }
   }
 
   function handleQuestionImageUpload(event, question) {
@@ -218,6 +244,18 @@
     }
   }
 
+  function toggleAlertTrigger(question, val) {
+    if (!Array.isArray(question.alertTriggerValues)) {
+      question.alertTriggerValues = [];
+    }
+    if (question.alertTriggerValues.includes(val)) {
+      question.alertTriggerValues = question.alertTriggerValues.filter(v => v !== val);
+    } else {
+      question.alertTriggerValues = [...question.alertTriggerValues, val];
+    }
+    localQuestions = [...localQuestions];
+  }
+
   function scrollToSave() {
     if (saveContainerRef) {
       saveContainerRef.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -229,7 +267,7 @@
   function triggerExplicitSave() {
     const cleanSeconds = Math.max(1, parseInt(localAutoRefreshSeconds, 10) || 4);
     onSaveSurvey(localTitle, localQuestions, localThankYouMessage, cleanSeconds);
-    alert("💾 Form schema and ending page committed successfully!");
+    alert("💾 Form schema and alert thresholds saved successfully!");
   }
 
   function getNormalizedType(qType) {
@@ -531,6 +569,60 @@
                     >
                       <span>+ Insert Option</span>
                     </button>
+                  </div>
+                </div>
+              {/if}
+
+              <!-- DYNAMIC LOW RATING INCIDENT ALERT SETTINGS -->
+              {#if normType === 'smiley' || normType === 'stars' || normType === 'multiple-choice'}
+                <div class="pt-4 border-t border-slate-200 dark:border-slate-900/80 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-mono font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest flex items-center space-x-1">
+                      <svg class="w-3.5 h-3.5 fill-current inline-block mr-1 text-rose-500" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                      <span>Incident Notification Triggers</span>
+                    </span>
+                    <span class="text-[9px] text-slate-400 font-mono">Select answers that trigger low rating alerts</span>
+                  </div>
+
+                  <div class="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60 p-3 rounded-xl flex flex-wrap gap-1.5">
+                    {#if normType === 'smiley'}
+                      {#each ["ANGRY", "SAD", "NEUTRAL", "HAPPY", "DELIGHTED"] as smVal}
+                        {@const active = (question.alertTriggerValues || []).includes(smVal)}
+                        <button
+                          type="button"
+                          on:click={() => toggleAlertTrigger(question, smVal)}
+                          class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all border cursor-pointer active:scale-95 {active ? 'bg-rose-950/80 border-rose-500 text-rose-300 ring-1 ring-rose-500/30' : 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'}"
+                        >
+                          {smVal} {active ? '🚩' : ''}
+                        </button>
+                      {/each}
+                    {:else if normType === 'stars'}
+                      {#each ["1 Stars", "2 Stars", "3 Stars", "4 Stars", "5 Stars"] as starVal}
+                        {@const active = (question.alertTriggerValues || []).includes(starVal)}
+                        <button
+                          type="button"
+                          on:click={() => toggleAlertTrigger(question, starVal)}
+                          class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all border cursor-pointer active:scale-95 {active ? 'bg-rose-950/80 border-rose-500 text-rose-300 ring-1 ring-rose-500/30' : 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'}"
+                        >
+                          {starVal} {active ? '🚩' : ''}
+                        </button>
+                      {/each}
+                    {:else if normType === 'multiple-choice'}
+                      {#if (question.options || []).length === 0}
+                        <span class="text-[10px] text-slate-400 font-mono">Add options above first to set alert triggers</span>
+                      {:else}
+                        {#each question.options as optVal}
+                          {@const active = (question.alertTriggerValues || []).includes(optVal)}
+                          <button
+                            type="button"
+                            on:click={() => toggleAlertTrigger(question, optVal)}
+                            class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all border cursor-pointer active:scale-95 {active ? 'bg-rose-950/80 border-rose-500 text-rose-300 ring-1 ring-rose-500/30' : 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'}"
+                          >
+                            {optVal} {active ? '🚩' : ''}
+                          </button>
+                        {/each}
+                      {/if}
+                    {/if}
                   </div>
                 </div>
               {/if}

@@ -132,9 +132,19 @@
     return true;
   });
 
+  // DYNAMIC LOW RATING INCIDENT DETECTION
   $: lowRatingAlerts = filteredResponses.filter((r) => {
+    if (!selectedSurveyObj || !selectedSurveyObj.questions) return false;
+
     return (r.answers || []).some((ans) => {
+      const q = selectedSurveyObj.questions.find(sq => cleanString(sq.questionText) === cleanString(ans.questionText));
       const val = String(ans.value || '').toUpperCase();
+
+      if (q && Array.isArray(q.alertTriggerValues) && q.alertTriggerValues.length > 0) {
+        return q.alertTriggerValues.some(trig => String(trig).toUpperCase() === val);
+      }
+
+      // Hardcoded fallback for untagged legacy forms
       return (
         val.includes('ANGRY') || 
         val.includes('SAD') || 
@@ -146,7 +156,13 @@
     });
   }).map((r) => {
     const badRatings = (r.answers || []).filter((ans) => {
+      const q = selectedSurveyObj ? selectedSurveyObj.questions.find(sq => cleanString(sq.questionText) === cleanString(ans.questionText)) : null;
       const val = String(ans.value || '').toUpperCase();
+
+      if (q && Array.isArray(q.alertTriggerValues) && q.alertTriggerValues.length > 0) {
+        return q.alertTriggerValues.some(trig => String(trig).toUpperCase() === val);
+      }
+
       return (
         val.includes('ANGRY') || 
         val.includes('SAD') || 
@@ -1091,7 +1107,7 @@
 <style>
   .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-  .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius:  8px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 8px; }
 
   @keyframes fullscreenExpand {
     0% { transform: scale(0.97); opacity: 0; }

@@ -9,6 +9,7 @@ const QuestionSchema = new mongoose.Schema({
   enableOptionImages: { type: Boolean, default: false },
   options: [{ type: String }],
   optionImages: { type: mongoose.Schema.Types.Mixed, default: {} },
+  alertTriggerValues: [{ type: String }], // Dynamic Low Rating Alert Triggers
   skipLogic: {
     enabled: { type: Boolean, default: false },
     dependsOnIndex: { type: Number, default: 0 },
