@@ -466,6 +466,7 @@
           questions={activeSurvey.questions}
           surveys={surveysList}
           {activeSurveyId}
+          isQrMode={true}
           onSelectSurvey={(id) => (activeSurveyId = id)}
           onSubmitResponse={registerResponse}
         />

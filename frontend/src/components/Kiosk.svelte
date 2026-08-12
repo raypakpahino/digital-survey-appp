@@ -6,6 +6,7 @@
   export let questions = [];
   export let surveys = [];
   export let activeSurveyId = "";
+  export let isQrMode = false; // Bypasses PIN gate when true
   export let onSubmitResponse = (answers, deviceId) => {};
   export let onSelectSurvey = (id) => {};
 
@@ -236,8 +237,8 @@
 <div class="w-full h-full min-h-full flex-1 bg-slate-100 text-slate-800 p-3 sm:p-5 font-sans box-border overflow-hidden flex flex-col justify-between select-none">
   <main class="w-full max-w-6xl mx-auto flex-1 flex flex-col justify-between min-h-0 py-1 box-border relative">
     
-    <!-- PURE BLUR OVERLAY -->
-    {#if selectedSurveyForPin || (!isPinVerifiedForCurrentSurvey && activeSurveyId)}
+    <!-- PURE BLUR OVERLAY (BYPASSED WHEN isQrMode IS TRUE) -->
+    {#if !isQrMode && (selectedSurveyForPin || (!isPinVerifiedForCurrentSurvey && activeSurveyId))}
       <div in:scale={{ duration: 200 }} class="fixed inset-0 z-50 backdrop-blur-xl bg-white/15 flex items-center justify-center p-4">
         <div class="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center space-y-4 shadow-2xl relative">
           <div class="space-y-1">
