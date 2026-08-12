@@ -506,7 +506,7 @@
   function isAnalyticsEligible(qType) {
     if (!qType) return false;
     const normalized = String(qType).toUpperCase().replace(/_/g, '-');
-    return normalized !== 'TEXT' && normalized !== 'SHORT-ANSWER' && normalized !== 'SHORTANSWER';
+    return normalized !== 'TEXT' && normalized !== 'SHORT-ANSWER' && normalized !== 'SHORTANSWER' && normalized !== 'DATE';
   }
 
   function openQuestionModal(q) {
