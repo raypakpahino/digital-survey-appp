@@ -161,7 +161,7 @@
       activeSurveyId = targetSurveyId;
     }
 
-    // Direct QR Code Scan via Mobile Browser
+    // Direct Web QR Scan Detection
     if (modeParam === 'qr' || window.location.search.includes("mode=qr")) {
       isQrMode = true;
       activeTab = "kiosk";
@@ -293,7 +293,7 @@
     const draftId = `DRAFT-${Date.now()}`;
     const newDraftSurvey = {
       _id: draftId,
-      title: isQrMode ? "New QR Form Schema" : "New Custom Form Schema",
+      title: isQrMode ? "New Web QR Form Schema" : "New Kiosk Terminal Schema",
       appMode: isQrMode ? "qr" : "kiosk",
       pinCode: "1234",
       thankYouMessage: "Thank you for your feedback! This screen will automatically refresh in a few seconds.",
@@ -395,7 +395,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           surveyTitle: activeSurvey.title,
-          deviceId: deviceId || (isQrMode ? "Public-QR-Scan" : "Tablet-A"),
+          deviceId: deviceId || (isQrMode ? "Web-QR-Scan" : "Tablet-A"),
           appMode: isQrMode ? "qr" : "kiosk",
           answers: formattedAnswers,
         }),
@@ -441,7 +441,7 @@
   function copyKioskLink(surveyId, qrMode = false) {
     const directLink = getKioskLink(surveyId, qrMode);
     navigator.clipboard.writeText(directLink);
-    alert(qrMode ? "📱 Quick Scan Web Link copied!" : "🚀 Network Kiosk Link copied!");
+    alert(qrMode ? "📱 Quick Scan Web Link copied!" : "🚀 Enterprise Kiosk Link copied!");
   }
 </script>
 
@@ -458,7 +458,7 @@
   <Login onLoginSuccess={handleLoginSuccess} {isQrMode} />
 
 {:else}
-  <!-- AUTHENTICATED PORTAL WORKSPACE (PROGRAM SWITCHER MODE VIA CTRL + M) -->
+  <!-- AUTHENTICATED PORTAL WORKSPACE -->
   <div class="flex h-screen w-screen max-w-full max-h-screen theme-bg-main theme-text-primary overflow-hidden m-0 p-0 fixed inset-0">
     
     <!-- PROFESSIONAL COLLAPSIBLE SIDEBAR -->
@@ -482,10 +482,10 @@
                 {#if isSidebarExpanded}
                   <div class="flex items-center space-x-2.5 min-w-0 truncate">
                     <div class="h-8 w-8 rounded-xl {isQrMode ? 'bg-cyan-600' : 'bg-[#1a2b6c]'} border border-rose-500/40 flex items-center justify-center font-extrabold text-white text-xs shadow-md shrink-0">
-                      {isQrMode ? 'QR' : 'DS'}
+                      {isQrMode ? 'QR' : 'EK'}
                     </div>
                     <span class="font-black text-sm tracking-tight text-white truncate">
-                      {isQrMode ? 'DigitalSurvey QR' : 'DigitalSurvey'}
+                      {isQrMode ? 'Web QR Hub' : 'Enterprise Kiosk'}
                     </span>
                   </div>
                 {/if}
@@ -502,7 +502,7 @@
                     switchTab("surveys");
                     await refreshDataLedger();
                   }}
-                  title="Surveys Portal"
+                  title={isQrMode ? 'QR Forms Hub' : 'Surveys Portal'}
                 >
                   <svg class="w-5 h-5 shrink-0 fill-current" viewBox="0 0 24 24">
                     <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
@@ -517,7 +517,7 @@
                   class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'builder' ? (isQrMode ? 'bg-cyan-600 text-white shadow-md' : 'bg-[#1a2b6c] text-white shadow-md') : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={() => switchTab("builder")}
                   disabled={surveysList.length === 0}
-                  title="Form Designer"
+                  title={isQrMode ? 'QR Form Designer' : 'Form Designer'}
                 >
                   <svg class="w-5 h-5 shrink-0 fill-current {surveysList.length === 0 ? 'opacity-40' : ''}" viewBox="0 0 24 24">
                     <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
@@ -528,12 +528,12 @@
                 </button>
               {/if}
 
-              <!-- 3. LIVE KIOSK / PREVIEW MODE (Hidden for Site Leaders) -->
+              <!-- 3. LIVE KIOSK / PREVIEW MODE -->
               {#if currentUser?.role !== "site_leader"}
                 <button
                   class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'kiosk' ? (isQrMode ? 'bg-cyan-600 text-white shadow-md' : 'bg-[#1a2b6c] text-white shadow-md') : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={() => switchTab("kiosk")}
-                  title={isQrMode ? "Preview QR Form" : "Live Kiosk Mode"}
+                  title={isQrMode ? "Preview QR Web Form" : "Live Kiosk Mode"}
                 >
                   <svg class="w-5 h-5 shrink-0 fill-current" viewBox="0 0 24 24">
                     <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
@@ -563,7 +563,7 @@
                 {/if}
               </button>
 
-              <!-- 5. DEVICE MANAGEMENT (Hidden in QR Mode) -->
+              <!-- 5. DEVICE MANAGEMENT (EXCLUSIVELY KIOSK MODE) -->
               {#if currentUser?.role === "admin" && !isQrMode}
                 <button
                   class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'devices' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
@@ -606,22 +606,23 @@
             {#if !isSidebarExpanded}
               <div class="flex items-center space-x-2 shrink-0 transition-all duration-300">
                 <div class="h-7 w-7 rounded-lg {isQrMode ? 'bg-cyan-600' : 'bg-[#1a2b6c]'} flex items-center justify-center font-extrabold text-xs text-white shadow-md">
-                  {isQrMode ? 'QR' : 'DS'}
+                  {isQrMode ? 'QR' : 'EK'}
                 </div>
                 <span class="font-bold text-sm tracking-tight theme-text-primary">
-                  {isQrMode ? 'DigitalSurvey QR' : 'DigitalSurvey'}
+                  {isQrMode ? 'Web QR Hub' : 'Enterprise Kiosk'}
                 </span>
               </div>
             {/if}
           </div>
 
           <div class="flex items-center space-x-3 shrink-0">
+            <!-- MODE SWITCHER BUTTON -->
             <button
               on:click={toggleAppMode}
               class="px-3 py-1.5 rounded-xl text-xs font-mono font-bold border transition-all flex items-center space-x-1.5 shadow-xs cursor-pointer {isQrMode ? 'bg-cyan-950 border-cyan-500 text-cyan-300' : 'bg-slate-800 border-slate-700 text-cyan-400 hover:bg-slate-700'}"
-              title="Toggle App Program Version (Ctrl + M)"
+              title="Toggle App Program Engine (Ctrl + M)"
             >
-              <span>{isQrMode ? "📱 Version: QR Mode" : "🖥️ Version: Kiosk Mode"}</span>
+              <span>{isQrMode ? "📱 Mode: Web QR Hub" : "🖥️ Mode: Enterprise Kiosk"}</span>
               <kbd class="bg-slate-900 px-1 py-0.5 text-[9px] rounded text-slate-400 border border-slate-700">Ctrl+M</kbd>
             </button>
 
