@@ -6,7 +6,7 @@ import User from '../models/User.js';
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'sdx_digital_survey_secret_key_2026';
 
-// HELPER: Guarantees default 'admin' and 'user' accounts exist with password '12345678'
+// HELPER: Guarantees default 'admin', 'site_leader', and 'user' accounts exist
 const ensureDefaultAccounts = async () => {
   try {
     const defaultPasswordHash = await bcrypt.hash('12345678', 10);
@@ -14,14 +14,21 @@ const ensureDefaultAccounts = async () => {
     // Upsert Admin Account
     await User.findOneAndUpdate(
       { username: 'admin' },
-      { username: 'admin', password: defaultPasswordHash, role: 'admin' },
+      { username: 'admin', password: defaultPasswordHash, role: 'admin', assignedSite: '' },
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+    );
+
+    // Upsert Default Site Leader Account
+    await User.findOneAndUpdate(
+      { username: 'site_leader' },
+      { username: 'site_leader', password: defaultPasswordHash, role: 'site_leader', assignedSite: 'Tablet-A' },
       { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     );
 
     // Upsert Standard User Account
     await User.findOneAndUpdate(
       { username: 'user' },
-      { username: 'user', password: defaultPasswordHash, role: 'user' },
+      { username: 'user', password: defaultPasswordHash, role: 'user', assignedSite: '' },
       { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     );
 
@@ -62,7 +69,12 @@ router.post('/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: user._id, username: user.username, role: user.role },
+      { 
+        userId: user._id, 
+        username: user.username, 
+        role: user.role, 
+        assignedSite: user.assignedSite || '' 
+      },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -70,7 +82,12 @@ router.post('/login', async (req, res) => {
     res.json({
       success: true,
       token,
-      user: { id: user._id, username: user.username, role: user.role }
+      user: { 
+        id: user._id, 
+        username: user.username, 
+        role: user.role, 
+        assignedSite: user.assignedSite || '' 
+      }
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -93,9 +110,62 @@ router.get('/me', async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
 
-    res.json({ success: true, user: { id: user._id, username: user.username, role: user.role } });
+    res.json({ 
+      success: true, 
+      user: { 
+        id: user._id, 
+        username: user.username, 
+        role: user.role, 
+        assignedSite: user.assignedSite || '' 
+      } 
+    });
   } catch (error) {
     res.status(401).json({ success: false, message: 'Invalid or expired token.' });
+  }
+});
+
+// 3. ADMIN USER PROVISIONING ROUTE (CREATE / UPDATE ROLES & SITE ASSIGNMENTS)
+router.post('/users/assign', async (req, res) => {
+  try {
+    const { username, password, role, assignedSite } = req.body;
+
+    if (!username) {
+      return res.status(400).json({ success: false, message: 'Username is required.' });
+    }
+
+    const cleanUsername = String(username).trim().toLowerCase();
+    const updateData = {};
+
+    if (role) updateData.role = role;
+    if (assignedSite !== undefined) updateData.assignedSite = String(assignedSite).trim();
+
+    if (password && password.trim().length > 0) {
+      updateData.password = await bcrypt.hash(password.trim(), 10);
+    }
+
+    const user = await User.findOneAndUpdate(
+      { username: cleanUsername },
+      { $set: updateData },
+      { upsert: true, new: true, runValidators: false }
+    ).select('-password');
+
+    res.json({ 
+      success: true, 
+      message: `User '${cleanUsername}' updated successfully.`,
+      user: { id: user._id, username: user.username, role: user.role, assignedSite: user.assignedSite } 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 4. GET ALL REGISTERED USERS (FOR ADMIN DASHBOARD)
+router.get('/users', async (req, res) => {
+  try {
+    const users = await User.find({}).select('-password').sort({ createdAt: -1 });
+    res.json({ success: true, users });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
