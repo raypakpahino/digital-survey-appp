@@ -50,8 +50,7 @@
 
   async function toggleAppMode() {
     isQrMode = !isQrMode;
-    activeSurveyId = ""; // Reset active survey selection when switching app modes
-    activeTab = "surveys"; // Return to main surveys dashboard of the selected mode
+    // Context tab and survey ID are preserved smoothly without forcing a reset to main page
     await refreshDataLedger();
   }
 
@@ -72,11 +71,10 @@
 
     activeTab = tab;
     if (!isDedicatedKioskMode) {
-      if (activeSurveyId && (tab === "builder" || tab === "kiosk" || tab === "answers")) {
-        window.location.hash = `/${tab}?id=${activeSurveyId}`;
-      } else {
-        window.location.hash = `/${tab}`;
-      }
+      const targetHash = activeSurveyId && (tab === "builder" || tab === "kiosk" || tab === "answers")
+        ? `/${tab}?id=${activeSurveyId}`
+        : `/${tab}`;
+      window.location.hash = targetHash;
     }
   }
 
@@ -137,6 +135,15 @@
 
   onMount(async () => {
     window.addEventListener('keydown', handleKeyDown);
+
+    // Native browser Back/Forward navigation listener
+    window.addEventListener('popstate', () => {
+      const hash = window.location.hash;
+      const route = hash.replace("#/", "").split("?")[0];
+      if (["surveys", "builder", "kiosk", "answers", "devices"].includes(route)) {
+        activeTab = route;
+      }
+    });
 
     const savedTheme = localStorage.getItem('sdx_theme');
     if (savedTheme === 'light') {

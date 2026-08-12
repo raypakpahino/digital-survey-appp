@@ -6,7 +6,7 @@
   export let questions = [];
   export let surveys = [];
   export let activeSurveyId = "";
-  export let isQrMode = false; // Bypasses PIN gate when true
+  export let isQrMode = false;
   export let onSubmitResponse = (answers, deviceId) => {};
   export let onSelectSurvey = (id) => {};
 

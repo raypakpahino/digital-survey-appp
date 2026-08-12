@@ -9,7 +9,7 @@ const QuestionSchema = new mongoose.Schema({
   enableOptionImages: { type: Boolean, default: false },
   options: [{ type: String }],
   optionImages: { type: mongoose.Schema.Types.Mixed, default: {} },
-  alertTriggerValues: [{ type: String }], // Dynamic Low Rating Alert Triggers
+  alertTriggerValues: [{ type: String }], 
   skipLogic: {
     enabled: { type: Boolean, default: false },
     dependsOnIndex: { type: Number, default: 0 },
@@ -19,7 +19,7 @@ const QuestionSchema = new mongoose.Schema({
 
 const SurveySchema = new mongoose.Schema({
   title: { type: String, required: true, default: 'Untitled Digital Form Template' },
-  appMode: { type: String, enum: ['kiosk', 'qr'], default: 'kiosk' }, // Mode separation tag
+  appMode: { type: String, enum: ['kiosk', 'qr'], default: 'kiosk' }, 
   isDraft: { type: Boolean, default: false },
   pinCode: { type: String, default: '1234' },
   questions: [QuestionSchema],
