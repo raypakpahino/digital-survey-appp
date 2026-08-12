@@ -73,7 +73,13 @@ const formatToLocalTimezone = (isoString, timeZone = 'Asia/Jakarta') => {
 
 router.get('/surveys', async (req, res) => {
   try {
-    const surveys = await Survey.find({});
+    const mode = req.query.mode || 'kiosk';
+    const filter = { $or: [{ appMode: mode }, { appMode: { $exists: false } }] };
+    if (mode === 'qr') {
+      filter.$or = [{ appMode: 'qr' }];
+    }
+
+    const surveys = await Survey.find(filter);
     res.json({ success: true, surveys });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -82,10 +88,11 @@ router.get('/surveys', async (req, res) => {
 
 router.post('/surveys', async (req, res) => {
   try {
-    const { title, questions, pinCode, thankYouMessage, autoRefreshSeconds } = req.body;
+    const { title, questions, pinCode, thankYouMessage, autoRefreshSeconds, appMode } = req.body;
     const cleanQuestions = sanitizeQuestions(questions);  
     const newSurvey = await Survey.create({ 
       title: String(title || '').trim(), 
+      appMode: appMode === 'qr' ? 'qr' : 'kiosk',
       pinCode: String(pinCode || '123456').trim().toLowerCase(),
       questions: cleanQuestions,
       thankYouMessage: thankYouMessage || 'Thank you for your feedback! This screen will automatically refresh in a few seconds.',
@@ -99,7 +106,7 @@ router.post('/surveys', async (req, res) => {
 
 router.put('/surveys/:id', async (req, res) => {
   try {
-    const { title, questions, pinCode, thankYouMessage, autoRefreshSeconds } = req.body;
+    const { title, questions, pinCode, thankYouMessage, autoRefreshSeconds, appMode } = req.body;
     const cleanQuestions = sanitizeQuestions(questions);
 
     const updatePayload = { 
@@ -108,6 +115,7 @@ router.put('/surveys/:id', async (req, res) => {
       questions: cleanQuestions 
     };
 
+    if (appMode) updatePayload.appMode = appMode;
     if (thankYouMessage !== undefined) updatePayload.thankYouMessage = thankYouMessage;
     if (autoRefreshSeconds !== undefined) updatePayload.autoRefreshSeconds = Number(autoRefreshSeconds);
 
@@ -127,7 +135,6 @@ router.put('/surveys/:id', async (req, res) => {
 router.post('/surveys/:id/verify-pin', async (req, res) => {
   try {
     const { pinCode } = req.body;
-    // Strip non-alphanumeric/invisible control characters from copy-pasting
     const cleanPin = String(pinCode || '').replace(/[\s\u200B-\u200D\uFEFF]/g, '').trim().toLowerCase();
 
     if (!cleanPin) {
@@ -141,7 +148,6 @@ router.post('/surveys/:id/verify-pin', async (req, res) => {
     const cleanSurveyPin = String(survey.pinCode || '').replace(/[\s\u200B-\u200D\uFEFF]/g, '').trim().toLowerCase();
 
     const allDevices = await Device.find({}).lean();
-    // Compare PIN case-insensitively
     const matchedDevice = allDevices.find(d => 
       String(d.accessPin || '').replace(/[\s\u200B-\u200D\uFEFF]/g, '').trim().toLowerCase() === cleanPin
     );
@@ -368,13 +374,14 @@ router.delete('/devices/:id', async (req, res) => {
 
 router.post('/responses', async (req, res) => {
   try {
-    const { surveyTitle, deviceId, answers } = req.body;
-    const cleanDeviceId = deviceId || 'Tablet-Unassigned';
+    const { surveyTitle, deviceId, answers, appMode } = req.body;
+    const cleanDeviceId = deviceId || (appMode === 'qr' ? 'Public-QR-Scan' : 'Tablet-Unassigned');
 
     const newResponse = await Response.create({
       surveyTitle,
       deviceId: cleanDeviceId,
       answers,
+      appMode: appMode === 'qr' ? 'qr' : 'kiosk',
       timestamp: new Date().toISOString()
     });
 
@@ -386,8 +393,14 @@ router.post('/responses', async (req, res) => {
 
 router.get('/responses', async (req, res) => {
   try {
-    const targetTz = req.query.tz || 'Asia/Jakarta'; // Default to WIB
-    const rawResponses = await Response.find({}).sort({ createdAt: -1 }).lean();
+    const targetTz = req.query.tz || 'Asia/Jakarta';
+    const mode = req.query.mode || 'kiosk';
+    const filter = { $or: [{ appMode: mode }, { appMode: { $exists: false } }] };
+    if (mode === 'qr') {
+      filter.$or = [{ appMode: 'qr' }];
+    }
+
+    const rawResponses = await Response.find(filter).sort({ createdAt: -1 }).lean();
 
     const responses = rawResponses.map(r => ({
       ...r,

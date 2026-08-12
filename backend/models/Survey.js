@@ -19,6 +19,7 @@ const QuestionSchema = new mongoose.Schema({
 
 const SurveySchema = new mongoose.Schema({
   title: { type: String, required: true, default: 'Untitled Digital Form Template' },
+  appMode: { type: String, enum: ['kiosk', 'qr'], default: 'kiosk' }, // Mode separation tag
   isDraft: { type: Boolean, default: false },
   pinCode: { type: String, default: '1234' },
   questions: [QuestionSchema],
