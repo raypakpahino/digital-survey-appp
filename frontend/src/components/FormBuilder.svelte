@@ -66,11 +66,12 @@
     return [];
   }
 
-  // NON-BLOCKING FORM INITIALIZATION (Replaces infinite reactive $: loop)
-  function loadActiveFormState(targetId) {
-    if (!targetId || targetId === lastLoadedSurveyId) return;
-    lastLoadedSurveyId = targetId;
-    localTitle = surveyTitle || "";
+  // FORCE DYNAMIC STATE SYNC WHEN SWITCHING OR UPDATING ACTIVE SURVEY
+  function loadActiveFormState(targetId, currentTitle, currentQuestions) {
+    if (!targetId) return;
+    
+    // Always sync title and survey parameters
+    localTitle = currentTitle || "";
     
     const activeSurvey = surveys.find(s => String(s._id) === String(targetId));
     if (activeSurvey) {
@@ -80,29 +81,32 @@
         : 4;
     }
 
-    localQuestions = (questions || []).map((q) => {
-      const type = q.type;
-      const opts = q.options || [];
-      return {
-        ...q,
-        options: opts.map(opt => typeof opt === 'object' ? opt : { text: opt, targetSite: '' }),
-        alertTriggerValues: Array.isArray(q.alertTriggerValues) 
-          ? q.alertTriggerValues 
-          : getDefaultAlertTriggers(type, opts),
-        skipLogic: q.skipLogic ? {
-          enabled: Boolean(q.skipLogic.enabled),
-          dependsOnIndex: q.skipLogic.dependsOnIndex ?? 0,
-          requiredValue: q.skipLogic.requiredValue || ""
-        } : {
-          enabled: false,
-          dependsOnIndex: 0,
-          requiredValue: ""
-        }
-      };
-    });
+    if (targetId !== lastLoadedSurveyId || localQuestions.length === 0) {
+      lastLoadedSurveyId = targetId;
+      localQuestions = (currentQuestions || []).map((q) => {
+        const type = q.type;
+        const opts = q.options || [];
+        return {
+          ...q,
+          options: opts.map(opt => typeof opt === 'object' ? opt : { text: opt, targetSite: '' }),
+          alertTriggerValues: Array.isArray(q.alertTriggerValues) 
+            ? q.alertTriggerValues 
+            : getDefaultAlertTriggers(type, opts),
+          skipLogic: q.skipLogic ? {
+            enabled: Boolean(q.skipLogic.enabled),
+            dependsOnIndex: q.skipLogic.dependsOnIndex ?? 0,
+            requiredValue: q.skipLogic.requiredValue || ""
+          } : {
+            enabled: false,
+            dependsOnIndex: 0,
+            requiredValue: ""
+          }
+        };
+      });
+    }
   }
 
-  $: loadActiveFormState(activeSurveyId);
+  $: loadActiveFormState(activeSurveyId, surveyTitle, questions);
 
   const availableComponents = [
     {
@@ -298,18 +302,25 @@
   }
 
   async function triggerExplicitSave() {
+    if (!localTitle.trim()) {
+      alert("Please enter a valid form title.");
+      return;
+    }
+
     isSavingSchema = true;
     saveSuccessBanner = "";
 
     const cleanSeconds = Math.max(1, parseInt(localAutoRefreshSeconds, 10) || 4);
-    await onSaveSurvey(localTitle, localQuestions, localThankYouMessage, cleanSeconds);
+    
+    // Pass local updated title and questions directly to App.svelte
+    await onSaveSurvey(localTitle.trim(), localQuestions, localThankYouMessage, cleanSeconds);
 
     isSavingSchema = false;
-    saveSuccessBanner = "💾 Form schema saved successfully!";
+    saveSuccessBanner = "💾 Form title and schema saved successfully!";
 
     setTimeout(() => {
       saveSuccessBanner = "";
-    }, 3000);
+    }, 3500);
   }
 
   function getNormalizedType(qType) {
@@ -424,7 +435,7 @@
           <button
             type="button"
             on:click={scrollToSave}
-            class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all duration-200 shrink-0 flex items-center justify-center space-x-2 active:scale-95 shadow-md hover:shadow-lg hover:shadow-[#e31b23]/20 border border-[#1a2b6c] dark:border-slate-700"
+            class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all duration-200 shrink-0 flex items-center justify-center space-x-2 active:scale-95 shadow-md hover:shadow-lg hover:shadow-[#e31b23]/20 border border-[#1a2b6c] dark:border-slate-700 font-sans"
             style="color: #ffffff !important;"
             title="Scroll down to Save button"
           >

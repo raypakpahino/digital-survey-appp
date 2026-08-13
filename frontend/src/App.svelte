@@ -334,18 +334,12 @@
 
     const cleanSeconds = Math.max(1, Number(updatedAutoRefreshSeconds) || 4);
 
-    activeSurvey.title = updatedTitle;
-    activeSurvey.questions = questionsToSave;
-    if (updatedThankYouMessage !== undefined) activeSurvey.thankYouMessage = updatedThankYouMessage;
-    if (updatedAutoRefreshSeconds !== undefined) activeSurvey.autoRefreshSeconds = cleanSeconds;
-    if (updatedPin) activeSurvey.pinCode = updatedPin;
-
     const payload = {
-      title: activeSurvey.title,
+      title: updatedTitle,
       appMode: isQrMode ? "qr" : "kiosk",
-      pinCode: activeSurvey.pinCode || "1234",
+      pinCode: updatedPin || activeSurvey.pinCode || "1234",
       questions: questionsToSave,
-      thankYouMessage: activeSurvey.thankYouMessage,
+      thankYouMessage: updatedThankYouMessage !== undefined ? updatedThankYouMessage : activeSurvey.thankYouMessage,
       autoRefreshSeconds: cleanSeconds
     };
 
@@ -363,6 +357,7 @@
             s._id === activeSurveyId ? normalized : s,
           );
           activeSurveyId = normalized._id;
+          await refreshDataLedger();
         }
       } catch (err) {
         console.error("Error creating survey in database:", err);
@@ -382,6 +377,7 @@
         surveysList = surveysList.map((s) =>
           s._id === activeSurveyId ? normalized : s,
         );
+        await refreshDataLedger();
       } else {
         await refreshDataLedger();
       }
