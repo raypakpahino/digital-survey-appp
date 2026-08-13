@@ -6,7 +6,7 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
-// Middleware: Enable large JSON payloads for images/options
+// Middleware: Enable large JSON payloads for Base64 image compatibility
 router.use(express.json({ limit: '10mb' }));
 router.use(express.urlencoded({ limit: '10mb', extended: true }));
 
@@ -22,7 +22,7 @@ const generateUniquePin = (existingPins = new Set()) => {
   return pin;
 };
 
-// SANITIZER: Handles both string options and object options cleanly
+// SANITIZER: Stringifies option objects into clean JSON strings for MongoDB String array compatibility
 const sanitizeQuestions = (questions) => {
   if (!Array.isArray(questions)) return [];
   return questions.map((q) => ({
@@ -194,6 +194,13 @@ router.post('/surveys/:id/verify-pin', async (req, res) => {
         success: true, 
         message: 'Generic PIN verified.', 
         deviceName: matchedDevice ? matchedDevice.deviceName : 'Generic Kiosk Device' 
+      });
+    }
+
+    if (matchedDevice) {
+      return res.status(403).json({ 
+        success: false, 
+        message: `This PIN belongs to '${matchedDevice.deviceName}', but is not authorized for form '${survey.title}'.` 
       });
     }
 

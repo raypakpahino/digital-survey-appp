@@ -150,7 +150,7 @@
       type: "dropdown",
       svgPath: "M7 10l5 5 5-5H7z",
       label: "Dropdown Select",
-      desc: "Compact menu for 30+ choices",
+      desc: "Compact menu for choices",
     },
     {
       type: "date",
@@ -182,10 +182,12 @@
     }
     if (type === "dropdown") {
       defaultText = "Please select your option from the list:";
-      defaultOptions = Array.from({ length: 30 }, (_, i) => ({
-        text: `Choice Item ${i + 1}`,
-        targetSite: ""
-      }));
+      // Refined default options count down from 30 to 3 items
+      defaultOptions = [
+        { text: "Option 1", targetSite: "" },
+        { text: "Option 2", targetSite: "" },
+        { text: "Option 3", targetSite: "" }
+      ];
     }
     if (type === "date") defaultText = "Please select a date:";
     if (type === "text") defaultText = "Do you have any additional comments?";
@@ -201,6 +203,7 @@
         isRequired: false, 
         allowMultiple: false, 
         enableOptionImages: false, 
+        enableOtherOption: false,
         options: defaultOptions,
         optionImages: {},
         alertTriggerValues: defaultAlerts,
@@ -613,7 +616,7 @@
               {#if normType === "multiple-choice" || normType === "dropdown"}
                 <div class="pl-0 sm:pl-2 pt-4 border-t border-slate-200 dark:border-slate-900/80 mt-2 space-y-3">
                   <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                    {normType === 'dropdown' ? 'Configure Dropdown Options (Supports 30+ items):' : 'Configure Choice Options:'}
+                    {normType === 'dropdown' ? 'Configure Dropdown Options:' : 'Configure Choice Options:'}
                   </span>
                   <div class="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto custom-scrollbar pr-1">
                     {#each question.options as option, optIndex}
@@ -736,6 +739,20 @@
                       class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.allowMultiple ? 'bg-[#1a2b6c] border-[#1a2b6c]' : 'bg-slate-200 dark:bg-slate-800'} cursor-pointer"
                     >
                       <div class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out {question.allowMultiple ? 'translate-x-6' : 'translate-x-0'}"></div>
+                    </button>
+                  </div>
+                {/if}
+
+                {#if normType === 'dropdown'}
+                  <!-- 2B. ENABLE OTHER OPEN TEXT OPTION (FOR DROPDOWN) -->
+                  <div class="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60">
+                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Enable "Other" custom text field</span>
+                    <button
+                      type="button"
+                      on:click={() => (question.enableOtherOption = !question.enableOtherOption)}
+                      class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.enableOtherOption ? 'bg-[#1a2b6c] border-[#1a2b6c]' : 'bg-slate-200 dark:bg-slate-800'} cursor-pointer"
+                    >
+                      <div class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out {question.enableOtherOption ? 'translate-x-6' : 'translate-x-0'}"></div>
                     </button>
                   </div>
                 {/if}

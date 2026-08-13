@@ -103,6 +103,7 @@
         isRequired: Boolean(q.isRequired),
         allowMultiple: Boolean(q.allowMultiple),
         enableOptionImages: Boolean(q.enableOptionImages),
+        enableOtherOption: Boolean(q.enableOtherOption),
         options: q.options || [],
         optionImages: q.optionImages || {},
         skipLogic: q.skipLogic ? {
@@ -323,7 +324,6 @@
     switchTab("builder");
   }
 
-  // ROBUST SAVE PERSISTENCE FUNCTION
   async function persistActiveSurveyState(updatedTitle, updatedQuestions, updatedThankYouMessage, updatedAutoRefreshSeconds, updatedPin) {
     if (!activeSurveyId || currentUser?.role !== "admin") return;
 

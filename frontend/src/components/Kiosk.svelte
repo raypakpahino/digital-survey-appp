@@ -13,6 +13,7 @@
   let currentQuestionIndex = 0;
   let answersAccumulator = [];
   let selectedValue = "";
+  let otherCustomText = "";
   let selectedMultipleValues = [];
   let isSubmitted = false;
   let validationError = "";
@@ -37,7 +38,6 @@
   $: currentQuestion = questions[currentQuestionIndex] || null;
   $: currentSurvey = surveys.find(s => s._id === activeSurveyId) || null;
 
-  // SAFE OPTION PARSER: Handles strings, objects, or JSON strings cleanly
   function parseOptionText(opt) {
     if (typeof opt === 'string') {
       try {
@@ -50,10 +50,15 @@
     return { text: String(opt || ''), targetSite: '' };
   }
 
-  $: availableOptions = (currentQuestion?.options || []).map(parseOptionText).filter(opt => {
+  $: rawParsedOptions = (currentQuestion?.options || []).map(parseOptionText).filter(opt => {
     if (!opt.targetSite || opt.targetSite.trim() === "") return true;
     return String(opt.targetSite).toLowerCase().trim() === String(deviceId).toLowerCase().trim();
   }).map(opt => opt.text);
+
+  // Appends "Other" to dropdown choices if enabled on question
+  $: availableOptions = (currentQuestion && currentQuestion.enableOtherOption && !rawParsedOptions.includes("Other")) 
+    ? [...rawParsedOptions, "Other"] 
+    : rawParsedOptions;
 
   $: filteredDropdownOptions = availableOptions.filter(optText => 
     String(optText).toLowerCase().includes(dropdownSearchQuery.trim().toLowerCase())
@@ -163,6 +168,7 @@
 
   $: if (currentQuestionIndex !== undefined) {
     selectedValue = "";
+    otherCustomText = "";
     selectedMultipleValues = [];
     validationError = "";
     isDropdownOpen = false;
@@ -227,7 +233,9 @@
 
     let finalValue = selectedValue;
 
-    if (getNormalizedType(currentQuestion.type) === 'multiple-choice' && currentQuestion.allowMultiple) {
+    if (getNormalizedType(currentQuestion.type) === 'dropdown' && selectedValue === 'Other') {
+      finalValue = otherCustomText.trim() ? `Other: ${otherCustomText.trim()}` : 'Other';
+    } else if (getNormalizedType(currentQuestion.type) === 'multiple-choice' && currentQuestion.allowMultiple) {
       finalValue = selectedMultipleValues.join(", ");
     }
 
@@ -243,6 +251,7 @@
     ];
 
     selectedValue = "";
+    otherCustomText = "";
     selectedMultipleValues = [];
     hoveredStarIndex = 0;
     validationError = "";
@@ -277,6 +286,7 @@
     currentQuestionIndex = 0;
     answersAccumulator = [];
     selectedValue = "";
+    otherCustomText = "";
     selectedMultipleValues = [];
     hoveredStarIndex = 0;
     validationError = "";
@@ -572,7 +582,7 @@
             </div>
 
           {:else if getNormalizedType(currentQuestion.type) === 'dropdown'}
-            <!-- ELEGANT DOWNWARD-EXPANDING COMBOBOX WITH SEARCH -->
+            <!-- ELEGANT DOWNWARD-EXPANDING COMBOBOX WITH SEARCH & "OTHER" TEXT FIELD -->
             <div class="w-full max-w-lg mx-auto space-y-4 my-auto relative" bind:this={dropdownContainerRef}>
               
               <div class="relative">
@@ -620,6 +630,7 @@
                             type="button"
                             on:click={() => {
                               selectedValue = option;
+                              if (option !== 'Other') otherCustomText = "";
                               validationError = "";
                               isDropdownOpen = false;
                             }}
@@ -636,6 +647,21 @@
                   </div>
                 {/if}
               </div>
+
+              <!-- SMOOTH EXPANDING TEXT FIELD FOR "OTHER" OPTION -->
+              {#if selectedValue === 'Other'}
+                <div in:fly={{ y: -8, duration: 200 }} class="space-y-1.5 pt-1">
+                  <label for="other-input" class="text-xs font-bold text-[#1a2b6c] block">Please specify your answer:</label>
+                  <input
+                    id="other-input"
+                    type="text"
+                    bind:value={otherCustomText}
+                    on:input={() => (validationError = "")}
+                    placeholder="Type custom response here..."
+                    class="w-full bg-slate-50 border border-slate-200 text-[#1a2b6c] font-semibold rounded-2xl p-4 text-base outline-none focus:border-[#e31b23] shadow-inner"
+                  />
+                </div>
+              {/if}
 
               <button 
                 type="button"
