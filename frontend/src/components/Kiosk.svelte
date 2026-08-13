@@ -29,10 +29,27 @@
   let pinError = "";
   let isPinVerifiedForCurrentSurvey = false;
 
+  // SEARCHABLE DROPDOWN COMBOBOX STATE
+  let isDropdownOpen = false;
+  let dropdownSearchQuery = "";
+  let dropdownContainerRef;
+
   $: currentQuestion = questions[currentQuestionIndex] || null;
   $: currentSurvey = surveys.find(s => s._id === activeSurveyId) || null;
 
+  $: filteredDropdownOptions = (currentQuestion?.options || []).filter(opt => 
+    String(opt).toLowerCase().includes(dropdownSearchQuery.trim().toLowerCase())
+  );
+
+  function handleDropdownClickOutside(event) {
+    if (dropdownContainerRef && !dropdownContainerRef.contains(event.target)) {
+      isDropdownOpen = false;
+    }
+  }
+
   onMount(() => {
+    window.addEventListener('click', handleDropdownClickOutside);
+
     const hash = window.location.hash;
     const urlParams = new URLSearchParams(hash.includes("?") ? hash.split("?")[1] : window.location.search);
     const urlSurveyId = urlParams.get("id");
@@ -69,7 +86,6 @@
 
   function handlePromptSurveyPin(survey) {
     if (isQrMode) {
-      // Direct instant launch without PIN in QR Mode
       isPinVerifiedForCurrentSurvey = true;
       onSelectSurvey(survey._id);
       selectedSurveyForPin = null;
@@ -127,6 +143,8 @@
     selectedValue = "";
     selectedMultipleValues = [];
     validationError = "";
+    isDropdownOpen = false;
+    dropdownSearchQuery = "";
   }
 
   const satisfactionScale = [
@@ -206,6 +224,8 @@
     selectedMultipleValues = [];
     hoveredStarIndex = 0;
     validationError = "";
+    isDropdownOpen = false;
+    dropdownSearchQuery = "";
 
     const nextIndex = findNextValidQuestionIndex(currentQuestionIndex + 1);
 
@@ -239,6 +259,8 @@
     hoveredStarIndex = 0;
     validationError = "";
     isSubmitted = false;
+    isDropdownOpen = false;
+    dropdownSearchQuery = "";
   }
 
   function getNormalizedType(qType) {
@@ -258,6 +280,7 @@
 
   onDestroy(() => {
     clearInterval(autoResetTimer);
+    window.removeEventListener('click', handleDropdownClickOutside);
   });
 </script>
 
@@ -529,20 +552,71 @@
             </div>
 
           {:else if getNormalizedType(currentQuestion.type) === 'dropdown'}
-            <!-- DROPDOWN SELECT COMPONENT (IDEAL FOR 30+ CHOICES ON TABLETS & PHONES) -->
-            <div class="w-full max-w-lg mx-auto space-y-4 my-auto">
-              <div class="space-y-2">
-                <select 
-                  bind:value={selectedValue}
-                  on:change={() => (validationError = "")}
-                  class="w-full bg-slate-50 border-2 border-slate-200 text-[#1a2b6c] font-bold rounded-2xl p-4 text-base sm:text-lg outline-none transition-all shadow-inner focus:border-[#e31b23] focus:ring-2 focus:ring-rose-500/20 cursor-pointer"
+            <!-- CUSTOM SEARCHABLE DROPDOWN COMBOBOX -->
+            <div class="w-full max-w-lg mx-auto space-y-4 my-auto relative" bind:this={dropdownContainerRef}>
+              
+              <div class="relative">
+                <button 
+                  type="button"
+                  on:click={() => (isDropdownOpen = !isDropdownOpen)}
+                  class="w-full bg-slate-50 border-2 border-slate-200 text-[#1a2b6c] font-bold rounded-2xl p-4 text-base sm:text-lg flex items-center justify-between transition-all shadow-inner focus:outline-none focus:border-[#e31b23] cursor-pointer"
                 >
-                  <option value="" disabled selected>Select an option from list...</option>
-                  {#each currentQuestion.options || [] as opt}
-                    <option value={opt}>{opt}</option>
-                  {/each}
-                </select>
+                  <span class={selectedValue ? "text-[#1a2b6c]" : "text-slate-400 font-normal"}>
+                    {selectedValue || "Select an option from list..."}
+                  </span>
+                  <svg class="w-5 h-5 text-slate-500 transform transition-transform duration-200 {isDropdownOpen ? 'rotate-180' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
+
+                {#if isDropdownOpen}
+                  <div 
+                    in:scale={{ duration: 150, start: 0.98 }}
+                    class="absolute z-50 bottom-full mb-2 left-0 right-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-72"
+                  >
+                    <!-- SEARCH BAR HEADER -->
+                    <div class="p-3 border-b border-slate-100 bg-slate-50 shrink-0">
+                      <div class="relative flex items-center">
+                        <input 
+                          type="text"
+                          bind:value={dropdownSearchQuery}
+                          placeholder="Search choices..."
+                          class="w-full bg-white border border-slate-200 text-slate-800 text-sm font-semibold rounded-xl pl-9 pr-3 py-2 outline-none focus:border-[#1a2b6c]"
+                        />
+                        <svg class="w-4 h-4 text-slate-400 absolute left-3 fill-current" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                      </div>
+                    </div>
+
+                    <!-- SCROLLABLE LIST OF ITEMS -->
+                    <div class="overflow-y-auto custom-scrollbar flex-1 p-1">
+                      {#if filteredDropdownOptions.length === 0}
+                        <div class="p-4 text-center text-xs text-slate-400 font-semibold">
+                          No matching options found.
+                        </div>
+                      {:else}
+                        {#each filteredDropdownOptions as option}
+                          {@const isSelected = selectedValue === option}
+                          <button
+                            type="button"
+                            on:click={() => {
+                              selectedValue = option;
+                              validationError = "";
+                              isDropdownOpen = false;
+                            }}
+                            class="w-full text-left px-4 py-3 text-sm font-bold rounded-xl transition-all flex items-center justify-between cursor-pointer {isSelected ? 'bg-[#1a2b6c] text-white' : 'hover:bg-slate-100 text-slate-700'}"
+                          >
+                            <span class="truncate pr-2">{option}</span>
+                            {#if isSelected}
+                              <span class="text-xs">✓</span>
+                            {/if}
+                          </button>
+                        {/each}
+                      {/if}
+                    </div>
+                  </div>
+                {/if}
               </div>
+
               <button 
                 type="button"
                 on:click={advanceStep}
