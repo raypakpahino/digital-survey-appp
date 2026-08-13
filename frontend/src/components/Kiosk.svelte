@@ -528,6 +528,31 @@
               {/if}
             </div>
 
+          {:else if getNormalizedType(currentQuestion.type) === 'dropdown'}
+            <!-- DROPDOWN SELECT COMPONENT (IDEAL FOR 30+ CHOICES ON TABLETS & PHONES) -->
+            <div class="w-full max-w-lg mx-auto space-y-4 my-auto">
+              <div class="space-y-2">
+                <select 
+                  bind:value={selectedValue}
+                  on:change={() => (validationError = "")}
+                  class="w-full bg-slate-50 border-2 border-slate-200 text-[#1a2b6c] font-bold rounded-2xl p-4 text-base sm:text-lg outline-none transition-all shadow-inner focus:border-[#e31b23] focus:ring-2 focus:ring-rose-500/20 cursor-pointer"
+                >
+                  <option value="" disabled selected>Select an option from list...</option>
+                  {#each currentQuestion.options || [] as opt}
+                    <option value={opt}>{opt}</option>
+                  {/each}
+                </select>
+              </div>
+              <button 
+                type="button"
+                on:click={advanceStep}
+                class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-4 px-5 text-base rounded-2xl transition-all shadow-md active:scale-[0.98] flex items-center justify-center space-x-2 cursor-pointer"
+                style="color: #ffffff !important; background-color: #1a2b6c !important;"
+              >
+                <span style="color: #ffffff !important; font-weight: 800 !important;">Confirm Selection ➔</span>
+              </button>
+            </div>
+
           {:else if getNormalizedType(currentQuestion.type) === 'date'}
             <!-- DATE PICKER KIOSK INPUT -->
             <form on:submit|preventDefault={advanceStep} class="w-full max-w-md mx-auto space-y-4 my-auto">

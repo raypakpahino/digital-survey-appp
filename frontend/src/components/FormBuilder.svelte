@@ -53,7 +53,7 @@
     const norm = String(type || '').toLowerCase().replace(/_/g, '-');
     if (norm === 'smiley') return ["ANGRY", "SAD"];
     if (norm === 'stars') return ["1 Stars", "2 Stars"];
-    if (norm === 'multiple-choice') {
+    if (norm === 'multiple-choice' || norm === 'dropdown') {
       return options.filter(opt => {
         const u = opt.toUpperCase();
         return u === 'NO' || u.includes('BAD') || u.includes('POOR');
@@ -115,6 +115,12 @@
       desc: "Radio button selection",
     },
     {
+      type: "dropdown",
+      svgPath: "M7 10l5 5 5-5H7z",
+      label: "Dropdown Select",
+      desc: "Compact menu for 30+ choices",
+    },
+    {
       type: "date",
       svgPath: "M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z",
       label: "Date Picker",
@@ -139,6 +145,10 @@
     if (type === "multiple-choice") {
       defaultText = "Would you recommend us to a friend?";
       defaultOptions = ["Definitely Yes", "Maybe", "No"];
+    }
+    if (type === "dropdown") {
+      defaultText = "Please select your option from the list:";
+      defaultOptions = Array.from({ length: 30 }, (_, i) => `Choice Item ${i + 1}`);
     }
     if (type === "date") defaultText = "Please select a date:";
     if (type === "text") defaultText = "Do you have any additional comments?";
@@ -293,7 +303,7 @@
     if (type === 'stars') {
       return ["1 Stars", "2 Stars", "3 Stars", "4 Stars", "5 Stars"];
     }
-    if (type === 'multiple-choice') {
+    if (type === 'multiple-choice' || type === 'dropdown') {
       return targetQ.options || [];
     }
     return [];
@@ -526,14 +536,17 @@
                 </button>
               </div>
 
-              <!-- Options Subgrid for Multiple Choice -->
-              {#if normType === "multiple-choice"}
+              <!-- Options Subgrid for Multiple Choice or Dropdown -->
+              {#if normType === "multiple-choice" || normType === "dropdown"}
                 <div class="pl-0 sm:pl-2 pt-4 border-t border-slate-200 dark:border-slate-900/80 mt-2 space-y-3">
-                  <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Configure Choice Options:</span>
-                  <div class="grid grid-cols-1 gap-3">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    {normType === 'dropdown' ? 'Configure Dropdown Options (Supports 30+ items):' : 'Configure Choice Options:'}
+                  </span>
+                  <div class="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto custom-scrollbar pr-1">
                     {#each question.options as option, optIndex}
                       <div class="bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
                         <div class="flex items-center space-x-2">
+                          <span class="text-[10px] font-mono text-slate-400 font-bold w-6">{optIndex + 1}.</span>
                           <input
                             type="text"
                             bind:value={question.options[optIndex]}
@@ -545,28 +558,6 @@
                             class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 text-sm px-2 font-bold transition-all"
                           >✕</button>
                         </div>
-
-                        {#if question.enableOptionImages}
-                          <div class="flex items-center space-x-3 pl-2 pt-1">
-                            <span class="text-[10px] font-mono text-[#1a2b6c] dark:text-cyan-400 shrink-0 flex items-center space-x-1">
-                              <svg class="w-3.5 h-3.5 fill-current inline-block mr-1" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
-                              <span>Option Picture:</span>
-                            </span>
-                            
-                            {#if question.optionImages && question.optionImages[option]}
-                              <div class="flex items-center space-x-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-1.5 rounded-lg">
-                                <img src={question.optionImages[option]} alt="Option Preview" class="h-7 w-7 object-cover rounded-md border border-slate-300 dark:border-slate-700" />
-                                <button type="button" on:click={() => removeOptionImage(question, option)} class="text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:underline">Remove</button>
-                              </div>
-                            {:else}
-                              <label class="cursor-pointer bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold flex items-center space-x-1.5 transition-all w-fit active:scale-95">
-                                <svg class="w-3.5 h-3.5 fill-current text-slate-500" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>
-                                <span>Browse File</span>
-                                <input type="file" accept="image/*" on:change={(e) => handleOptionImageUpload(e, question, option)} class="hidden" />
-                              </label>
-                            {/if}
-                          </div>
-                        {/if}
                       </div>
                     {/each}
 
@@ -581,7 +572,7 @@
               {/if}
 
               <!-- DYNAMIC LOW RATING INCIDENT ALERT SETTINGS -->
-              {#if normType === 'smiley' || normType === 'stars' || normType === 'multiple-choice'}
+              {#if normType === 'smiley' || normType === 'stars' || normType === 'multiple-choice' || normType === 'dropdown'}
                 <div class="pt-4 border-t border-slate-200 dark:border-slate-900/80 space-y-2">
                   <div class="flex items-center justify-between">
                     <span class="text-[10px] font-mono font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest flex items-center space-x-1">
@@ -614,7 +605,7 @@
                           {starVal} {active ? '🚩' : ''}
                         </button>
                       {/each}
-                    {:else if normType === 'multiple-choice'}
+                    {:else if normType === 'multiple-choice' || normType === 'dropdown'}
                       {#if (question.options || []).length === 0}
                         <span class="text-[10px] text-slate-400 font-mono">Add options above first to set alert triggers</span>
                       {:else}
@@ -747,7 +738,7 @@
       {/if}
     </div>
 
-    <!-- ENDING PAGE & AUTO-REFRESH CONFIGURATION CARD (MOVED TO BOTTOM OF CANVAS) -->
+    <!-- ENDING PAGE & AUTO-REFRESH CONFIGURATION CARD -->
     <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-inner mt-8 space-y-4 shrink-0">
       <div class="border-b border-slate-200 dark:border-slate-800 pb-2 flex items-center justify-between">
         <div>
@@ -761,7 +752,6 @@
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <!-- ENDING MESSAGE TEXTAREA -->
         <div class="sm:col-span-2 space-y-1">
           <label for="thank-you-message-input" class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">
             Custom Ending / Thank You Message
@@ -775,7 +765,6 @@
           ></textarea>
         </div>
 
-        <!-- AUTO-REFRESH TIMER INPUT (CLEAN OVERLAP-FREE UI) -->
         <div class="space-y-1">
           <label for="refresh-seconds-input" class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">
             Reset Countdown (Seconds)
@@ -834,7 +823,6 @@
 {/if}
 
 <style>
-  /* HIDE NATIVE NUMBER SPINNER ARROWS ACROSS BROWSERS */
   .no-spinners::-webkit-outer-spin-button,
   .no-spinners::-webkit-inner-spin-button {
     -webkit-appearance: none;
