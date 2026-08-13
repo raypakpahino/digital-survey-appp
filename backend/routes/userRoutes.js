@@ -1,0 +1,121 @@
+import express from 'express';
+import User from '../models/User.js';
+import Site from '../models/Site.js';
+
+const router = express.Router();
+
+// ==========================================
+// SITE MANAGEMENT ROUTES
+// ==========================================
+
+router.get('/sites', async (req, res) => {
+  try {
+    const sites = await Site.find({}).sort({ name: 1 });
+    res.json({ success: true, sites });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/sites', async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Site name is required.' });
+    }
+
+    const cleanName = name.trim();
+    const existing = await Site.findOne({ name: { $regex: new RegExp(`^${cleanName}$`, 'i') } });
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'A site with this name already exists.' });
+    }
+
+    const newSite = await Site.create({ name: cleanName, description: description || '' });
+    res.status(201).json({ success: true, site: newSite });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.delete('/sites/:id', async (req, res) => {
+  try {
+    await Site.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Site removed successfully.' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==========================================
+// USER & ROLE MANAGEMENT ROUTES
+// ==========================================
+
+router.get('/users', async (req, res) => {
+  try {
+    const users = await User.find({}).select('-password').sort({ createdAt: -1 });
+    res.json({ success: true, users });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/users', async (req, res) => {
+  try {
+    const { username, password, role, assignedSite } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: 'Username and password are required.' });
+    }
+
+    const cleanUsername = username.trim().toLowerCase();
+    const existing = await User.findOne({ username: cleanUsername });
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'Username is already taken.' });
+    }
+
+    const newUser = await User.create({
+      username: cleanUsername,
+      password, // Hash with bcrypt if authentication requires encrypted tokens
+      role: role || 'user',
+      assignedSite: role === 'site_leader' ? (assignedSite || '') : ''
+    });
+
+    const userObj = newUser.toObject();
+    delete userObj.password;
+
+    res.status(201).json({ success: true, user: userObj });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.put('/users/:id', async (req, res) => {
+  try {
+    const { role, assignedSite, password } = req.body;
+    const updateData = {};
+
+    if (role) updateData.role = role;
+    if (assignedSite !== undefined) updateData.assignedSite = role === 'site_leader' ? assignedSite : '';
+    if (password) updateData.password = password;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateData },
+      { new: true }
+    ).select('-password');
+
+    res.json({ success: true, user: updatedUser });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.delete('/users/:id', async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'User deleted successfully.' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+export default router;

@@ -7,6 +7,7 @@
   import Answers from "./components/Answers.svelte";
   import Login from "./components/Login.svelte";
   import DeviceManagement from "./components/DeviceManagement.svelte";
+  import UserManagement from "./components/UserManagement.svelte";
 
   const API_BASE = "/api";
 
@@ -61,7 +62,7 @@
       return;
     }
 
-    if (currentUser && currentUser.role !== "admin" && (tab === "surveys" || tab === "builder" || tab === "devices")) {
+    if (currentUser && currentUser.role !== "admin" && (tab === "surveys" || tab === "builder" || tab === "devices" || tab === "users")) {
       activeTab = "kiosk";
       return;
     }
@@ -150,7 +151,7 @@
     window.addEventListener('popstate', () => {
       const hash = window.location.hash;
       const route = hash.replace("#/", "").split("?")[0];
-      if (["surveys", "builder", "kiosk", "answers", "devices"].includes(route)) {
+      if (["surveys", "builder", "kiosk", "answers", "devices", "users"].includes(route)) {
         activeTab = route;
       }
     });
@@ -223,7 +224,7 @@
             activeTab = "kiosk";
           } else {
             const route = hash.replace("#/", "").split("?")[0];
-            if (["surveys", "builder", "kiosk", "answers", "devices"].includes(route)) {
+            if (["surveys", "builder", "kiosk", "answers", "devices", "users"].includes(route)) {
               activeTab = route;
               if (route === "kiosk" && !urlSurveyId) {
                 activeSurveyId = "";
@@ -617,6 +618,22 @@
                 </button>
               {/if}
 
+              <!-- 6. USER & SITE CONTROL (ADMIN ONLY) -->
+              {#if currentUser?.role === "admin"}
+                <button
+                  class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'users' ? (isQrMode ? 'bg-cyan-600 text-white shadow-md' : 'bg-[#e31b23] text-white shadow-md') : 'text-rose-400 hover:bg-white/10 hover:text-rose-300'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
+                  on:click={() => switchTab("users")}
+                  title="User & Site Management"
+                >
+                  <svg class="w-5 h-5 shrink-0 fill-current" viewBox="0 0 24 24">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                  </svg>
+                  {#if isSidebarExpanded}
+                    <span class="truncate">User & Site Control</span>
+                  {/if}
+                </button>
+              {/if}
+
             </nav>
           </div>
 
@@ -772,6 +789,10 @@
           {:else if activeTab === "devices" && currentUser?.role === "admin" && !isQrMode}
             <div class="w-full h-full min-w-0">
               <DeviceManagement {currentUser} />
+            </div>
+          {:else if activeTab === "users" && currentUser?.role === "admin"}
+            <div class="w-full h-full min-w-0">
+              <UserManagement {currentUser} />
             </div>
           {/if}
         </div>
