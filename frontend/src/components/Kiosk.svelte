@@ -55,7 +55,7 @@
     return String(opt.targetSite).toLowerCase().trim() === String(deviceId).toLowerCase().trim();
   }).map(opt => opt.text);
 
-  // Appends "Other" to dropdown choices if enabled on question
+  // Appends "Other" option to dropdown choices when toggled in the Form Builder
   $: availableOptions = (currentQuestion && currentQuestion.enableOtherOption && !rawParsedOptions.includes("Other")) 
     ? [...rawParsedOptions, "Other"] 
     : rawParsedOptions;
@@ -234,7 +234,11 @@
     let finalValue = selectedValue;
 
     if (getNormalizedType(currentQuestion.type) === 'dropdown' && selectedValue === 'Other') {
-      finalValue = otherCustomText.trim() ? `Other: ${otherCustomText.trim()}` : 'Other';
+      if (!otherCustomText.trim()) {
+        validationError = "Please specify your custom answer for 'Other'.";
+        return;
+      }
+      finalValue = `Other: ${otherCustomText.trim()}`;
     } else if (getNormalizedType(currentQuestion.type) === 'multiple-choice' && currentQuestion.allowMultiple) {
       finalValue = selectedMultipleValues.join(", ");
     }
