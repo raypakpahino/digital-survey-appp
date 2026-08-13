@@ -120,7 +120,8 @@ router.put('/users/:id', async (req, res) => {
 
 router.delete('/users/:id', async (req, res) => {
   try {
-    await Site.findByIdAndDelete(req.params.id);
+    // FIX: Delete from User collection instead of Site collection
+    await User.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'User deleted successfully.' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

@@ -95,12 +95,14 @@
   }
 
   async function handleDeleteSite(siteId) {
-    if (!confirm("Are you sure you want to delete this site location?")) return;
+    // Non-blocking UI removal
+    sites = sites.filter(s => s._id !== siteId);
     try {
       await fetch(`${API_BASE}/sites/${siteId}`, { method: "DELETE" });
       loadData();
     } catch (err) {
       console.error(err);
+      loadData();
     }
   }
 
@@ -183,12 +185,19 @@
   }
 
   async function handleDeleteUser(userId) {
-    if (!confirm("Permanently delete this user account?")) return;
+    // Non-blocking UI update to prevent INP delays
+    users = users.filter(u => u._id !== userId);
+
     try {
-      await fetch(`${API_BASE}/users/${userId}`, { method: "DELETE" });
-      loadData();
+      const res = await fetch(`${API_BASE}/users/${userId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!data.success) {
+        console.warn("Failed to delete user on server:", data.message);
+        loadData();
+      }
     } catch (err) {
       console.error(err);
+      loadData();
     }
   }
 
@@ -277,8 +286,9 @@
                 <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono">
                   <span class="font-bold text-[#1a2b6c] dark:text-cyan-400">{site.name}</span>
                   <button 
+                    type="button"
                     on:click={() => handleDeleteSite(site._id)}
-                    class="text-rose-500 hover:text-rose-700 font-bold px-1.5 py-0.5 rounded text-[10px] hover:bg-rose-50 dark:hover:bg-rose-950 transition-colors"
+                    class="text-rose-500 hover:text-rose-700 font-bold px-1.5 py-0.5 rounded text-[10px] hover:bg-rose-50 dark:hover:bg-rose-950 transition-colors cursor-pointer"
                   >✕</button>
                 </div>
               {/each}
@@ -421,11 +431,13 @@
 
               <div class="flex items-center justify-end space-x-2 pt-1 border-t border-slate-200/60 dark:border-slate-800">
                 <button 
+                  type="button"
                   on:click={() => startEditUser(u)}
                   class="text-[10px] font-bold text-[#1a2b6c] dark:text-cyan-400 hover:underline cursor-pointer"
                 >Edit Permissions</button>
                 <span class="text-slate-300 text-[10px]">•</span>
                 <button 
+                  type="button"
                   on:click={() => handleDeleteUser(u._id)}
                   class="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
                 >Delete</button>
