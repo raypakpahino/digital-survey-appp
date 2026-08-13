@@ -14,11 +14,9 @@
   let saveContainerRef;
   let lastLoadedSurveyId = "";
 
-  // ASYNCHRONOUS NON-BLOCKING SAVE STATE
   let isSavingSchema = false;
   let saveSuccessBanner = "";
 
-  // DRAGGABLE RESIZER STATE
   let leftPanelWidth = 320;
   let isResizing = false;
 
@@ -107,6 +105,7 @@
         const opts = q.options || [];
         return {
           ...q,
+          enableOtherOption: Boolean(q.enableOtherOption),
           options: opts.map(parseOption),
           alertTriggerValues: Array.isArray(q.alertTriggerValues) 
             ? q.alertTriggerValues 
@@ -182,7 +181,6 @@
     }
     if (type === "dropdown") {
       defaultText = "Please select your option from the list:";
-      // Refined default options count down from 30 to 3 items
       defaultOptions = [
         { text: "Option 1", targetSite: "" },
         { text: "Option 2", targetSite: "" },
