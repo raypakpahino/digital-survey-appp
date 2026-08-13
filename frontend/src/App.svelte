@@ -153,7 +153,6 @@
       document.documentElement.classList.add('dark');
     }
 
-    // PERSIST MODE SELECTION ACROSS PAGE REFRESHES
     const savedAppMode = localStorage.getItem("sdx_app_mode");
     if (savedAppMode === "qr") {
       isQrMode = true;
@@ -324,10 +323,10 @@
     switchTab("builder");
   }
 
+  // ROBUST SAVE PERSISTENCE FUNCTION
   async function persistActiveSurveyState(updatedTitle, updatedQuestions, updatedThankYouMessage, updatedAutoRefreshSeconds, updatedPin) {
     if (!activeSurveyId || currentUser?.role !== "admin") return;
 
-    // Native structuredClone eliminates JSON stringification CPU freezes
     const questionsToSave = typeof structuredClone === 'function'
       ? structuredClone(updatedQuestions)
       : JSON.parse(JSON.stringify(updatedQuestions));
@@ -335,7 +334,7 @@
     const cleanSeconds = Math.max(1, Number(updatedAutoRefreshSeconds) || 4);
 
     const payload = {
-      title: updatedTitle,
+      title: String(updatedTitle || '').trim(),
       appMode: isQrMode ? "qr" : "kiosk",
       pinCode: updatedPin || activeSurvey.pinCode || "1234",
       questions: questionsToSave,
@@ -343,6 +342,7 @@
       autoRefreshSeconds: cleanSeconds
     };
 
+    // 1. Handle Creation of New Draft Surveys
     if (String(activeSurveyId).startsWith("DRAFT-") || activeSurvey.isDraft) {
       try {
         const res = await fetch(`${API_BASE}/surveys`, {
@@ -354,7 +354,7 @@
         if (data.success && data.survey) {
           const normalized = normalizeSurvey(data.survey);
           surveysList = surveysList.map((s) =>
-            s._id === activeSurveyId ? normalized : s,
+            s._id === activeSurveyId ? normalized : s
           );
           activeSurveyId = normalized._id;
           await refreshDataLedger();
@@ -365,6 +365,7 @@
       return;
     }
 
+    // 2. Handle Updating Existing Surveys in Database
     try {
       const res = await fetch(`${API_BASE}/surveys/${activeSurveyId}`, {
         method: "PUT",
@@ -374,9 +375,12 @@
       const data = await res.json();
       if (data.success && data.survey) {
         const normalized = normalizeSurvey(data.survey);
+        
+        // Update local surveysList array reactively
         surveysList = surveysList.map((s) =>
-          s._id === activeSurveyId ? normalized : s,
+          String(s._id) === String(activeSurveyId) ? normalized : s
         );
+
         await refreshDataLedger();
       } else {
         await refreshDataLedger();
@@ -411,7 +415,6 @@
       const urlSiteParam = urlParams.get("site");
       const savedSite = localStorage.getItem("sdx_device_id");
 
-      // Dynamic site resolution for QR Phone Scans
       const resolvedSiteId = explicitDeviceId || urlSiteParam || savedSite || (isQrMode ? "Web-QR-Scan" : "Tablet-A");
 
       const res = await fetch(`${API_BASE}/responses`, {
