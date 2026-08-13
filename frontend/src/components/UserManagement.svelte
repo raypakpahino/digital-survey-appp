@@ -27,6 +27,17 @@
 
   $: selectedRole = isQrMode ? "site_leader" : "kiosk_operator";
 
+  // FILTER DIRECTORY BASED ON ACTIVE ENGINE MODE
+  $: filteredUsers = users.filter(u => {
+    const r = u.role === 'user' ? 'kiosk_operator' : u.role;
+    if (r === 'admin') return true;
+    if (isQrMode) {
+      return r === 'site_leader';
+    } else {
+      return r === 'kiosk_operator';
+    }
+  });
+
   async function loadData() {
     isLoading = true;
     try {
@@ -156,7 +167,7 @@
     editingUserId = u._id;
     inputUsername = u.username;
     inputPassword = "";
-    selectedRole = u.role || (isQrMode ? "site_leader" : "kiosk_operator");
+    selectedRole = u.role === 'user' ? 'kiosk_operator' : u.role;
     selectedSite = u.assignedSite || (sites.length > 0 ? sites[0].name : "");
     userMessage = `Editing user '${u.username}'. Update permissions below.`;
     userMessageType = "info";
@@ -372,48 +383,56 @@
       </form>
     </div>
 
-    <!-- ROSTER DIRECTORY -->
+    <!-- ROSTER DIRECTORY (FILTERED FOR CURRENT MODE) -->
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-        <h3 class="text-xs font-mono font-extrabold text-[#1a2b6c] dark:text-cyan-400 uppercase tracking-wider">User Directory</h3>
-        <span class="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">{users.length} Total Users</span>
+        <h3 class="text-xs font-mono font-extrabold text-[#1a2b6c] dark:text-cyan-400 uppercase tracking-wider">
+          {isQrMode ? 'Web QR Users' : 'Enterprise Kiosk Users'}
+        </h3>
+        <span class="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">{filteredUsers.length} Users</span>
       </div>
 
       <div class="space-y-2.5 max-h-[28rem] overflow-y-auto custom-scrollbar pr-1">
-        {#each users as u}
-          {@const displayRole = u.role === 'user' ? 'kiosk_operator' : u.role}
-          <div class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center space-x-2">
-                <span class="h-2 w-2 rounded-full {displayRole === 'admin' ? 'bg-purple-500' : (displayRole === 'site_leader' ? 'bg-emerald-500' : 'bg-blue-500')}"></span>
-                <span class="font-bold text-xs text-slate-900 dark:text-white font-mono">{u.username}</span>
-              </div>
-              
-              <span class="text-[9px] uppercase font-mono font-bold px-2 py-0.5 rounded border {displayRole === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-200' : (displayRole === 'site_leader' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-blue-50 text-blue-700 border-blue-200')}">
-                {displayRole.replace('_', ' ')}
-              </span>
-            </div>
-
-            {#if displayRole === 'site_leader'}
-              <div class="text-[10px] font-mono text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                <span>Scoped QR Site:</span>
-                <span class="font-black text-[#1a2b6c] dark:text-cyan-300">{u.assignedSite || 'Unassigned'}</span>
-              </div>
-            {/if}
-
-            <div class="flex items-center justify-end space-x-2 pt-1 border-t border-slate-200/60 dark:border-slate-800">
-              <button 
-                on:click={() => startEditUser(u)}
-                class="text-[10px] font-bold text-[#1a2b6c] dark:text-cyan-400 hover:underline cursor-pointer"
-              >Edit Permissions</button>
-              <span class="text-slate-300 text-[10px]">•</span>
-              <button 
-                on:click={() => handleDeleteUser(u._id)}
-                class="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
-              >Delete</button>
-            </div>
+        {#if filteredUsers.length === 0}
+          <div class="p-6 text-center text-xs text-slate-400 italic font-mono">
+            No accounts configured for this engine mode yet.
           </div>
-        {/each}
+        {:else}
+          {#each filteredUsers as u}
+            {@const displayRole = u.role === 'user' ? 'kiosk_operator' : u.role}
+            <div class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                  <span class="h-2 w-2 rounded-full {displayRole === 'admin' ? 'bg-purple-500' : (displayRole === 'site_leader' ? 'bg-emerald-500' : 'bg-blue-500')}"></span>
+                  <span class="font-bold text-xs text-slate-900 dark:text-white font-mono">{u.username}</span>
+                </div>
+                
+                <span class="text-[9px] uppercase font-mono font-bold px-2 py-0.5 rounded border {displayRole === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-200' : (displayRole === 'site_leader' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-blue-50 text-blue-700 border-blue-200')}">
+                  {displayRole.replace('_', ' ')}
+                </span>
+              </div>
+
+              {#if isQrMode && displayRole === 'site_leader'}
+                <div class="text-[10px] font-mono text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                  <span>Scoped QR Site:</span>
+                  <span class="font-black text-[#1a2b6c] dark:text-cyan-300">{u.assignedSite || 'Unassigned'}</span>
+                </div>
+              {/if}
+
+              <div class="flex items-center justify-end space-x-2 pt-1 border-t border-slate-200/60 dark:border-slate-800">
+                <button 
+                  on:click={() => startEditUser(u)}
+                  class="text-[10px] font-bold text-[#1a2b6c] dark:text-cyan-400 hover:underline cursor-pointer"
+                >Edit Permissions</button>
+                <span class="text-slate-300 text-[10px]">•</span>
+                <button 
+                  on:click={() => handleDeleteUser(u._id)}
+                  class="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
+                >Delete</button>
+              </div>
+            </div>
+          {/each}
+        {/if}
       </div>
     </div>
 

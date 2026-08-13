@@ -14,12 +14,12 @@ const UserSchema = new mongoose.Schema({
   },
   role: { 
     type: String, 
-    enum: ['admin', 'site_leader', 'user', 'kiosk_operator'], 
-    default: 'user' 
+    enum: ['admin', 'site_leader', 'kiosk_operator', 'user'], 
+    default: 'kiosk_operator' 
   },
   assignedSite: {
     type: String,
-    default: '' // e.g. "Ray's LOQ 2" or "Bali Site"
+    default: ''
   }
 }, { timestamps: true });
 
