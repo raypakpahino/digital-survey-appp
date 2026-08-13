@@ -323,7 +323,7 @@
     switchTab("builder");
   }
 
-  // ROBUST SAVE PERSISTENCE FUNCTION
+  // ROBUST SAVE PERSISTENCE WITH ERROR ALERT & RE-SYNC
   async function persistActiveSurveyState(updatedTitle, updatedQuestions, updatedThankYouMessage, updatedAutoRefreshSeconds, updatedPin) {
     if (!activeSurveyId || currentUser?.role !== "admin") return;
 
@@ -342,7 +342,6 @@
       autoRefreshSeconds: cleanSeconds
     };
 
-    // 1. Handle Creation of New Draft Surveys
     if (String(activeSurveyId).startsWith("DRAFT-") || activeSurvey.isDraft) {
       try {
         const res = await fetch(`${API_BASE}/surveys`, {
@@ -358,14 +357,16 @@
           );
           activeSurveyId = normalized._id;
           await refreshDataLedger();
+        } else {
+          alert(`⚠️ Failed to create survey: ${data.error || data.message || 'Unknown error'}`);
         }
       } catch (err) {
         console.error("Error creating survey in database:", err);
+        alert("⚠️ Server connection error while creating survey.");
       }
       return;
     }
 
-    // 2. Handle Updating Existing Surveys in Database
     try {
       const res = await fetch(`${API_BASE}/surveys/${activeSurveyId}`, {
         method: "PUT",
@@ -376,17 +377,18 @@
       if (data.success && data.survey) {
         const normalized = normalizeSurvey(data.survey);
         
-        // Update local surveysList array reactively
         surveysList = surveysList.map((s) =>
           String(s._id) === String(activeSurveyId) ? normalized : s
         );
 
         await refreshDataLedger();
       } else {
+        alert(`⚠️ Failed to update survey: ${data.error || data.message || 'HTTP ' + res.status}`);
         await refreshDataLedger();
       }
     } catch (err) {
       console.error("Error updating survey in database:", err);
+      alert("⚠️ Network or server error while updating survey.");
     }
   }
 

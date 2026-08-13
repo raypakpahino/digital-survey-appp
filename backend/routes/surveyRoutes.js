@@ -6,6 +6,10 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
+// Middleware: Enable large JSON payloads (up to 10MB) for Base64 image compatibility
+router.use(express.json({ limit: '10mb' }));
+router.use(express.urlencoded({ limit: '10mb', extended: true }));
+
 const generateUniquePin = (existingPins = new Set()) => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let pin = '';
@@ -43,7 +47,6 @@ const sanitizeQuestions = (questions) => {
   }));
 };
 
-// HELPER: Formats ISO timestamp with local timezone abbreviation (e.g., WIB, WITA, WIT)
 const formatToLocalTimezone = (isoString, timeZone = 'Asia/Jakarta') => {
   if (!isoString) return '';
   const date = new Date(isoString);
@@ -130,7 +133,6 @@ router.put('/surveys/:id', async (req, res) => {
   }
 });
 
-// ROBUST CASE-INSENSITIVE PIN VERIFICATION ROUTE
 router.post('/surveys/:id/verify-pin', async (req, res) => {
   try {
     const { pinCode } = req.body;
@@ -375,7 +377,6 @@ router.post('/responses', async (req, res) => {
   try {
     const { surveyTitle, deviceId, answers, appMode } = req.body;
     
-    // Explicitly preserves location/site parameters in QR Mode
     const cleanDeviceId = String(deviceId || (appMode === 'qr' ? 'Web-QR-Scan' : 'Tablet-Unassigned')).trim();
 
     const newResponse = await Response.create({
@@ -397,7 +398,6 @@ router.get('/responses', async (req, res) => {
     const targetTz = req.query.tz || 'Asia/Jakarta';
     const mode = req.query.mode || 'kiosk';
     
-    // Scopes query so QR responses are properly fetched even across legacy docs
     const filter = mode === 'qr' 
       ? { appMode: 'qr' }
       : { $or: [{ appMode: 'kiosk' }, { appMode: { $exists: false } }] };

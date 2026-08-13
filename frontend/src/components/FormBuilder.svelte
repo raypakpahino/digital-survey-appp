@@ -66,11 +66,9 @@
     return [];
   }
 
-  // FORCE DYNAMIC STATE SYNC WHEN SWITCHING OR UPDATING ACTIVE SURVEY
   function loadActiveFormState(targetId, currentTitle, currentQuestions) {
     if (!targetId) return;
     
-    // Always sync title and survey parameters
     localTitle = currentTitle || "";
     
     const activeSurvey = surveys.find(s => String(s._id) === String(targetId));
@@ -244,29 +242,53 @@
     }
   }
 
-  function handleQuestionImageUpload(event, question) {
-    const file = event.target.files[0];
-    if (!file) return;
+  // CANVAS COMPRESSION HELPER (Compresses Base64 images to ~50-80KB max to avoid Vercel 4.5MB limit)
+  function compressImage(file, maxWidth = 800, quality = 0.7) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      question.questionImage = e.target.result;
-      localQuestions = localQuestions;
-    };
-    reader.readAsDataURL(file);
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
   }
 
-  function handleOptionImageUpload(event, question, optionKey) {
+  async function handleQuestionImageUpload(event, question) {
     const file = event.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (!question.optionImages) question.optionImages = {};
-      question.optionImages[optionKey] = e.target.result;
-      localQuestions = localQuestions;
-    };
-    reader.readAsDataURL(file);
+    const compressedBase64 = await compressImage(file, 800, 0.7);
+    question.questionImage = compressedBase64;
+    localQuestions = localQuestions;
+  }
+
+  async function handleOptionImageUpload(event, question, optionKey) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const compressedBase64 = await compressImage(file, 400, 0.7);
+    if (!question.optionImages) question.optionImages = {};
+    question.optionImages[optionKey] = compressedBase64;
+    localQuestions = localQuestions;
   }
 
   function removeQuestionImage(question) {
@@ -312,11 +334,10 @@
 
     const cleanSeconds = Math.max(1, parseInt(localAutoRefreshSeconds, 10) || 4);
     
-    // Pass local updated title and questions directly to App.svelte
     await onSaveSurvey(localTitle.trim(), localQuestions, localThankYouMessage, cleanSeconds);
 
     isSavingSchema = false;
-    saveSuccessBanner = "💾 Form title and schema saved successfully!";
+    saveSuccessBanner = "💾 Form schema saved successfully!";
 
     setTimeout(() => {
       saveSuccessBanner = "";
@@ -435,7 +456,7 @@
           <button
             type="button"
             on:click={scrollToSave}
-            class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all duration-200 shrink-0 flex items-center justify-center space-x-2 active:scale-95 shadow-md hover:shadow-lg hover:shadow-[#e31b23]/20 border border-[#1a2b6c] dark:border-slate-700 font-sans"
+            class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all duration-200 shrink-0 flex items-center justify-center space-x-2 active:scale-95 shadow-md hover:shadow-lg border border-[#1a2b6c]"
             style="color: #ffffff !important;"
             title="Scroll down to Save button"
           >
