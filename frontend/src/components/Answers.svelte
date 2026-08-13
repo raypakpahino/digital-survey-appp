@@ -126,10 +126,9 @@
     return acc;
   }, []);
 
+  // FIXED: Fetch all unique devices from all loaded responses so they stop disappearing from the sidebar
   $: availableDevices = Array.from(new Set(
-    responses
-      .filter((r) => isQrMode || selectedSurveyTitles.includes(cleanString(r.surveyTitle)))
-      .map((r) => r.deviceId || "Tablet-A")
+    responses.map((r) => r.deviceId || "Tablet-A")
   )).sort();
 
   $: filteredAvailableDevices = availableDevices.filter(devId => 
@@ -519,7 +518,7 @@
   function isAnalyticsEligible(qType) {
     if (!qType) return false;
     const normalized = String(qType).toUpperCase().replace(/_/g, '-');
-    return normalized !== 'TEXT' && normalized !== 'SHORT-ANSWER' && normalized !== 'SHORTANSWER' && normalized !== 'DATE';
+    return normalized !== 'TEXT' && normalized !== 'SHORT-ANSWER' && normalized !== 'SHORTANSWER' && normalized !== 'DATE' && normalized !== 'NUMBER';
   }
 
   function openQuestionModal(q) {
