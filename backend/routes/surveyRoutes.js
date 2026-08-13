@@ -22,7 +22,7 @@ const generateUniquePin = (existingPins = new Set()) => {
   return pin;
 };
 
-// SANITIZER: Preserves enableOtherOption, option images, and JSON options
+// SANITIZER: Explicitly preserves enableOtherOption and other properties
 const sanitizeQuestions = (questions) => {
   if (!Array.isArray(questions)) return [];
   return questions.map((q) => ({
