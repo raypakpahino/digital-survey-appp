@@ -81,9 +81,10 @@ const formatToLocalTimezone = (isoString, timeZone = 'Asia/Jakarta') => {
 router.get('/surveys', async (req, res) => {
   try {
     const mode = req.query.mode || 'kiosk';
+    // FIXED: Kiosk mode fetches kiosk records and legacy/null entries without cross-contaminating QR data
     const filter = mode === 'qr' 
       ? { appMode: 'qr' } 
-      : { $or: [{ appMode: 'kiosk' }, { appMode: { $exists: false } }] };
+      : { $or: [{ appMode: 'kiosk' }, { appMode: { $exists: false } }, { appMode: null }] };
 
     const surveys = await Survey.find(filter);
     res.json({ success: true, surveys });
@@ -402,9 +403,10 @@ router.get('/responses', async (req, res) => {
     const targetTz = req.query.tz || 'Asia/Jakarta';
     const mode = req.query.mode || 'kiosk';
     
+    // FIXED: Kiosk mode fetches kiosk records and legacy/null entries without cross-contaminating QR data
     const filter = mode === 'qr' 
       ? { appMode: 'qr' }
-      : { $or: [{ appMode: 'kiosk' }, { appMode: { $exists: false } }] };
+      : { $or: [{ appMode: 'kiosk' }, { appMode: { $exists: false } }, { appMode: null }] };
 
     const rawResponses = await Response.find(filter).sort({ createdAt: -1 }).lean();
 
