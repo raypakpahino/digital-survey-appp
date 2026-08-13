@@ -72,11 +72,15 @@ router.post('/users', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Username is already taken.' });
     }
 
+    // MAP LEGACY 'user' ROLE TO 'kiosk_operator'
+    let targetRole = role || 'kiosk_operator';
+    if (targetRole === 'user') targetRole = 'kiosk_operator';
+
     const newUser = await User.create({
       username: cleanUsername,
       password, // Hash with bcrypt if authentication requires encrypted tokens
-      role: role || 'user',
-      assignedSite: role === 'site_leader' ? (assignedSite || '') : ''
+      role: targetRole,
+      assignedSite: targetRole === 'site_leader' ? (assignedSite || '') : ''
     });
 
     const userObj = newUser.toObject();
@@ -93,9 +97,17 @@ router.put('/users/:id', async (req, res) => {
     const { role, assignedSite, password } = req.body;
     const updateData = {};
 
-    if (role) updateData.role = role;
-    if (assignedSite !== undefined) updateData.assignedSite = role === 'site_leader' ? assignedSite : '';
-    if (password) updateData.password = password;
+    if (role) {
+      updateData.role = role === 'user' ? 'kiosk_operator' : role;
+    }
+    
+    if (assignedSite !== undefined) {
+      updateData.assignedSite = updateData.role === 'site_leader' ? assignedSite : '';
+    }
+    
+    if (password && password.trim()) {
+      updateData.password = password.trim();
+    }
 
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,

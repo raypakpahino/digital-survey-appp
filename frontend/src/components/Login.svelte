@@ -45,13 +45,15 @@
     <!-- BRANDING HEADER -->
     <div class="text-center space-y-2">
       <div class="h-12 w-12 rounded-2xl bg-[#1a2b6c] flex items-center justify-center font-bold text-xl text-white shadow-lg mx-auto mb-2">
-        DS
+        {isQrMode ? "QR" : "EK"}
       </div>
       <h1 class="text-2xl font-black text-[#1a2b6c] dark:text-white tracking-tight">
-        {isQrMode ? "QR Survey Portal" : "DigitalSurvey Portal"}
+        {isQrMode ? "Web QR Survey Portal" : "Enterprise Kiosk Portal"}
       </h1>
       <p class="text-xs text-slate-500 dark:text-slate-400">
-        {isQrMode ? "Sign in with Site Leader or Admin credentials" : "Sign in with your assigned account to continue"}
+        {isQrMode 
+          ? "Sign in with Site Leader or Admin credentials" 
+          : "Sign in with Kiosk Operator or Admin credentials"}
       </p>
     </div>
 
@@ -68,7 +70,7 @@
           id="username-input"
           type="text"
           bind:value={username}
-          placeholder="e.g. admin or site_leader"
+          placeholder={isQrMode ? "e.g. site_leader_north" : "e.g. kiosk_operator_1"}
           class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[#1a2b6c] dark:text-white placeholder-slate-400 dark:placeholder-slate-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#e31b23] transition-all font-mono"
         />
       </div>
@@ -87,7 +89,7 @@
       <button
         type="submit"
         disabled={isLoading}
-        class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold py-3.5 px-4 rounded-xl text-sm transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 mt-2"
+        class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold py-3.5 px-4 rounded-xl text-sm transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 mt-2 cursor-pointer"
         style="color: #ffffff !important;"
       >
         {isLoading ? "Authenticating..." : "Sign In ➔"}
@@ -97,10 +99,10 @@
     <!-- ADMIN CONTACT NOTICE -->
     <div class="pt-4 border-t border-slate-200 dark:border-slate-800/80 text-center space-y-1">
       <p class="text-[11px] text-slate-400 dark:text-slate-500">
-        Need access to a specific site location?
+        {isQrMode ? "Need access to a specific site location?" : "Need operator credentials for a terminal?"}
       </p>
       <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">
-        Contact your <span class="text-[#e31b23] dark:text-rose-400 font-bold">System Administrator</span> to request a Site Leader account.
+        Contact your <span class="text-[#e31b23] dark:text-rose-400 font-bold">System Administrator</span> to request access.
       </p>
     </div>
 
