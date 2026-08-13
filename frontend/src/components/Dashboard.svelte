@@ -6,6 +6,13 @@
   export let onEditSurvey = (id) => {};
   export let onTestSurvey = (id) => {};
   export let onOpenShareModal = (survey) => {};
+
+  function handleConfirmDelete(survey) {
+    const titleText = survey.title ? `"${survey.title}"` : "this survey";
+    if (confirm(`Are you sure you want to delete ${titleText}? This action cannot be undone and will erase all associated response logs.`)) {
+      onDeleteSurvey(survey._id);
+    }
+  }
 </script>
 
 <div class="w-full space-y-8 animate-fade pb-12">
@@ -18,7 +25,7 @@
     <!-- HIGH-CONTRAST BOLD CREATE NEW FORM BUTTON -->
     <button 
       on:click={onCreateSurvey} 
-      class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white px-5 py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-[#1a2b6c]/20 active:scale-[0.98] flex items-center space-x-2"
+      class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white px-5 py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-[#1a2b6c]/20 active:scale-[0.98] flex items-center space-x-2 cursor-pointer"
       style="color: #ffffff !important; font-weight: 700 !important; background-color: #1a2b6c !important;"
     >
       <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24" style="fill: #ffffff !important;">
@@ -69,8 +76,8 @@
           <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-md hover:border-slate-300 dark:hover:border-slate-700/80 transition-all flex flex-col justify-between space-y-6 relative group">
             
             <button 
-              on:click={() => onDeleteSurvey(survey._id)}
-              class="absolute top-4 right-4 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 bg-slate-100 dark:bg-slate-950 hover:bg-rose-50 dark:hover:bg-rose-950/20 border border-slate-200 dark:border-slate-800/60 hover:border-rose-300 dark:hover:border-rose-900/40 h-8 w-8 rounded-xl flex items-center justify-center text-xs transition-all opacity-0 group-hover:opacity-100 shadow-xs"
+              on:click={() => handleConfirmDelete(survey)}
+              class="absolute top-4 right-4 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 bg-slate-100 dark:bg-slate-950 hover:bg-rose-50 dark:hover:bg-rose-950/20 border border-slate-200 dark:border-slate-800/60 hover:border-rose-300 dark:hover:border-rose-900/40 h-8 w-8 rounded-xl flex items-center justify-center text-xs transition-all opacity-0 group-hover:opacity-100 shadow-xs cursor-pointer"
               title="Delete Survey"
             >
               ✕
@@ -90,14 +97,14 @@
             <div class="flex flex-col gap-2 pt-2 border-t border-slate-200 dark:border-slate-800/60">
               <div class="grid grid-cols-2 gap-2">
                 
-                <button on:click={() => onEditSurvey(survey._id)} class="w-full text-center bg-slate-100 dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold py-2.5 px-4 text-xs rounded-xl border border-slate-200 dark:border-slate-800 transition-all flex items-center justify-center space-x-2">
+                <button on:click={() => onEditSurvey(survey._id)} class="w-full text-center bg-slate-100 dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold py-2.5 px-4 text-xs rounded-xl border border-slate-200 dark:border-slate-800 transition-all flex items-center justify-center space-x-2 cursor-pointer">
                   <svg class="w-4 h-4 fill-current text-slate-600 dark:text-slate-300" viewBox="0 0 24 24">
                     <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
                   </svg>
                   <span>Open Designer</span>
                 </button>
 
-                <button on:click={() => onTestSurvey(survey._id)} class="w-full text-center bg-slate-100 dark:bg-cyan-950/40 hover:bg-slate-200 dark:hover:bg-cyan-950/80 text-[#1a2b6c] dark:text-cyan-400 font-bold py-2.5 px-4 text-xs rounded-xl border border-slate-200 dark:border-cyan-950/80 transition-all flex items-center justify-center space-x-2">
+                <button on:click={() => onTestSurvey(survey._id)} class="w-full text-center bg-slate-100 dark:bg-cyan-950/40 hover:bg-slate-200 dark:hover:bg-cyan-950/80 text-[#1a2b6c] dark:text-cyan-400 font-bold py-2.5 px-4 text-xs rounded-xl border border-slate-200 dark:border-cyan-950/80 transition-all flex items-center justify-center space-x-2 cursor-pointer">
                   <svg class="w-4 h-4 fill-current text-[#1a2b6c] dark:text-cyan-400" viewBox="0 0 24 24">
                     <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
                   </svg>
@@ -106,7 +113,7 @@
 
               </div>
               
-              <button on:click={() => onOpenShareModal(survey)} class="w-full bg-slate-100 dark:bg-slate-950 text-emerald-700 dark:text-emerald-400 font-bold py-2.5 px-4 text-xs rounded-xl border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/10 transition-all flex items-center justify-center space-x-2">
+              <button on:click={() => onOpenShareModal(survey)} class="w-full bg-slate-100 dark:bg-slate-950 text-emerald-700 dark:text-emerald-400 font-bold py-2.5 px-4 text-xs rounded-xl border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/10 transition-all flex items-center justify-center space-x-2 cursor-pointer">
                 <svg class="w-4 h-4 fill-current text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24">
                   <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/>
                 </svg>
