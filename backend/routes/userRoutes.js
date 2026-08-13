@@ -1,13 +1,11 @@
 import express from 'express';
+import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import Site from '../models/Site.js';
 
 const router = express.Router();
 
-// ==========================================
 // SITE MANAGEMENT ROUTES
-// ==========================================
-
 router.get('/sites', async (req, res) => {
   try {
     const sites = await Site.find({}).sort({ name: 1 });
@@ -46,10 +44,7 @@ router.delete('/sites/:id', async (req, res) => {
   }
 });
 
-// ==========================================
 // USER & ROLE MANAGEMENT ROUTES
-// ==========================================
-
 router.get('/users', async (req, res) => {
   try {
     const users = await User.find({}).select('-password').sort({ createdAt: -1 });
@@ -72,12 +67,15 @@ router.post('/users', async (req, res) => {
       return res.status(400).json({ success: false, message: `Username '${cleanUsername}' is already taken.` });
     }
 
-    // Map role cleanly for database compatibility
-    let targetRole = role || 'user';
+    let targetRole = role || 'kiosk_operator';
+    if (targetRole === 'user') targetRole = 'kiosk_operator';
+
+    // Hash password with bcrypt so login comparison succeeds
+    const hashedPassword = await bcrypt.hash(password.trim(), 10);
 
     const newUser = await User.create({
       username: cleanUsername,
-      password, // Stored directly or hashed
+      password: hashedPassword,
       role: targetRole,
       assignedSite: targetRole === 'site_leader' ? (assignedSite || '') : ''
     });
@@ -97,15 +95,15 @@ router.put('/users/:id', async (req, res) => {
     const updateData = {};
 
     if (role) {
-      updateData.role = role;
+      updateData.role = role === 'user' ? 'kiosk_operator' : role;
     }
     
     if (assignedSite !== undefined) {
-      updateData.assignedSite = (updateData.role === 'site_leader' || role === 'site_leader') ? assignedSite : '';
+      updateData.assignedSite = updateData.role === 'site_leader' ? assignedSite : '';
     }
     
     if (password && password.trim()) {
-      updateData.password = password.trim();
+      updateData.password = await bcrypt.hash(password.trim(), 10);
     }
 
     const updatedUser = await User.findByIdAndUpdate(
@@ -122,7 +120,7 @@ router.put('/users/:id', async (req, res) => {
 
 router.delete('/users/:id', async (req, res) => {
   try {
-    await User.findByIdAndDelete(req.params.id);
+    await Site.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'User deleted successfully.' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

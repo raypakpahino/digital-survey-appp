@@ -6,34 +6,23 @@ import User from '../models/User.js';
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'sdx_digital_survey_secret_key_2026';
 
-// HELPER: Guarantees default 'admin', 'site_leader', and 'user' accounts exist
+// HELPER: Guarantees default 'admin' account exists if DB is totally fresh
 const ensureDefaultAccounts = async () => {
   try {
-    const defaultPasswordHash = await bcrypt.hash('12345678', 10);
+    const adminCount = await User.countDocuments({ role: 'admin' });
+    if (adminCount === 0) {
+      const defaultPasswordHash = await bcrypt.hash('12345678', 10);
+      await User.create({
+        username: 'admin',
+        password: defaultPasswordHash,
+        role: 'admin',
+        assignedSite: ''
+      });
+      console.log("✅ Primed default admin account (username: admin, pass: 12345678)");
+    }
 
-    // Upsert Admin Account
-    await User.findOneAndUpdate(
-      { username: 'admin' },
-      { username: 'admin', password: defaultPasswordHash, role: 'admin', assignedSite: '' },
-      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
-    );
-
-    // Upsert Default Site Leader Account
-    await User.findOneAndUpdate(
-      { username: 'site_leader' },
-      { username: 'site_leader', password: defaultPasswordHash, role: 'site_leader', assignedSite: 'Tablet-A' },
-      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
-    );
-
-    // Upsert Standard User Account
-    await User.findOneAndUpdate(
-      { username: 'user' },
-      { username: 'user', password: defaultPasswordHash, role: 'user', assignedSite: '' },
-      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
-    );
-
-    // Clean up legacy email-formatted users if they exist
-    await User.deleteMany({ username: { $in: ['admin@ds.com', 'user@ds.com'] } });
+    // Clean up legacy email-formatted or old 'user' account if still in DB
+    await User.deleteMany({ username: { $in: ['admin@ds.com', 'user@ds.com', 'user'] } });
   } catch (err) {
     console.warn("Account provisioning notice:", err.message);
   }
@@ -48,10 +37,8 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please enter both username and password.' });
     }
 
-    // Always ensure database accounts are primed
     await ensureDefaultAccounts();
 
-    // Sanitize input
     let cleanUsername = String(username).trim().toLowerCase();
     if (cleanUsername.includes('@')) {
       cleanUsername = cleanUsername.split('@')[0];
@@ -63,7 +50,14 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid username or password.' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    // Support both bcrypt hashed passwords and legacy plain text fallback
+    let isMatch = false;
+    if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$')) {
+      isMatch = await bcrypt.compare(password, user.password);
+    } else {
+      isMatch = (password === user.password);
+    }
+
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid username or password.' });
     }
@@ -124,42 +118,7 @@ router.get('/me', async (req, res) => {
   }
 });
 
-// 3. ADMIN USER PROVISIONING ROUTE (CREATE / UPDATE ROLES & SITE ASSIGNMENTS)
-router.post('/users/assign', async (req, res) => {
-  try {
-    const { username, password, role, assignedSite } = req.body;
-
-    if (!username) {
-      return res.status(400).json({ success: false, message: 'Username is required.' });
-    }
-
-    const cleanUsername = String(username).trim().toLowerCase();
-    const updateData = {};
-
-    if (role) updateData.role = role;
-    if (assignedSite !== undefined) updateData.assignedSite = String(assignedSite).trim();
-
-    if (password && password.trim().length > 0) {
-      updateData.password = await bcrypt.hash(password.trim(), 10);
-    }
-
-    const user = await User.findOneAndUpdate(
-      { username: cleanUsername },
-      { $set: updateData },
-      { upsert: true, new: true, runValidators: false }
-    ).select('-password');
-
-    res.json({ 
-      success: true, 
-      message: `User '${cleanUsername}' updated successfully.`,
-      user: { id: user._id, username: user.username, role: user.role, assignedSite: user.assignedSite } 
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// 4. GET ALL REGISTERED USERS (FOR ADMIN DASHBOARD)
+// 3. GET ALL REGISTERED USERS
 router.get('/users', async (req, res) => {
   try {
     const users = await User.find({}).select('-password').sort({ createdAt: -1 });
