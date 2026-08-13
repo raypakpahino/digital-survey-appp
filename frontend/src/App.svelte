@@ -327,7 +327,11 @@
   async function persistActiveSurveyState(updatedTitle, updatedQuestions, updatedThankYouMessage, updatedAutoRefreshSeconds, updatedPin) {
     if (!activeSurveyId || currentUser?.role !== "admin") return;
 
-    const questionsToSave = JSON.parse(JSON.stringify(updatedQuestions));
+    // Native structuredClone eliminates JSON stringification CPU freezes
+    const questionsToSave = typeof structuredClone === 'function'
+      ? structuredClone(updatedQuestions)
+      : JSON.parse(JSON.stringify(updatedQuestions));
+
     const cleanSeconds = Math.max(1, Number(updatedAutoRefreshSeconds) || 4);
 
     activeSurvey.title = updatedTitle;

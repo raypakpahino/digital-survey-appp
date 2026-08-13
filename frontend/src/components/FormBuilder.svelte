@@ -14,6 +14,10 @@
   let saveContainerRef;
   let lastLoadedSurveyId = "";
 
+  // ASYNCHRONOUS NON-BLOCKING SAVE STATE
+  let isSavingSchema = false;
+  let saveSuccessBanner = "";
+
   // DRAGGABLE RESIZER STATE
   let leftPanelWidth = 320;
   let isResizing = false;
@@ -289,10 +293,19 @@
     }
   }
 
-  function triggerExplicitSave() {
+  async function triggerExplicitSave() {
+    isSavingSchema = true;
+    saveSuccessBanner = "";
+
     const cleanSeconds = Math.max(1, parseInt(localAutoRefreshSeconds, 10) || 4);
-    onSaveSurvey(localTitle, localQuestions, localThankYouMessage, cleanSeconds);
-    alert("💾 Form schema and alert thresholds saved successfully!");
+    await onSaveSurvey(localTitle, localQuestions, localThankYouMessage, cleanSeconds);
+
+    isSavingSchema = false;
+    saveSuccessBanner = "💾 Form schema saved successfully!";
+
+    setTimeout(() => {
+      saveSuccessBanner = "";
+    }, 3000);
   }
 
   function getNormalizedType(qType) {
@@ -305,12 +318,8 @@
     const targetQ = localQuestions[dependedIndex];
     const type = getNormalizedType(targetQ.type);
 
-    if (type === 'smiley') {
-      return ["ANGRY", "SAD", "NEUTRAL", "HAPPY", "DELIGHTED"];
-    }
-    if (type === 'stars') {
-      return ["1 Stars", "2 Stars", "3 Stars", "4 Stars", "5 Stars"];
-    }
+    if (type === 'smiley') return ["ANGRY", "SAD", "NEUTRAL", "HAPPY", "DELIGHTED"];
+    if (type === 'stars') return ["1 Stars", "2 Stars", "3 Stars", "4 Stars", "5 Stars"];
     if (type === 'multiple-choice' || type === 'dropdown') {
       return (targetQ.options || []).map(opt => typeof opt === 'object' ? opt.text : opt);
     }
@@ -805,22 +814,33 @@
       </div>
     </div>
 
-    <!-- HIGH-CONTRAST SAVE & DEPLOY BUTTON FOOTER -->
+    <!-- HIGH-CONTRAST NON-BLOCKING SAVE & DEPLOY BUTTON FOOTER -->
     <div
       bind:this={saveContainerRef}
-      class="pt-6 mt-8 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-end shrink-0 bg-white dark:bg-slate-900 py-4"
+      class="pt-6 mt-8 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-end shrink-0 bg-white dark:bg-slate-900 py-4 space-x-4"
     >
+      {#if saveSuccessBanner}
+        <span class="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 px-3 py-2 rounded-xl animate-fade">
+          {saveSuccessBanner}
+        </span>
+      {/if}
+
       <button
         type="button"
         on:click={triggerExplicitSave}
-        disabled={localQuestions.length === 0 || !localTitle.trim()}
-        class="bg-[#1a2b6c] hover:bg-[#e31b23] dark:bg-[#e31b23] dark:hover:bg-[#1a2b6c] text-white font-extrabold text-xs py-3.5 px-7 rounded-xl transition-all duration-200 shadow-md hover:shadow-xl hover:shadow-[#e31b23]/25 flex items-center space-x-2.5 active:scale-[0.97] hover:scale-[1.02] disabled:opacity-25 disabled:cursor-not-allowed border border-transparent"
+        disabled={isSavingSchema || localQuestions.length === 0 || !localTitle.trim()}
+        class="bg-[#1a2b6c] hover:bg-[#e31b23] dark:bg-[#e31b23] dark:hover:bg-[#1a2b6c] text-white font-extrabold text-xs py-3.5 px-7 rounded-xl transition-all duration-200 shadow-md hover:shadow-xl hover:shadow-[#e31b23]/25 flex items-center space-x-2.5 active:scale-[0.97] hover:scale-[1.02] disabled:opacity-25 disabled:cursor-not-allowed border border-transparent cursor-pointer"
         style="color: #ffffff !important;"
       >
-        <svg class="w-4 h-4 shrink-0 fill-current text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;">
-          <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
-        </svg>
-        <span style="color: #ffffff !important; font-weight: 800 !important; tracking-wide: 0.05em;">Save & Deploy Schema</span>
+        {#if isSavingSchema}
+          <div class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          <span style="color: #ffffff !important; font-weight: 800 !important;">Saving Schema...</span>
+        {:else}
+          <svg class="w-4 h-4 shrink-0 fill-current text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;">
+            <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+          </svg>
+          <span style="color: #ffffff !important; font-weight: 800 !important; tracking-wide: 0.05em;">Save & Deploy Schema</span>
+        {/if}
       </button>
     </div>
   </div>
