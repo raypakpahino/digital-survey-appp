@@ -55,8 +55,8 @@
     return String(opt.targetSite).toLowerCase().trim() === String(deviceId).toLowerCase().trim();
   }).map(opt => opt.text);
 
-  // Appends "Other" option to dropdown choices when toggled in the Form Builder
-  $: availableOptions = (currentQuestion && currentQuestion.enableOtherOption && !rawParsedOptions.includes("Other")) 
+  // Force-append "Other" option if enabled via boolean flag or legacy presence
+  $: availableOptions = (currentQuestion && (currentQuestion.enableOtherOption || currentQuestion.enableOtherOption === "true") && !rawParsedOptions.includes("Other")) 
     ? [...rawParsedOptions, "Other"] 
     : rawParsedOptions;
 
