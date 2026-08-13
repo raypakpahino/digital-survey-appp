@@ -166,6 +166,11 @@
     
     const urlSurveyId = urlParams.get("id");
     const modeParam = urlParams.get("mode");
+    const siteParam = urlParams.get("site");
+
+    if (siteParam) {
+      localStorage.setItem("sdx_device_id", siteParam.trim());
+    }
 
     if (urlSurveyId) {
       activeSurveyId = urlSurveyId;
@@ -400,14 +405,21 @@
     }
   }
 
-  async function registerResponse(formattedAnswers, deviceId) {
+  async function registerResponse(formattedAnswers, explicitDeviceId) {
     try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlSiteParam = urlParams.get("site");
+      const savedSite = localStorage.getItem("sdx_device_id");
+
+      // Dynamic site resolution for QR Phone Scans
+      const resolvedSiteId = explicitDeviceId || urlSiteParam || savedSite || (isQrMode ? "Web-QR-Scan" : "Tablet-A");
+
       const res = await fetch(`${API_BASE}/responses`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           surveyTitle: activeSurvey.title,
-          deviceId: deviceId || (isQrMode ? "Web-QR-Scan" : "Tablet-A"),
+          deviceId: resolvedSiteId,
           appMode: isQrMode ? "qr" : "kiosk",
           answers: formattedAnswers,
         }),
@@ -450,7 +462,8 @@
     const isQrSurvey = typeof survey === 'object' ? survey.appMode === 'qr' : isQrMode;
     
     const modeString = (forceQr || isQrSurvey) ? '&mode=qr' : '';
-    return `http://${host}${port}/?id=${surveyId}${modeString}#/kiosk`;
+    const siteString = (currentUser && currentUser.assignedSite) ? `&site=${encodeURIComponent(currentUser.assignedSite)}` : '';
+    return `http://${host}${port}/?id=${surveyId}${modeString}${siteString}#/kiosk`;
   }
 
   function copyKioskLink(survey, forceQr = false) {
@@ -739,6 +752,8 @@
               <Answers
                 bind:responses
                 bind:activeSurveyId
+                {isQrMode}
+                {currentUser}
                 surveys={surveysList.filter(
                   (s) => !s.isDraft && !String(s._id).startsWith("DRAFT-"),
                 )}

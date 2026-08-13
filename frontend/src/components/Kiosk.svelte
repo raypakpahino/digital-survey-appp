@@ -53,9 +53,13 @@
     const hash = window.location.hash;
     const urlParams = new URLSearchParams(hash.includes("?") ? hash.split("?")[1] : window.location.search);
     const urlSurveyId = urlParams.get("id");
+    const urlSiteParam = urlParams.get("site");
     const savedDeviceId = localStorage.getItem("sdx_device_id");
 
-    if (savedDeviceId) {
+    if (urlSiteParam) {
+      deviceId = urlSiteParam.trim();
+      localStorage.setItem("sdx_device_id", deviceId);
+    } else if (savedDeviceId) {
       deviceId = savedDeviceId;
     }
 
@@ -339,11 +343,11 @@
 
           <div class="flex items-center space-x-2">
             <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 hidden sm:inline">
-              {isQrMode ? "PUBLIC SCAN" : "TABLET ID:"}
+              {isQrMode ? "LOCATION:" : "TABLET ID:"}
             </span>
             <span class="bg-[#1a2b6c] text-white font-mono font-bold text-xs px-3 py-1 rounded-full flex items-center space-x-1.5 shadow-xs" style="background-color: #1a2b6c !important; color: #ffffff !important;">
               <svg class="w-3.5 h-3.5 fill-current text-white shrink-0" viewBox="0 0 24 24" style="fill: #ffffff !important;"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
-              <span style="color: #ffffff !important; font-weight: 700 !important;">{isQrMode ? "Web-Client" : deviceId}</span>
+              <span style="color: #ffffff !important; font-weight: 700 !important;">{deviceId}</span>
             </span>
           </div>
         </div>
@@ -412,7 +416,7 @@
           {currentSurvey?.thankYouMessage || "Thank you for your feedback! This screen will automatically refresh in a few seconds."}
         </h2>
         <p class="text-xs sm:text-sm text-slate-600 max-w-md leading-relaxed">
-          Registered under <span class="font-bold text-[#1a2b6c]">{isQrMode ? "Web Scan" : deviceId}</span>. Resets to question 1 in 
+          Registered under location <span class="font-bold text-[#1a2b6c]">{deviceId}</span>. Resets to question 1 in 
           <span class="text-[#e31b23] font-mono font-bold text-base sm:text-lg px-1">{countdownSeconds}s</span>...
         </p>
       </div>

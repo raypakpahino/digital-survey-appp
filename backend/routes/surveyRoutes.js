@@ -374,7 +374,9 @@ router.delete('/devices/:id', async (req, res) => {
 router.post('/responses', async (req, res) => {
   try {
     const { surveyTitle, deviceId, answers, appMode } = req.body;
-    const cleanDeviceId = deviceId || (appMode === 'qr' ? 'Web-QR-Scan' : 'Tablet-Unassigned');
+    
+    // Explicitly preserves location/site parameters in QR Mode
+    const cleanDeviceId = String(deviceId || (appMode === 'qr' ? 'Web-QR-Scan' : 'Tablet-Unassigned')).trim();
 
     const newResponse = await Response.create({
       surveyTitle,

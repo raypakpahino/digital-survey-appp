@@ -2,6 +2,8 @@
   export let responses = [];
   export let surveys = [];
   export let activeSurveyId = "";
+  export let isQrMode = false;
+  export let currentUser = null;
   export let onRefreshData = () => {};
 
   const API_BASE = "/api";
@@ -14,19 +16,22 @@
   // MULTI-FORM SELECTION STATE
   let selectedSurveyIds = [];
 
-  // Initialize selectedSurveyIds when surveys load
-  $: if (surveys.length > 0 && selectedSurveyIds.length === 0) {
-    if (activeSurveyId && surveys.some(s => s._id === activeSurveyId)) {
-      selectedSurveyIds = [activeSurveyId];
-    } else {
-      selectedSurveyIds = [surveys[0]._id];
+  // Automatically select ALL surveys in QR Mode to create a unified database log
+  $: if (surveys.length > 0) {
+    if (isQrMode) {
+      selectedSurveyIds = surveys.map(s => s._id);
+    } else if (selectedSurveyIds.length === 0) {
+      if (activeSurveyId && surveys.some(s => s._id === activeSurveyId)) {
+        selectedSurveyIds = [activeSurveyId];
+      } else {
+        selectedSurveyIds = [surveys[0]._id];
+      }
     }
   }
 
   // MULTI-TABLET FILTERING & SEARCH STATE
   let selectedDevices = [];
   let deviceSearchQuery = "";
-  let isDeviceDropdownOpen = false;
 
   // Active question focus for full-screen expanded mode
   let focusedQuestion = null;
@@ -123,7 +128,7 @@
 
   $: availableDevices = Array.from(new Set(
     responses
-      .filter((r) => selectedSurveyTitles.includes(cleanString(r.surveyTitle)))
+      .filter((r) => isQrMode || selectedSurveyTitles.includes(cleanString(r.surveyTitle)))
       .map((r) => r.deviceId || "Tablet-A")
   )).sort();
 
@@ -132,9 +137,17 @@
   );
 
   $: filteredResponses = responses.filter((r) => {
-    if (selectedSurveys.length === 0) return false;
-    
-    if (!selectedSurveyTitles.includes(cleanString(r.surveyTitle))) return false;
+    if (!isQrMode) {
+      if (selectedSurveys.length === 0) return false;
+      if (!selectedSurveyTitles.includes(cleanString(r.surveyTitle))) return false;
+    }
+
+    // Role Scoping for Site Leaders
+    if (currentUser && currentUser.role === "site_leader" && currentUser.assignedSite) {
+      const respSite = String(r.deviceId || "").toLowerCase().trim();
+      const userSite = String(currentUser.assignedSite).toLowerCase().trim();
+      if (respSite !== userSite) return false;
+    }
 
     if (selectedDevices.length > 0) {
       const respDevice = r.deviceId || "Tablet-A";
@@ -158,7 +171,7 @@
     return true;
   });
 
-  // DYNAMIC LOW RATING INCIDENT DETECTION ACROSS MULTIPLE FORMS
+  // DYNAMIC LOW RATING INCIDENT DETECTION
   $: lowRatingAlerts = filteredResponses.filter((r) => {
     const parentSurvey = surveys.find(s => cleanString(s.title) === cleanString(r.surveyTitle));
     if (!parentSurvey || !parentSurvey.questions) return false;
@@ -334,9 +347,9 @@
     if (selectedSurveys.length === 0 || filteredResponses.length === 0) return;
 
     let targetQuestions = specificQuestion ? [specificQuestion] : displayedQuestions;
-    let titleText = selectedSurveys.length === 1 
-      ? selectedSurveys[0].title 
-      : `Combined_Report_${selectedSurveys.length}_Forms`;
+    let titleText = isQrMode 
+      ? `Unified_QR_Web_Database_Report` 
+      : (selectedSurveys.length === 1 ? selectedSurveys[0].title : `Combined_Report_${selectedSurveys.length}_Forms`);
 
     function formatValueForExcel(rawVal, qType) {
       if (!rawVal || rawVal === "N/A" || rawVal === "Skipped") return "N/A";
@@ -363,7 +376,7 @@
         .trim() || rawVal;
     }
 
-    let headers = ["Record ID", "Form Title", "Tablet Site ID", "Submission Timestamp"];
+    let headers = ["Record ID", "Form Title", "Site / Location ID", "Submission Timestamp"];
     targetQuestions.forEach((q) => headers.push(q.questionText));
 
     let rowsHtml = filteredResponses.map((r, index) => {
@@ -500,7 +513,7 @@
   function isPieChartType(qType) {
     if (!qType) return false;
     const normalized = String(qType).toUpperCase().replace(/_/g, '-');
-    return ['SMILEY', 'STARS', 'MULTIPLE-CHOICE', 'MULTIPLECHOICE', 'CHOICE', 'RATING'].includes(normalized);
+    return ['SMILEY', 'STARS', 'MULTIPLE-CHOICE', 'MULTIPLECHOICE', 'CHOICE', 'RATING', 'DROPDOWN'].includes(normalized);
   }
 
   function isAnalyticsEligible(qType) {
@@ -541,57 +554,70 @@
     style="width: {leftPanelWidth}px;"
   >
     
-    <!-- MULTI-TARGET FORM SELECTOR -->
-    <div class="flex-1 space-y-2">
-      <div class="flex items-center justify-between">
-        <div>
-          <h3 class="text-[11px] font-bold text-white uppercase tracking-wider">Select Forms ({selectedSurveyIds.length})</h3>
-          <p class="text-[10px] text-slate-400 mt-0.5 leading-tight hidden lg:block">
-            Check multiple forms to compare metrics and export logs.
-          </p>
+    <!-- MULTI-TARGET FORM SELECTOR (HIDDEN OR CONSOLIDATED IN QR MODE) -->
+    {#if !isQrMode}
+      <div class="flex-1 space-y-2">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-[11px] font-bold text-white uppercase tracking-wider">Select Forms ({selectedSurveyIds.length})</h3>
+            <p class="text-[10px] text-slate-400 mt-0.5 leading-tight hidden lg:block">
+              Check multiple forms to compare metrics and export logs.
+            </p>
+          </div>
+          <div class="flex items-center space-x-1">
+            <button on:click={selectAllSurveys} class="text-[9px] font-bold text-cyan-400 hover:underline cursor-pointer">All</button>
+            <span class="text-slate-600 text-[9px]">•</span>
+            <button on:click={deselectAllSurveys} class="text-[9px] font-bold text-rose-400 hover:underline cursor-pointer">Reset</button>
+          </div>
         </div>
-        <div class="flex items-center space-x-1">
-          <button on:click={selectAllSurveys} class="text-[9px] font-bold text-cyan-400 hover:underline cursor-pointer">All</button>
-          <span class="text-slate-600 text-[9px]">•</span>
-          <button on:click={deselectAllSurveys} class="text-[9px] font-bold text-rose-400 hover:underline cursor-pointer">Reset</button>
-        </div>
-      </div>
 
-      <div class="flex flex-row lg:flex-col gap-1.5 overflow-x-auto lg:overflow-y-auto custom-scrollbar max-h-36 lg:max-h-48 pb-1 lg:pb-0">
-        {#each surveys as survey}
-          {@const isSelected = selectedSurveyIds.includes(survey._id)}
-          <button
-            on:click={() => toggleSurveySelection(survey._id)}
-            class="min-w-[140px] lg:w-full text-left border px-3 py-2 rounded-xl transition-all duration-200 flex items-center justify-between group shrink-0 active:scale-[0.98] cursor-pointer {isSelected ? 'bg-cyan-950/80 border-cyan-500 text-white shadow-sm ring-1 ring-cyan-500/30' : 'bg-slate-950/40 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/60 text-slate-400'}"
-          >
-            <div class="flex items-center space-x-2 truncate pr-1">
-              <input 
-                type="checkbox" 
-                checked={isSelected} 
-                class="accent-cyan-500 w-3.5 h-3.5 rounded shrink-0 pointer-events-none"
-              />
-              <div class="flex flex-col truncate">
-                <span class="text-xs font-bold transition-colors truncate {isSelected ? 'text-cyan-300' : 'text-slate-300 group-hover:text-cyan-400'}">
-                  {survey.title}
-                </span>
-                <span class="text-[9px] text-slate-500 font-medium uppercase font-mono tracking-wider">
-                  {responses.filter((r) => cleanString(r.surveyTitle) === cleanString(survey.title)).length} Logs
-                </span>
+        <div class="flex flex-row lg:flex-col gap-1.5 overflow-x-auto lg:overflow-y-auto custom-scrollbar max-h-36 lg:max-h-48 pb-1 lg:pb-0">
+          {#each surveys as survey}
+            {@const isSelected = selectedSurveyIds.includes(survey._id)}
+            <button
+              on:click={() => toggleSurveySelection(survey._id)}
+              class="min-w-[140px] lg:w-full text-left border px-3 py-2 rounded-xl transition-all duration-200 flex items-center justify-between group shrink-0 active:scale-[0.98] cursor-pointer {isSelected ? 'bg-cyan-950/80 border-cyan-500 text-white shadow-sm ring-1 ring-cyan-500/30' : 'bg-slate-950/40 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/60 text-slate-400'}"
+            >
+              <div class="flex items-center space-x-2 truncate pr-1">
+                <input 
+                  type="checkbox" 
+                  checked={isSelected} 
+                  class="accent-cyan-500 w-3.5 h-3.5 rounded shrink-0 pointer-events-none"
+                />
+                <div class="flex flex-col truncate">
+                  <span class="text-xs font-bold transition-colors truncate {isSelected ? 'text-cyan-300' : 'text-slate-300 group-hover:text-cyan-400'}">
+                    {survey.title}
+                  </span>
+                  <span class="text-[9px] text-slate-500 font-medium uppercase font-mono tracking-wider">
+                    {responses.filter((r) => cleanString(r.surveyTitle) === cleanString(survey.title)).length} Logs
+                  </span>
+                </div>
               </div>
-            </div>
-            {#if isSelected}
-              <span class="text-cyan-400 font-bold text-xs shrink-0 ml-1">✓</span>
-            {/if}
-          </button>
-        {/each}
+              {#if isSelected}
+                <span class="text-cyan-400 font-bold text-xs shrink-0 ml-1">✓</span>
+              {/if}
+            </button>
+          {/each}
+        </div>
       </div>
-    </div>
+    {:else}
+      <!-- QR MODE CONSOLIDATED DATABASE BANNER -->
+      <div class="p-3 bg-cyan-950/50 border border-cyan-800/60 rounded-xl space-y-1">
+        <div class="flex items-center space-x-2">
+          <span class="h-2 w-2 rounded-full bg-cyan-400 animate-ping"></span>
+          <span class="text-xs font-bold text-cyan-300 uppercase tracking-wider font-mono">Unified QR Database</span>
+        </div>
+        <p class="text-[10px] text-slate-400 leading-tight">
+          All Web QR feedback flows into this single log. Filters automatically scope to location/site IDs.
+        </p>
+      </div>
+    {/if}
 
-    <!-- REDESIGNED HIGH-SCALE TABLET SITE FILTER -->
-    <div class="flex-1 pt-2 sm:pt-0 lg:pt-2 border-t sm:border-t-0 lg:border-t sm:border-l lg:border-l-0 sm:pl-3 lg:pl-0 border-slate-800/80 space-y-2 shrink-0">
+    <!-- HIGH-SCALE SITE/LOCATION FILTER -->
+    <div class="flex-1 pt-2 sm:pt-0 lg:pt-2 border-t sm:border-t-0 lg:border-t border-slate-800/80 space-y-2 shrink-0">
       <div class="flex items-center justify-between">
         <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-          Tablet Sites {#if selectedDevices.length > 0}<span class="text-emerald-400 font-mono">({selectedDevices.length}/{availableDevices.length})</span>{/if}
+          {isQrMode ? 'Filter by Site' : 'Tablet Sites'} {#if selectedDevices.length > 0}<span class="text-emerald-400 font-mono">({selectedDevices.length}/{availableDevices.length})</span>{/if}
         </span>
         <div class="flex items-center space-x-1">
           {#if availableDevices.length > 0}
@@ -605,12 +631,11 @@
       </div>
 
       {#if availableDevices.length > 0}
-        <!-- SEARCH BAR FOR SCALABLE TABLET LOOKUP -->
         <div class="relative">
           <input
             type="text"
             bind:value={deviceSearchQuery}
-            placeholder="Search {availableDevices.length} tablet sites..."
+            placeholder="Search {availableDevices.length} locations..."
             class="w-full bg-slate-950 border border-slate-800 text-[10px] text-slate-200 pl-7 pr-2 py-1.5 rounded-lg focus:outline-none focus:border-emerald-500 transition-all placeholder:text-slate-600"
           />
           <svg class="w-3.5 h-3.5 fill-current text-slate-500 absolute left-2 top-2" viewBox="0 0 24 24">
@@ -619,16 +644,15 @@
         </div>
       {/if}
 
-      <!-- SCALABLE DEVICE SELECTION LIST CONTAINER -->
       <div class="space-y-1 max-h-36 overflow-y-auto custom-scrollbar pt-0.5 pr-0.5">
         {#if availableDevices.length === 0}
-          <span class="text-[9px] text-slate-500 font-mono block">No device logs available</span>
+          <span class="text-[9px] text-slate-500 font-mono block">No location logs available</span>
         {:else if filteredAvailableDevices.length === 0}
-          <span class="text-[9px] text-slate-500 font-mono block">No devices match "{deviceSearchQuery}"</span>
+          <span class="text-[9px] text-slate-500 font-mono block">No locations match "{deviceSearchQuery}"</span>
         {:else}
           {#each filteredAvailableDevices as devId}
             {@const isSelected = selectedDevices.includes(devId)}
-            {@const devLogCount = responses.filter(r => (r.deviceId || "Tablet-A") === devId && selectedSurveyTitles.includes(cleanString(r.surveyTitle))).length}
+            {@const devLogCount = responses.filter(r => (r.deviceId || "Tablet-A") === devId).length}
 
             <button
               on:click={() => toggleDeviceFilter(devId)}
@@ -720,7 +744,9 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800/40 pb-3 shrink-0 gap-2">
       <div>
         <h2 class="text-sm sm:text-base font-bold text-white tracking-tight border-l-2 border-cyan-500 pl-2.5">
-          {#if selectedSurveys.length === 1}
+          {#if isQrMode}
+            Web QR Consolidated Response Hub {#if currentUser?.role === "site_leader"}<span class="text-cyan-400 font-mono text-xs">({currentUser.assignedSite})</span>{/if}
+          {:else if selectedSurveys.length === 1}
             {selectedSurveys[0].title}
           {:else if selectedSurveys.length > 1}
             Aggregated Matrix ({selectedSurveys.length} Forms Selected)
@@ -730,7 +756,9 @@
         </h2>
         <p class="text-[11px] text-slate-400 mt-0.5">
           Showing <span class="text-cyan-400 font-bold">{filteredResponses.length}</span> matching submission records 
-          {#if selectedDevices.length > 0}
+          {#if currentUser?.role === "site_leader"}
+            (Scoped to: <span class="text-emerald-400 font-mono font-bold">{currentUser.assignedSite}</span>)
+          {:else if selectedDevices.length > 0}
             (Filtered by: <span class="text-emerald-400 font-mono font-bold">{selectedDevices.join(', ')}</span>)
           {/if}.
         </p>
@@ -779,34 +807,35 @@
           <span>Export Excel</span>
         </button>
 
-        <button
-          on:click={clearAllSurveyResponses}
-          disabled={filteredResponses.length === 0}
-          class="bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 text-rose-300 font-bold text-[11px] py-1.5 px-2.5 rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-20 flex items-center space-x-1 cursor-pointer"
-          title="Delete all submission logs for selected forms"
-        >
-          <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-          <span>Clear All</span>
-        </button>
+        {#if currentUser?.role === "admin"}
+          <button
+            on:click={clearAllSurveyResponses}
+            disabled={filteredResponses.length === 0}
+            class="bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 text-rose-300 font-bold text-[11px] py-1.5 px-2.5 rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-20 flex items-center space-x-1 cursor-pointer"
+            title="Delete all submission logs for selected forms"
+          >
+            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+            <span>Clear All</span>
+          </button>
+        {/if}
       </div>
     </div>
 
     <!-- MAIN GRID CARDS -->
     <div class="flex-1 overflow-y-auto mt-3 custom-scrollbar pr-1 box-border">
-      {#if selectedSurveys.length === 0 || filteredResponses.length === 0}
+      {#if filteredResponses.length === 0}
         <div class="border-2 border-dashed border-slate-800 rounded-2xl p-8 text-center text-slate-500 text-xs">
-          No submission records match your active search filter parameters.
+          No submission records match your active location/search parameters.
         </div>
 
       {:else if activeViewMode === "analytics"}
         <div class="space-y-6 pb-4">
-          {#each selectedSurveys as survey}
+          {#each surveys as survey}
             {@const surveyQs = (survey.questions || []).filter(q => isAnalyticsEligible(q.type))}
             {@const surveyResponses = filteredResponses.filter(r => cleanString(r.surveyTitle) === cleanString(survey.title))}
 
-            {#if surveyQs.length > 0}
+            {#if surveyQs.length > 0 && surveyResponses.length > 0}
               <div class="space-y-3">
-                <!-- FORM GROUP SECTION HEADER -->
                 <div class="bg-slate-950 border-l-4 border-cyan-500 px-3 py-2 rounded-r-xl flex items-center justify-between shadow-xs">
                   <div class="flex items-center space-x-2">
                     <span class="text-xs font-black text-cyan-400 uppercase tracking-wider">{survey.title}</span>
@@ -930,10 +959,12 @@
           <table class="w-full border-collapse text-left text-xs text-slate-300 whitespace-nowrap min-w-full">
             <thead>
               <tr class="bg-slate-900 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 sticky top-0 z-10 shadow-xs">
-                <th class="p-2.5 pl-3 border-r border-slate-800/60 w-10 text-center">Action</th>
+                {#if currentUser?.role === "admin"}
+                  <th class="p-2.5 pl-3 border-r border-slate-800/60 w-10 text-center">Action</th>
+                {/if}
                 <th class="p-2.5 border-r border-slate-800/60 w-20">ID Token</th>
                 <th class="p-2.5 border-r border-slate-800/60 w-32">Form Identity</th>
-                <th class="p-2.5 border-r border-slate-800/60 w-28">Tablet Site</th>
+                <th class="p-2.5 border-r border-slate-800/60 w-28">Location / Site</th>
                 <th class="p-2.5 border-r border-slate-800/60 w-36">Date & Time</th>
                 {#each displayedQuestions as question}
                   <th class="p-2.5 border-r border-slate-800/60 max-w-xs truncate">{question.questionText}</th>
@@ -943,15 +974,17 @@
             <tbody class="divide-y divide-slate-800/60">
               {#each filteredResponses as response}
                 <tr class="hover:bg-cyan-950/20 hover:border-cyan-500/40 transition-all group">
-                  <td class="p-2 border-r border-slate-800/40 text-center">
-                    <button
-                      on:click={() => deleteSingleResponse(response._id)}
-                      class="text-slate-500 hover:text-rose-400 bg-slate-900 hover:bg-rose-950/40 border border-slate-800 p-1.5 rounded-md transition-all active:scale-95 cursor-pointer"
-                      title="Delete entry"
-                    >
-                      <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-                    </button>
-                  </td>
+                  {#if currentUser?.role === "admin"}
+                    <td class="p-2 border-r border-slate-800/40 text-center">
+                      <button
+                        on:click={() => deleteSingleResponse(response._id)}
+                        class="text-slate-500 hover:text-rose-400 bg-slate-900 hover:bg-rose-950/40 border border-slate-800 p-1.5 rounded-md transition-all active:scale-95 cursor-pointer"
+                        title="Delete entry"
+                      >
+                        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                      </button>
+                    </td>
+                  {/if}
                   <td class="p-2.5 font-mono text-cyan-400 font-semibold border-r border-slate-800/40 truncate max-w-[90px] group-hover:text-cyan-300">
                     {response._id ? response._id.slice(-6) : 'Log'}
                   </td>
@@ -963,7 +996,7 @@
                   <td class="p-2.5 border-r border-slate-800/40">
                     <span class="text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 font-mono font-bold px-2 py-0.5 rounded text-[10px] inline-flex items-center space-x-1">
                       <svg class="w-3 h-3 fill-current inline-block shrink-0" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
-                      <span>{response.deviceId || 'Tablet-A'}</span>
+                      <span>{response.deviceId || 'Site-A'}</span>
                     </span>
                   </td>
                   <td class="p-2.5 text-slate-400 border-r border-slate-800/40 font-mono text-[10px] group-hover:text-slate-200">
@@ -1001,8 +1034,7 @@
           <div>
             <h2 class="text-base font-black text-white tracking-tight">Low Rating Incident Log</h2>
             <p class="text-xs text-slate-400 mt-0.5">
-              Found <strong class="text-rose-400 font-mono">{lowRatingAlerts.length}</strong> flagged submissions across 
-              <strong class="text-cyan-400">{selectedSurveys.length} Selected Forms</strong>
+              Found <strong class="text-rose-400 font-mono">{lowRatingAlerts.length}</strong> flagged submissions
             </p>
           </div>
         </div>
@@ -1018,7 +1050,7 @@
       <div class="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1">
         {#if lowRatingAlerts.length === 0}
           <div class="border-2 border-dashed border-slate-800 rounded-2xl p-8 text-center text-slate-500 text-xs">
-            No below-average ratings recorded for the selected form(s).
+            No below-average ratings recorded.
           </div>
         {:else}
           {#each lowRatingAlerts as alert}
