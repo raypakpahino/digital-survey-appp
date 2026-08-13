@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
 
   export let currentUser = null;
+  export let isQrMode = false;
 
   let users = [];
   let sites = [];
@@ -11,7 +12,7 @@
   let editingUserId = null;
   let inputUsername = "";
   let inputPassword = "";
-  let selectedRole = "site_leader";
+  let selectedRole = isQrMode ? "site_leader" : "kiosk_operator";
   let selectedSite = "";
   let userMessage = "";
   let userMessageType = "info";
@@ -23,6 +24,8 @@
   let siteMessageType = "info";
 
   const API_BASE = "/api";
+
+  $: selectedRole = isQrMode ? "site_leader" : "kiosk_operator";
 
   async function loadData() {
     isLoading = true;
@@ -43,7 +46,7 @@
         }
       }
     } catch (err) {
-      console.warn("Error loading user management records:", err);
+      console.warn("Error loading user records:", err);
     }
     isLoading = false;
   }
@@ -104,7 +107,7 @@
       return;
     }
 
-    if (selectedRole === 'site_leader' && !selectedSite) {
+    if (isQrMode && selectedRole === 'site_leader' && !selectedSite) {
       userMessage = "Site Leaders must have an assigned site location.";
       userMessageType = "error";
       return;
@@ -115,7 +118,7 @@
       const payload = {
         username: inputUsername.trim(),
         role: selectedRole,
-        assignedSite: selectedRole === 'site_leader' ? selectedSite : ''
+        assignedSite: isQrMode && selectedRole === 'site_leader' ? selectedSite : ''
       };
       if (inputPassword.trim()) payload.password = inputPassword.trim();
 
@@ -135,7 +138,7 @@
 
       data = await res.json();
       if (data.success) {
-        userMessage = editingUserId ? "User profile updated!" : "New user created successfully!";
+        userMessage = editingUserId ? "User profile updated!" : "New account created successfully!";
         userMessageType = "success";
         resetUserForm();
         loadData();
@@ -153,7 +156,7 @@
     editingUserId = u._id;
     inputUsername = u.username;
     inputPassword = "";
-    selectedRole = u.role || "site_leader";
+    selectedRole = u.role || (isQrMode ? "site_leader" : "kiosk_operator");
     selectedSite = u.assignedSite || (sites.length > 0 ? sites[0].name : "");
     userMessage = `Editing user '${u.username}'. Update permissions below.`;
     userMessageType = "info";
@@ -163,7 +166,7 @@
     editingUserId = null;
     inputUsername = "";
     inputPassword = "";
-    selectedRole = "site_leader";
+    selectedRole = isQrMode ? "site_leader" : "kiosk_operator";
     selectedSite = sites.length > 0 ? sites[0].name : "";
     userMessage = "";
   }
@@ -185,8 +188,14 @@
   <!-- TOP HEADER -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-5 gap-4">
     <div>
-      <h1 class="text-2xl font-black tracking-tight text-[#1a2b6c] dark:text-white">User & Dynamic Site Management</h1>
-      <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1">Configure system accounts, create dynamic site locations, and assign Site Leaders to specific site scopes.</p>
+      <h1 class="text-2xl font-black tracking-tight text-[#1a2b6c] dark:text-white">
+        {isQrMode ? "Site Leader & Dynamic Site Control" : "Kiosk Operator Management"}
+      </h1>
+      <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1">
+        {isQrMode 
+          ? "Configure public QR site locations and provision Site Leaders with scoped access." 
+          : "Configure accounts for Kiosk Operators to view all terminal submission logs."}
+      </p>
     </div>
     
     <button 
@@ -199,80 +208,85 @@
     </button>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
+  <div class="grid grid-cols-1 {isQrMode ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-6 w-full">
     
-    <!-- LEFT COLUMN: DYNAMIC SITE CREATOR -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5 h-fit">
-      <div class="space-y-1 border-b border-slate-100 dark:border-slate-800 pb-3">
-        <span class="text-[10px] font-mono font-extrabold text-[#e31b23] dark:text-rose-400 uppercase tracking-widest block">Site Registry</span>
-        <h3 class="text-base font-black text-[#1a2b6c] dark:text-white">Create Location Site</h3>
+    <!-- LEFT COLUMN: DYNAMIC SITE CREATOR (WEB QR MODE ONLY) -->
+    {#if isQrMode}
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5 h-fit">
+        <div class="space-y-1 border-b border-slate-100 dark:border-slate-800 pb-3">
+          <span class="text-[10px] font-mono font-extrabold text-[#e31b23] dark:text-rose-400 uppercase tracking-widest block">QR Site Registry</span>
+          <h3 class="text-base font-black text-[#1a2b6c] dark:text-white">Create Location Site</h3>
+        </div>
+
+        {#if siteMessage}
+          <div class="text-xs font-bold p-3 rounded-xl border {siteMessageType === 'success' ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-rose-50 text-rose-900 border-rose-300'}">
+            {siteMessage}
+          </div>
+        {/if}
+
+        <form on:submit|preventDefault={handleAddSite} class="space-y-4">
+          <div class="space-y-1">
+            <label for="site-name-input" class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">Location Site Name</label>
+            <input 
+              id="site-name-input"
+              type="text" 
+              bind:value={inputSiteName} 
+              placeholder="e.g. Sodexo HQ or Site-North" 
+              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-white font-mono font-bold rounded-xl p-3 focus:outline-none focus:border-[#e31b23]" 
+            />
+          </div>
+
+          <div class="space-y-1">
+            <label for="site-desc-input" class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">Description (Optional)</label>
+            <input 
+              id="site-desc-input"
+              type="text" 
+              bind:value={inputSiteDesc} 
+              placeholder="e.g. Public QR feedback point" 
+              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-white font-mono font-medium rounded-xl p-3 focus:outline-none focus:border-[#e31b23]" 
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-3 px-4 rounded-xl text-xs transition-all shadow-md active:scale-95 cursor-pointer"
+            style="color: #ffffff !important; background-color: #1a2b6c !important;"
+          >
+            <span style="color: #ffffff !important; font-weight: 800 !important;">Add Location Site +</span>
+          </button>
+        </form>
+
+        <div class="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+          <span class="text-[10px] font-mono font-extrabold text-slate-500 uppercase tracking-wider block">Active Dynamic QR Sites ({sites.length})</span>
+          <div class="max-h-48 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
+            {#if sites.length === 0}
+              <span class="text-xs text-slate-400 italic">No QR sites registered yet.</span>
+            {:else}
+              {#each sites as site}
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono">
+                  <span class="font-bold text-[#1a2b6c] dark:text-cyan-400">{site.name}</span>
+                  <button 
+                    on:click={() => handleDeleteSite(site._id)}
+                    class="text-rose-500 hover:text-rose-700 font-bold px-1.5 py-0.5 rounded text-[10px] hover:bg-rose-50 dark:hover:bg-rose-950 transition-colors"
+                  >✕</button>
+                </div>
+              {/each}
+            {/if}
+          </div>
+        </div>
       </div>
+    {/if}
 
-      {#if siteMessage}
-        <div class="text-xs font-bold p-3 rounded-xl border {siteMessageType === 'success' ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-rose-50 text-rose-900 border-rose-300'}">
-          {siteMessage}
-        </div>
-      {/if}
-
-      <form on:submit|preventDefault={handleAddSite} class="space-y-4">
-        <div class="space-y-1">
-          <label for="site-name-input" class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">Location Site Name</label>
-          <input 
-            id="site-name-input"
-            type="text" 
-            bind:value={inputSiteName} 
-            placeholder="e.g. Sodexo HQ or Site-North" 
-            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-white font-mono font-bold rounded-xl p-3 focus:outline-none focus:border-[#e31b23]" 
-          />
-        </div>
-
-        <div class="space-y-1">
-          <label for="site-desc-input" class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">Description (Optional)</label>
-          <input 
-            id="site-desc-input"
-            type="text" 
-            bind:value={inputSiteDesc} 
-            placeholder="e.g. Main facility kiosk group" 
-            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-white font-mono font-medium rounded-xl p-3 focus:outline-none focus:border-[#e31b23]" 
-          />
-        </div>
-
-        <button 
-          type="submit" 
-          class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-3 px-4 rounded-xl text-xs transition-all shadow-md active:scale-95 cursor-pointer"
-          style="color: #ffffff !important; background-color: #1a2b6c !important;"
-        >
-          <span style="color: #ffffff !important; font-weight: 800 !important;">Add Location Site +</span>
-        </button>
-      </form>
-
-      <!-- ACTIVE SITES LIST -->
-      <div class="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
-        <span class="text-[10px] font-mono font-extrabold text-slate-500 uppercase tracking-wider block">Active Dynamic Sites ({sites.length})</span>
-        <div class="max-h-48 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
-          {#if sites.length === 0}
-            <span class="text-xs text-slate-400 italic">No dynamic sites registered yet.</span>
-          {:else}
-            {#each sites as site}
-              <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono">
-                <span class="font-bold text-[#1a2b6c] dark:text-cyan-400">{site.name}</span>
-                <button 
-                  on:click={() => handleDeleteSite(site._id)}
-                  class="text-rose-500 hover:text-rose-700 font-bold px-1.5 py-0.5 rounded text-[10px] hover:bg-rose-50 dark:hover:bg-rose-950 transition-colors"
-                >✕</button>
-              </div>
-            {/each}
-          {/if}
-        </div>
-      </div>
-    </div>
-
-    <!-- MIDDLE COLUMN: USER ACCOUNT & ROLE MANAGER -->
+    <!-- ACCOUNT CREATION PANEL -->
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5 h-fit">
       <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
         <div class="space-y-0.5">
-          <span class="text-[10px] font-mono font-extrabold text-[#e31b23] dark:text-rose-400 uppercase tracking-widest block">Account Provisioning</span>
-          <h3 class="text-base font-black text-[#1a2b6c] dark:text-white">{editingUserId ? 'Update User Role' : 'Create User Account'}</h3>
+          <span class="text-[10px] font-mono font-extrabold text-[#e31b23] dark:text-rose-400 uppercase tracking-widest block">
+            {isQrMode ? 'Site Leader Provisioning' : 'Kiosk Operator Provisioning'}
+          </span>
+          <h3 class="text-base font-black text-[#1a2b6c] dark:text-white">
+            {editingUserId ? 'Update User Account' : (isQrMode ? 'Create Site Leader Account' : 'Create Kiosk Operator Account')}
+          </h3>
         </div>
         {#if editingUserId}
           <button on:click={resetUserForm} class="text-[10px] font-extrabold text-slate-500 hover:text-slate-800 bg-slate-100 px-2 py-1 rounded-lg">Cancel</button>
@@ -293,7 +307,7 @@
             type="text" 
             bind:value={inputUsername} 
             disabled={Boolean(editingUserId)}
-            placeholder="e.g. site_leader_north" 
+            placeholder={isQrMode ? "e.g. site_leader_north" : "e.g. kiosk_operator_1"} 
             class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-white font-mono font-bold rounded-xl p-3 focus:outline-none focus:border-[#e31b23] disabled:opacity-50" 
           />
         </div>
@@ -311,7 +325,6 @@
           />
         </div>
 
-        <!-- DYNAMIC ROLE SELECTION -->
         <div class="space-y-1">
           <label for="role-select" class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">Assigned Role</label>
           <select 
@@ -319,14 +332,17 @@
             bind:value={selectedRole}
             class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-white font-mono font-bold rounded-xl p-3 focus:outline-none focus:border-[#e31b23]"
           >
-            <option value="site_leader">Site Leader (Scoped to Site)</option>
-            <option value="admin">Administrator (Full Access)</option>
-            <option value="user">Operator (Standard User)</option>
+            {#if isQrMode}
+              <option value="site_leader">Site Leader (Scoped to QR Site)</option>
+              <option value="admin">Administrator (Full Access)</option>
+            {:else}
+              <option value="kiosk_operator">Kiosk Operator (Unfiltered Kiosk Logs)</option>
+              <option value="admin">Administrator (Full Access)</option>
+            {/if}
           </select>
         </div>
 
-        <!-- DYNAMIC SITE SCOPING SELECTION FOR SITE LEADERS -->
-        {#if selectedRole === 'site_leader'}
+        {#if isQrMode && selectedRole === 'site_leader'}
           <div class="space-y-1 pt-1">
             <label for="site-assign-select" class="text-[10px] font-mono font-extrabold text-[#e31b23] dark:text-rose-400 uppercase tracking-widest block">Assign Scoped Site Location</label>
             <select 
@@ -351,12 +367,12 @@
           class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-3 px-4 rounded-xl text-xs transition-all shadow-md active:scale-95 cursor-pointer"
           style="color: #ffffff !important; background-color: #1a2b6c !important;"
         >
-          <span style="color: #ffffff !important; font-weight: 800 !important;">{editingUserId ? 'Save User Changes' : 'Save User Account'}</span>
+          <span style="color: #ffffff !important; font-weight: 800 !important;">{editingUserId ? 'Save Changes' : 'Save Account'}</span>
         </button>
       </form>
     </div>
 
-    <!-- RIGHT COLUMN: ROSTER DIRECTORY -->
+    <!-- ROSTER DIRECTORY -->
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
         <h3 class="text-xs font-mono font-extrabold text-[#1a2b6c] dark:text-cyan-400 uppercase tracking-wider">User Directory</h3>
@@ -365,21 +381,22 @@
 
       <div class="space-y-2.5 max-h-[28rem] overflow-y-auto custom-scrollbar pr-1">
         {#each users as u}
+          {@const displayRole = u.role === 'user' ? 'kiosk_operator' : u.role}
           <div class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2">
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-2">
-                <span class="h-2 w-2 rounded-full {u.role === 'admin' ? 'bg-purple-500' : (u.role === 'site_leader' ? 'bg-emerald-500' : 'bg-blue-500')}"></span>
+                <span class="h-2 w-2 rounded-full {displayRole === 'admin' ? 'bg-purple-500' : (displayRole === 'site_leader' ? 'bg-emerald-500' : 'bg-blue-500')}"></span>
                 <span class="font-bold text-xs text-slate-900 dark:text-white font-mono">{u.username}</span>
               </div>
               
-              <span class="text-[9px] uppercase font-mono font-bold px-2 py-0.5 rounded border {u.role === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-200' : (u.role === 'site_leader' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-blue-50 text-blue-700 border-blue-200')}">
-                {u.role.replace('_', ' ')}
+              <span class="text-[9px] uppercase font-mono font-bold px-2 py-0.5 rounded border {displayRole === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-200' : (displayRole === 'site_leader' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-blue-50 text-blue-700 border-blue-200')}">
+                {displayRole.replace('_', ' ')}
               </span>
             </div>
 
-            {#if u.role === 'site_leader'}
+            {#if displayRole === 'site_leader'}
               <div class="text-[10px] font-mono text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                <span>Scoped Site:</span>
+                <span>Scoped QR Site:</span>
                 <span class="font-black text-[#1a2b6c] dark:text-cyan-300">{u.assignedSite || 'Unassigned'}</span>
               </div>
             {/if}

@@ -57,7 +57,10 @@
 
   // NON-BLOCKING TAB SWITCHER (Eliminates INP delay on sidebar clicks)
   function switchTab(tab) {
-    if (currentUser && currentUser.role === "site_leader") {
+    const isOperator = currentUser && (currentUser.role === "kiosk_operator" || currentUser.role === "user");
+    const isSiteLeader = currentUser && currentUser.role === "site_leader";
+
+    if (isSiteLeader || isOperator) {
       activeTab = "answers";
       return;
     }
@@ -218,7 +221,7 @@
         const data = await res.json();
         if (data.success && data.user) {
           currentUser = data.user;
-          if (currentUser.role === "site_leader") {
+          if (currentUser.role === "site_leader" || currentUser.role === "kiosk_operator" || currentUser.role === "user") {
             activeTab = "answers";
           } else if (currentUser.role !== "admin") {
             activeTab = "kiosk";
@@ -248,7 +251,7 @@
 
   function handleLoginSuccess(user, token) {
     currentUser = user;
-    if (currentUser.role === "site_leader") {
+    if (currentUser.role === "site_leader" || currentUser.role === "kiosk_operator" || currentUser.role === "user") {
       switchTab("answers");
     } else if (currentUser.role !== "admin") {
       switchTab("kiosk");
@@ -288,6 +291,7 @@
         if (responseData.success && responseData.responses) {
           let rawResp = responseData.responses;
 
+          // STRICT SITE SCOPING ONLY FOR SITE_LEADER IN QR MODE
           if (currentUser && currentUser.role === "site_leader" && currentUser.assignedSite) {
             rawResp = rawResp.filter(r => 
               String(r.deviceId || '').toLowerCase().trim() === String(currentUser.assignedSite).toLowerCase().trim()
@@ -571,7 +575,7 @@
               {/if}
 
               <!-- 3. LIVE KIOSK / PREVIEW MODE -->
-              {#if currentUser?.role !== "site_leader"}
+              {#if currentUser?.role !== "site_leader" && currentUser?.role !== "kiosk_operator" && currentUser?.role !== "user"}
                 <button
                   class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'kiosk' ? (isQrMode ? 'bg-cyan-600 text-white shadow-md' : 'bg-[#1a2b6c] text-white shadow-md') : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={() => switchTab("kiosk")}
@@ -618,18 +622,18 @@
                 </button>
               {/if}
 
-              <!-- 6. USER & SITE CONTROL (ADMIN ONLY) -->
+              <!-- 6. MODE-AWARE USER CONTROL (ADMIN ONLY) -->
               {#if currentUser?.role === "admin"}
                 <button
                   class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'users' ? (isQrMode ? 'bg-cyan-600 text-white shadow-md' : 'bg-[#e31b23] text-white shadow-md') : 'text-rose-400 hover:bg-white/10 hover:text-rose-300'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={() => switchTab("users")}
-                  title="User & Site Management"
+                  title={isQrMode ? "Site Leader & Dynamic Site Control" : "Kiosk Operator Control"}
                 >
                   <svg class="w-5 h-5 shrink-0 fill-current" viewBox="0 0 24 24">
                     <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                   </svg>
                   {#if isSidebarExpanded}
-                    <span class="truncate">User & Site Control</span>
+                    <span class="truncate">{isQrMode ? 'Site Leader Control' : 'User Control'}</span>
                   {/if}
                 </button>
               {/if}
@@ -711,7 +715,7 @@
                   class="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase shrink-0"
                   style={currentUser.role === 'admin' ? (isQrMode ? 'background-color: #0891b2 !important; color: #ffffff !important;' : 'background-color: #1a2b6c !important; color: #ffffff !important;') : 'background-color: #0284c7 !important; color: #ffffff !important;'}
                 >
-                  {currentUser.role === 'site_leader' ? 'Site Leader' : currentUser.role}
+                  {currentUser.role === 'site_leader' ? 'Site Leader' : (currentUser.role === 'user' ? 'Operator' : currentUser.role.replace('_', ' '))}
                 </span>
               </div>
 
@@ -761,7 +765,7 @@
                 onSaveSurvey={persistActiveSurveyState}
               />
             </div>
-          {:else if activeTab === "kiosk" && currentUser?.role !== "site_leader"}
+          {:else if activeTab === "kiosk" && currentUser?.role === "admin"}
             <div class="w-full h-full min-w-0 flex items-center justify-center">
               <Kiosk
                 surveyTitle={activeSurvey.title}
@@ -792,7 +796,7 @@
             </div>
           {:else if activeTab === "users" && currentUser?.role === "admin"}
             <div class="w-full h-full min-w-0">
-              <UserManagement {currentUser} />
+              <UserManagement {currentUser} {isQrMode} />
             </div>
           {/if}
         </div>
