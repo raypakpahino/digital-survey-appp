@@ -37,12 +37,23 @@
   $: currentQuestion = questions[currentQuestionIndex] || null;
   $: currentSurvey = surveys.find(s => s._id === activeSurveyId) || null;
 
-  // SITE-BASED OPTION FILTERING FOR PRIVACY ISOLATION
-  $: availableOptions = (currentQuestion?.options || []).filter(opt => {
-    if (typeof opt === 'string') return true;
+  // SAFE OPTION PARSER: Handles strings, objects, or JSON strings cleanly
+  function parseOptionText(opt) {
+    if (typeof opt === 'string') {
+      try {
+        const parsed = JSON.parse(opt);
+        if (typeof parsed === 'object' && parsed !== null) return parsed;
+      } catch (e) {}
+      return { text: opt, targetSite: '' };
+    }
+    if (typeof opt === 'object' && opt !== null) return opt;
+    return { text: String(opt || ''), targetSite: '' };
+  }
+
+  $: availableOptions = (currentQuestion?.options || []).map(parseOptionText).filter(opt => {
     if (!opt.targetSite || opt.targetSite.trim() === "") return true;
     return String(opt.targetSite).toLowerCase().trim() === String(deviceId).toLowerCase().trim();
-  }).map(opt => typeof opt === 'object' ? opt.text : opt);
+  }).map(opt => opt.text);
 
   $: filteredDropdownOptions = availableOptions.filter(optText => 
     String(optText).toLowerCase().includes(dropdownSearchQuery.trim().toLowerCase())
@@ -561,7 +572,7 @@
             </div>
 
           {:else if getNormalizedType(currentQuestion.type) === 'dropdown'}
-            <!-- ELEGANT DOWNWARD-EXPANDING COMBOBOX WITH SEARCH & SITE ISOLATION -->
+            <!-- ELEGANT DOWNWARD-EXPANDING COMBOBOX WITH SEARCH -->
             <div class="w-full max-w-lg mx-auto space-y-4 my-auto relative" bind:this={dropdownContainerRef}>
               
               <div class="relative">

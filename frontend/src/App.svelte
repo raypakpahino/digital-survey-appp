@@ -323,7 +323,7 @@
     switchTab("builder");
   }
 
-  // ROBUST SAVE PERSISTENCE WITH ERROR ALERT & RE-SYNC
+  // ROBUST SAVE PERSISTENCE FUNCTION
   async function persistActiveSurveyState(updatedTitle, updatedQuestions, updatedThankYouMessage, updatedAutoRefreshSeconds, updatedPin) {
     if (!activeSurveyId || currentUser?.role !== "admin") return;
 

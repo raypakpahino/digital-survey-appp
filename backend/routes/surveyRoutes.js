@@ -6,7 +6,7 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
-// Middleware: Enable large JSON payloads (up to 10MB) for Base64 image compatibility
+// Middleware: Enable large JSON payloads for images/options
 router.use(express.json({ limit: '10mb' }));
 router.use(express.urlencoded({ limit: '10mb', extended: true }));
 
@@ -22,6 +22,7 @@ const generateUniquePin = (existingPins = new Set()) => {
   return pin;
 };
 
+// SANITIZER: Handles both string options and object options cleanly
 const sanitizeQuestions = (questions) => {
   if (!Array.isArray(questions)) return [];
   return questions.map((q) => ({
@@ -32,7 +33,9 @@ const sanitizeQuestions = (questions) => {
     isRequired: Boolean(q.isRequired),
     allowMultiple: Boolean(q.allowMultiple),
     enableOptionImages: Boolean(q.enableOptionImages),
-    options: Array.isArray(q.options) ? q.options : [],
+    options: Array.isArray(q.options) 
+      ? q.options.map(opt => typeof opt === 'object' ? JSON.stringify(opt) : String(opt)) 
+      : [],
     optionImages: q.optionImages && typeof q.optionImages === 'object' ? q.optionImages : {},
     alertTriggerValues: Array.isArray(q.alertTriggerValues) ? q.alertTriggerValues : [],
     skipLogic: q.skipLogic ? {
@@ -191,13 +194,6 @@ router.post('/surveys/:id/verify-pin', async (req, res) => {
         success: true, 
         message: 'Generic PIN verified.', 
         deviceName: matchedDevice ? matchedDevice.deviceName : 'Generic Kiosk Device' 
-      });
-    }
-
-    if (matchedDevice) {
-      return res.status(403).json({ 
-        success: false, 
-        message: `This PIN belongs to '${matchedDevice.deviceName}', but is not authorized for form '${survey.title}'.` 
       });
     }
 

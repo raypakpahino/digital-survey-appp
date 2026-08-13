@@ -58,12 +58,33 @@
     if (norm === 'smiley') return ["ANGRY", "SAD"];
     if (norm === 'stars') return ["1 Stars", "2 Stars"];
     if (norm === 'multiple-choice' || norm === 'dropdown') {
-      return options.map(opt => typeof opt === 'object' ? opt.text : opt).filter(optText => {
+      return options.map(opt => {
+        if (typeof opt === 'object') return opt.text;
+        try {
+          const parsed = JSON.parse(opt);
+          return parsed.text || opt;
+        } catch (e) {
+          return opt;
+        }
+      }).filter(optText => {
         const u = String(optText || '').toUpperCase();
         return u === 'NO' || u.includes('BAD') || u.includes('POOR');
       });
     }
     return [];
+  }
+
+  function parseOption(opt) {
+    if (typeof opt === 'object' && opt !== null) {
+      return { text: opt.text || '', targetSite: opt.targetSite || '' };
+    }
+    try {
+      const parsed = JSON.parse(opt);
+      if (typeof parsed === 'object' && parsed !== null) {
+        return { text: parsed.text || '', targetSite: parsed.targetSite || '' };
+      }
+    } catch (e) {}
+    return { text: String(opt || ''), targetSite: '' };
   }
 
   function loadActiveFormState(targetId, currentTitle, currentQuestions) {
@@ -86,7 +107,7 @@
         const opts = q.options || [];
         return {
           ...q,
-          options: opts.map(opt => typeof opt === 'object' ? opt : { text: opt, targetSite: '' }),
+          options: opts.map(parseOption),
           alertTriggerValues: Array.isArray(q.alertTriggerValues) 
             ? q.alertTriggerValues 
             : getDefaultAlertTriggers(type, opts),
@@ -242,7 +263,6 @@
     }
   }
 
-  // CANVAS COMPRESSION HELPER (Compresses Base64 images to ~50-80KB max to avoid Vercel 4.5MB limit)
   function compressImage(file, maxWidth = 800, quality = 0.7) {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -456,7 +476,7 @@
           <button
             type="button"
             on:click={scrollToSave}
-            class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all duration-200 shrink-0 flex items-center justify-center space-x-2 active:scale-95 shadow-md hover:shadow-lg border border-[#1a2b6c]"
+            class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all duration-200 shrink-0 flex items-center justify-center space-x-2 active:scale-95 shadow-md hover:shadow-lg border border-[#1a2b6c] cursor-pointer"
             style="color: #ffffff !important;"
             title="Scroll down to Save button"
           >
@@ -467,7 +487,7 @@
 
         <button
           on:click={onCreateNewSurvey}
-          class="bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 font-bold text-xs px-4 py-2.5 rounded-xl transition-all shrink-0 flex items-center justify-center space-x-1.5 active:scale-[0.98]"
+          class="bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 font-bold text-xs px-4 py-2.5 rounded-xl transition-all shrink-0 flex items-center justify-center space-x-1.5 active:scale-[0.98] cursor-pointer"
         >
           <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
           <span>Create New Form</span>
@@ -566,7 +586,7 @@
                         <button
                           type="button"
                           on:click={() => removeQuestionImage(question)}
-                          class="text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 px-2 py-1 rounded-lg transition-all"
+                          class="text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 px-2 py-1 rounded-lg transition-all cursor-pointer"
                         >
                           ✕ Remove
                         </button>
@@ -583,7 +603,7 @@
 
                 <button
                   on:click={() => removeQuestion(index)}
-                  class="text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 px-3 py-1.5 rounded-xl transition-all shrink-0 shadow-xs"
+                  class="text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 px-3 py-1.5 rounded-xl transition-all shrink-0 shadow-xs cursor-pointer"
                 >
                   Delete
                 </button>
@@ -618,7 +638,7 @@
                           </div>
                           <button
                             on:click={() => removeOption(index, optIndex)}
-                            class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 text-sm px-2 font-bold transition-all"
+                            class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 text-sm px-2 font-bold transition-all cursor-pointer"
                           >✕</button>
                         </div>
                       </div>
@@ -626,7 +646,7 @@
 
                     <button
                       on:click={() => addOption(index)}
-                      class="border border-dashed border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-50 dark:bg-slate-900/20 hover:bg-slate-100 dark:hover:bg-slate-900/40 text-slate-600 dark:text-slate-400 hover:text-[#1a2b6c] dark:hover:text-slate-200 rounded-xl text-xs font-bold py-2.5 transition-all shadow-xs flex items-center justify-center space-x-1"
+                      class="border border-dashed border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-50 dark:bg-slate-900/20 hover:bg-slate-100 dark:hover:bg-slate-900/40 text-slate-600 dark:text-slate-400 hover:text-[#1a2b6c] dark:hover:text-slate-200 rounded-xl text-xs font-bold py-2.5 transition-all shadow-xs flex items-center justify-center space-x-1 cursor-pointer"
                     >
                       <span>+ Insert Option</span>
                     </button>
@@ -701,7 +721,7 @@
                         question.enableOptionImages = !question.enableOptionImages;
                         if (!question.optionImages) question.optionImages = {};
                       }}
-                      class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.enableOptionImages ? 'bg-[#1a2b6c] border-[#1a2b6c]' : 'bg-slate-200 dark:bg-slate-800'}"
+                      class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.enableOptionImages ? 'bg-[#1a2b6c] border-[#1a2b6c]' : 'bg-slate-200 dark:bg-slate-800'} cursor-pointer"
                     >
                       <div class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out {question.enableOptionImages ? 'translate-x-6' : 'translate-x-0'}"></div>
                     </button>
@@ -713,7 +733,7 @@
                     <button
                       type="button"
                       on:click={() => (question.allowMultiple = !question.allowMultiple)}
-                      class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.allowMultiple ? 'bg-[#1a2b6c] border-[#1a2b6c]' : 'bg-slate-200 dark:bg-slate-800'}"
+                      class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.allowMultiple ? 'bg-[#1a2b6c] border-[#1a2b6c]' : 'bg-slate-200 dark:bg-slate-800'} cursor-pointer"
                     >
                       <div class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out {question.allowMultiple ? 'translate-x-6' : 'translate-x-0'}"></div>
                     </button>
@@ -726,7 +746,7 @@
                   <button
                     type="button"
                     on:click={() => (question.isRequired = !question.isRequired)}
-                    class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.isRequired ? 'bg-[#1a2b6c] border-[#1a2b6c]' : 'bg-slate-200 dark:bg-slate-800'}"
+                    class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.isRequired ? 'bg-[#1a2b6c] border-[#1a2b6c]' : 'bg-slate-200 dark:bg-slate-800'} cursor-pointer"
                   >
                     <div class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out {question.isRequired ? 'translate-x-6' : 'translate-x-0'}"></div>
                   </button>
@@ -752,7 +772,7 @@
                           }
                           localQuestions = [...localQuestions];
                         }}
-                        class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.skipLogic?.enabled ? 'bg-[#1a2b6c] border-[#1a2b6c]' : 'bg-slate-200 dark:bg-slate-800'}"
+                        class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.skipLogic?.enabled ? 'bg-[#1a2b6c] border-[#1a2b6c]' : 'bg-slate-200 dark:bg-slate-800'} cursor-pointer"
                       >
                         <div class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out {question.skipLogic?.enabled ? 'translate-x-6' : 'translate-x-0'}"></div>
                       </button>
@@ -768,7 +788,7 @@
                             <select
                               bind:value={question.skipLogic.dependsOnIndex}
                               on:change={() => { question.skipLogic.requiredValue = ""; localQuestions = [...localQuestions]; }}
-                              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-[#1a2b6c] dark:text-slate-200 rounded-lg p-2 focus:outline-none focus:border-[#e31b23]"
+                              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-[#1a2b6c] dark:text-slate-200 rounded-lg p-2 focus:outline-none focus:border-[#e31b23] cursor-pointer"
                             >
                               {#each localQuestions.slice(0, index) as prevQ, pIdx}
                                 <option value={pIdx}>Question {pIdx + 1}: {prevQ.questionText.slice(0, 24)}...</option>
@@ -780,7 +800,7 @@
                             <label class="text-[9px] font-bold text-slate-400 block mb-1">Answer Equals</label>
                             <select
                               bind:value={question.skipLogic.requiredValue}
-                              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-[#1a2b6c] dark:text-slate-200 rounded-lg p-2 focus:outline-none focus:border-[#e31b23]"
+                              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-[#1a2b6c] dark:text-slate-200 rounded-lg p-2 focus:outline-none focus:border-[#e31b23] cursor-pointer"
                             >
                               <option value="">Select Trigger Value...</option>
                               {#each getDependedOptions(question.skipLogic.dependsOnIndex) as optionValue}
