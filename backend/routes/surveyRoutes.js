@@ -81,7 +81,6 @@ const formatToLocalTimezone = (isoString, timeZone = 'Asia/Jakarta') => {
 router.get('/surveys', async (req, res) => {
   try {
     const mode = req.query.mode || 'kiosk';
-    // FIXED: Kiosk mode fetches kiosk records and legacy/null entries without cross-contaminating QR data
     const filter = mode === 'qr' 
       ? { appMode: 'qr' } 
       : { $or: [{ appMode: 'kiosk' }, { appMode: { $exists: false } }, { appMode: null }] };
@@ -403,10 +402,10 @@ router.get('/responses', async (req, res) => {
     const targetTz = req.query.tz || 'Asia/Jakarta';
     const mode = req.query.mode || 'kiosk';
     
-    // FIXED: Kiosk mode fetches kiosk records and legacy/null entries without cross-contaminating QR data
+    // UPDATED FILTER: In kiosk mode, fetch everything except records explicitly marked as 'qr'
     const filter = mode === 'qr' 
       ? { appMode: 'qr' }
-      : { $or: [{ appMode: 'kiosk' }, { appMode: { $exists: false } }, { appMode: null }] };
+      : { appMode: { $ne: 'qr' } };
 
     const rawResponses = await Response.find(filter).sort({ createdAt: -1 }).lean();
 
