@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import surveyRoutes from './routes/surveyRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -102,6 +103,7 @@ app.post('/api/responses/rename-device', async (req, res) => {
 
 // Mount API routes
 app.use('/api', surveyRoutes);
+app.use('/api', userRoutes);
 app.use('/api/auth', authRoutes);
 
 mongoose.connection.on('disconnected', () => {
