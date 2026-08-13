@@ -7,6 +7,7 @@ const QuestionSchema = new mongoose.Schema({
   isRequired: { type: Boolean, default: false },
   allowMultiple: { type: Boolean, default: false },
   enableOptionImages: { type: Boolean, default: false },
+  enableOtherOption: { type: Boolean, default: false }, // Explicitly added here
   options: [{ type: String }],
   optionImages: { type: mongoose.Schema.Types.Mixed, default: {} },
   alertTriggerValues: [{ type: String }], 
