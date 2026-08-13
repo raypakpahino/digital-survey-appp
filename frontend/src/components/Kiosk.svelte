@@ -232,18 +232,24 @@
     if (!currentQuestion) return;
 
     let finalValue = selectedValue;
+    const normType = getNormalizedType(currentQuestion.type);
 
-    if (getNormalizedType(currentQuestion.type) === 'dropdown' && selectedValue === 'Other') {
+    if (normType === 'number') {
+      if (finalValue !== "" && isNaN(Number(finalValue))) {
+        validationError = "Please enter a valid numeric value.";
+        return;
+      }
+    } else if (normType === 'dropdown' && selectedValue === 'Other') {
       if (!otherCustomText.trim()) {
         validationError = "Please specify your custom answer for 'Other'.";
         return;
       }
       finalValue = `Other: ${otherCustomText.trim()}`;
-    } else if (getNormalizedType(currentQuestion.type) === 'multiple-choice' && currentQuestion.allowMultiple) {
+    } else if (normType === 'multiple-choice' && currentQuestion.allowMultiple) {
       finalValue = selectedMultipleValues.join(", ");
     }
 
-    const isBlank = !finalValue || (typeof finalValue === 'string' && finalValue.trim() === "");
+    const isBlank = finalValue === null || finalValue === undefined || (typeof finalValue === 'string' && finalValue.trim() === "");
     if (currentQuestion.isRequired && isBlank) {
       validationError = "This question is required. Please provide an answer before continuing.";
       return;
@@ -251,7 +257,7 @@
 
     answersAccumulator = [
       ...answersAccumulator,
-      { questionText: currentQuestion.questionText, value: finalValue || "Skipped" }
+      { questionText: currentQuestion.questionText, value: isBlank ? "Skipped" : String(finalValue) }
     ];
 
     selectedValue = "";
@@ -676,6 +682,27 @@
                 <span style="color: #ffffff !important; font-weight: 800 !important;">Confirm Selection ➔</span>
               </button>
             </div>
+
+          {:else if getNormalizedType(currentQuestion.type) === 'number'}
+            <!-- NUMBER INPUT KIOSK FIELD -->
+            <form on:submit|preventDefault={advanceStep} class="w-full max-w-md mx-auto space-y-4 my-auto">
+              <div class="relative flex items-center">
+                <input 
+                  type="number" 
+                  bind:value={selectedValue}
+                  on:input={() => (validationError = "")}
+                  placeholder={currentQuestion.isRequired ? "Enter numeric value (Required)..." : "Enter numeric value..."}
+                  class="w-full bg-slate-50 border border-slate-200 text-[#1a2b6c] font-bold rounded-2xl p-4 text-xl outline-none transition-all shadow-inner focus:border-[#e31b23] focus:ring-2 focus:ring-rose-500/20"
+                />
+              </div>
+              <button 
+                type="submit"
+                class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-4 px-5 text-base rounded-2xl transition-all shadow-md active:scale-[0.98] flex items-center justify-center space-x-2 cursor-pointer"
+                style="color: #ffffff !important; background-color: #1a2b6c !important;"
+              >
+                <span style="color: #ffffff !important; font-weight: 800 !important;">Submit Number ➔</span>
+              </button>
+            </form>
 
           {:else if getNormalizedType(currentQuestion.type) === 'date'}
             <!-- DATE PICKER KIOSK INPUT -->

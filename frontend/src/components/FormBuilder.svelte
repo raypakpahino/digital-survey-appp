@@ -152,6 +152,12 @@
       desc: "Compact menu for choices",
     },
     {
+      type: "number",
+      svgPath: "M4 9h4V5H4v4zm0 6h4v-4H4v4zm0 6h4v-4H4v4zm6-12h10V5H10v4zm0 6h10v-4H10v4zm0 6h10v-4H10v4z",
+      label: "Number Input",
+      desc: "Strict numeric input field",
+    },
+    {
       type: "date",
       svgPath: "M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z",
       label: "Date Picker",
@@ -187,6 +193,7 @@
         { text: "Option 3", targetSite: "" }
       ];
     }
+    if (type === "number") defaultText = "Please enter a numeric value:";
     if (type === "date") defaultText = "Please select a date:";
     if (type === "text") defaultText = "Do you have any additional comments?";
 
