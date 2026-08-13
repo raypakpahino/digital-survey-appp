@@ -42,6 +42,7 @@
       deviceId = savedDeviceId;
     }
 
+    // Only prompt for PIN if an explicit survey ID is present in the URL query string[cite: 15]
     if (urlSurveyId) {
       const targetSurvey = surveys.find(s => s._id === urlSurveyId);
       if (targetSurvey) {

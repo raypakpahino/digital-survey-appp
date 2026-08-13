@@ -159,11 +159,13 @@
     
     const urlSurveyId = urlParams.get("id");
     const modeParam = urlParams.get("mode");
-    const savedSurveyId = localStorage.getItem("sdx_active_survey_id");
-    const targetSurveyId = urlSurveyId || savedSurveyId || "";
 
-    if (targetSurveyId) {
-      activeSurveyId = targetSurveyId;
+    // Strictly check URL parameters on initial load to prevent accidental Kiosk locking[cite: 14]
+    if (urlSurveyId) {
+      activeSurveyId = urlSurveyId;
+    } else if (hash.startsWith("#/kiosk")) {
+      // Clear trailing kiosk hash if accessing bare domain directly[cite: 14]
+      window.location.hash = "/surveys";
     }
 
     if (modeParam === 'qr' || window.location.search.includes("mode=qr")) {
@@ -237,6 +239,7 @@
 
   function handleLogout() {
     localStorage.removeItem("sdx_token");
+    localStorage.removeItem("sdx_active_survey_id");
     currentUser = null;
   }
 
