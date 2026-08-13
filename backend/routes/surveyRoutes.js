@@ -140,14 +140,12 @@ router.put('/surveys/:id', async (req, res) => {
       { new: true, runValidators: false }
     );
 
-    // CASCADE 1: Update surveyTitle in all Response records if title changed
     if (oldTitle && newTitle && oldTitle !== newTitle) {
       await Response.updateMany(
         { surveyTitle: oldTitle },
         { $set: { surveyTitle: newTitle } }
       );
 
-      // CASCADE 2: Update allowedFormTitle in all Device records if title changed
       const devices = await Device.find({ allowedFormTitle: oldTitle });
       for (const dev of devices) {
         if (Array.isArray(dev.allowedFormTitle)) {
@@ -244,10 +242,8 @@ router.delete('/surveys/:id', async (req, res) => {
     if (surveyToDelete) {
       const deletedTitle = surveyToDelete.title;
 
-      // 1. Delete associated responses
       await Response.deleteMany({ surveyTitle: deletedTitle });
 
-      // 2. CLEANUP: Strip deleted title from allowedFormTitle across all devices
       const devices = await Device.find({ allowedFormTitle: deletedTitle });
       for (const dev of devices) {
         if (Array.isArray(dev.allowedFormTitle)) {
@@ -256,7 +252,6 @@ router.delete('/surveys/:id', async (req, res) => {
         }
       }
 
-      // 3. Delete survey schema
       await Survey.findByIdAndDelete(req.params.id);
     }
     res.json({ success: true, message: 'Survey deleted and device permissions updated.' });
@@ -271,35 +266,45 @@ router.delete('/surveys/:id', async (req, res) => {
 
 router.get('/devices', async (req, res) => {
   try {
-    // 1. AUTO-MIGRATE OLD DEVICE FORM PERMISSIONS TO NEW TITLES
+    // CLEAN SWEEP: Purge references to deleted surveys from device records in MongoDB
     try {
       const allSurveys = await Survey.find({});
-      const activeTitles = allSurveys.map(s => s.title);
+      const activeTitlesSet = new Set(allSurveys.map(s => s.title));
 
       const allDevices = await Device.find({});
       for (const dev of allDevices) {
         if (Array.isArray(dev.allowedFormTitle)) {
           let updated = false;
-          const newForms = dev.allowedFormTitle.map(formName => {
-            const cleanForm = String(formName).toLowerCase().trim();
-            const matched = activeTitles.find(t => t.toLowerCase().includes(cleanForm) || cleanForm.includes(t.toLowerCase()));
-            if (matched && matched !== formName) {
-              updated = true;
-              return matched;
+          const cleanedForms = [];
+
+          for (const formName of dev.allowedFormTitle) {
+            const cleanForm = String(formName).trim();
+            // Check for exact active match or legacy mapped match
+            if (activeTitlesSet.has(cleanForm)) {
+              cleanedForms.push(cleanForm);
+            } else {
+              // Try legacy mapping
+              const lowerForm = cleanForm.toLowerCase();
+              const match = allSurveys.find(s => s.title.toLowerCase().includes(lowerForm) || lowerForm.includes(s.title.toLowerCase()));
+              if (match) {
+                cleanedForms.push(match.title);
+                updated = true;
+              } else {
+                // Dead/deleted form reference -> strip it
+                updated = true;
+              }
             }
-            return formName;
-          });
+          }
 
           if (updated) {
-            await Device.findByIdAndUpdate(dev._id, { $set: { allowedFormTitle: Array.from(new Set(newForms)) } });
+            await Device.findByIdAndUpdate(dev._id, { $set: { allowedFormTitle: Array.from(new Set(cleanedForms)) } });
           }
         }
       }
     } catch (e) {
-      console.warn("Device form title auto-migration warning:", e);
+      console.warn("Device form title sanitization warning:", e);
     }
 
-    // 2. FETCH REGISTERED DEVICES
     let devices = await Device.find({}).sort({ updatedAt: -1 }).lean();
     const responseDeviceNames = await Response.distinct('deviceId');
     const registeredNames = new Set(devices.map(d => d.deviceName));
@@ -486,7 +491,6 @@ router.get('/responses', async (req, res) => {
       console.warn("Auto-reconnect mapping warning:", e);
     }
 
-    // FILTER: Fetch all kiosk responses (including legacy/null appMode)
     const filter = mode === 'qr' 
       ? { appMode: 'qr' }
       : { appMode: { $ne: 'qr' } };

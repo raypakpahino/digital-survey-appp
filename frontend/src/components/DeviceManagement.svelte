@@ -108,7 +108,9 @@
     inputDeviceName = dev.deviceName;
     inputPin = dev.accessPin || "";
     
+    const activeTitlesSet = new Set(availableSurveys.map(s => s.title));
     let rawList = [];
+
     if (Array.isArray(dev.allowedFormTitle)) {
       rawList = dev.allowedFormTitle.filter(f => f && f !== "All Forms");
     } else if (typeof dev.allowedFormTitle === 'string' && dev.allowedFormTitle.includes(',')) {
@@ -118,6 +120,7 @@
     }
 
     const matchedTitles = rawList.map(raw => {
+      if (activeTitlesSet.has(raw)) return raw;
       const cleanRaw = raw.toLowerCase();
       const match = availableSurveys.find(s => {
         const cleanTitle = s.title.toLowerCase();
@@ -214,30 +217,34 @@
     }
   }
 
-  // DYNAMIC FORM DISPLAY FORMATTER WITH PARTIAL MATCH FALLBACK
+  // STRICT ACTIVE FORM FORMATTER: Removes phantom/deleted form titles completely
   function formatFormDisplay(allowedForms) {
-    if (!allowedForms) return "All Active Forms";
+    if (!allowedForms) return "Unassigned";
 
+    const activeTitlesSet = new Set(availableSurveys.map(s => s.title));
     let rawList = [];
+
     if (Array.isArray(allowedForms)) {
       rawList = allowedForms.filter(f => f && f !== "All Forms");
     } else if (typeof allowedForms === 'string') {
       rawList = allowedForms.split(',').map(s => s.trim()).filter(f => f && f !== "All Forms");
     }
 
-    if (rawList.length === 0) return "All Active Forms";
+    if (rawList.length === 0) return "Unassigned";
 
-    const mappedNames = rawList.map(raw => {
+    // Strictly keep active forms or map legacy aliases
+    const validMatches = rawList.map(raw => {
+      if (activeTitlesSet.has(raw)) return raw;
       const cleanRaw = raw.toLowerCase();
       const match = availableSurveys.find(s => {
         const cleanTitle = s.title.toLowerCase();
         return cleanTitle === cleanRaw || cleanTitle.includes(cleanRaw) || cleanRaw.includes(cleanTitle);
       });
-      return match ? match.title : raw;
-    });
+      return match ? match.title : null;
+    }).filter(Boolean);
 
-    const uniqueMapped = Array.from(new Set(mappedNames));
-    return uniqueMapped.join(", ");
+    const uniqueValid = Array.from(new Set(validMatches));
+    return uniqueValid.length > 0 ? uniqueValid.join(", ") : "Unassigned";
   }
 
   onMount(() => {
@@ -414,7 +421,7 @@
                   </td>
 
                   <td class="py-3.5 px-3 font-bold">
-                    <span class="px-3 py-1 rounded-md border text-[11px] font-black inline-block max-w-[200px] truncate bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" title={formatted}>
+                    <span class="px-3 py-1 rounded-md border text-[11px] font-black inline-block max-w-[200px] truncate {formatted === 'Unassigned' ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'}" title={formatted}>
                       {formatted}
                     </span>
                   </td>
