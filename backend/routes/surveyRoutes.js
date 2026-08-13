@@ -74,10 +74,9 @@ const formatToLocalTimezone = (isoString, timeZone = 'Asia/Jakarta') => {
 router.get('/surveys', async (req, res) => {
   try {
     const mode = req.query.mode || 'kiosk';
-    const filter = { $or: [{ appMode: mode }, { appMode: { $exists: false } }] };
-    if (mode === 'qr') {
-      filter.$or = [{ appMode: 'qr' }];
-    }
+    const filter = mode === 'qr' 
+      ? { appMode: 'qr' } 
+      : { $or: [{ appMode: 'kiosk' }, { appMode: { $exists: false } }] };
 
     const surveys = await Survey.find(filter);
     res.json({ success: true, surveys });
@@ -375,7 +374,7 @@ router.delete('/devices/:id', async (req, res) => {
 router.post('/responses', async (req, res) => {
   try {
     const { surveyTitle, deviceId, answers, appMode } = req.body;
-    const cleanDeviceId = deviceId || (appMode === 'qr' ? 'Public-QR-Scan' : 'Tablet-Unassigned');
+    const cleanDeviceId = deviceId || (appMode === 'qr' ? 'Web-QR-Scan' : 'Tablet-Unassigned');
 
     const newResponse = await Response.create({
       surveyTitle,
@@ -395,10 +394,11 @@ router.get('/responses', async (req, res) => {
   try {
     const targetTz = req.query.tz || 'Asia/Jakarta';
     const mode = req.query.mode || 'kiosk';
-    const filter = { $or: [{ appMode: mode }, { appMode: { $exists: false } }] };
-    if (mode === 'qr') {
-      filter.$or = [{ appMode: 'qr' }];
-    }
+    
+    // Scopes query so QR responses are properly fetched even across legacy docs
+    const filter = mode === 'qr' 
+      ? { appMode: 'qr' }
+      : { $or: [{ appMode: 'kiosk' }, { appMode: { $exists: false } }] };
 
     const rawResponses = await Response.find(filter).sort({ createdAt: -1 }).lean();
 
