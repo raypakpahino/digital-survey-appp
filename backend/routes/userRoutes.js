@@ -13,7 +13,7 @@ router.get('/sites', async (req, res) => {
     const sites = await Site.find({}).sort({ name: 1 });
     res.json({ success: true, sites });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -33,7 +33,7 @@ router.post('/sites', async (req, res) => {
     const newSite = await Site.create({ name: cleanName, description: description || '' });
     res.status(201).json({ success: true, site: newSite });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -42,7 +42,7 @@ router.delete('/sites/:id', async (req, res) => {
     await Site.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'Site removed successfully.' });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -55,7 +55,7 @@ router.get('/users', async (req, res) => {
     const users = await User.find({}).select('-password').sort({ createdAt: -1 });
     res.json({ success: true, users });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -69,16 +69,15 @@ router.post('/users', async (req, res) => {
     const cleanUsername = username.trim().toLowerCase();
     const existing = await User.findOne({ username: cleanUsername });
     if (existing) {
-      return res.status(400).json({ success: false, message: 'Username is already taken.' });
+      return res.status(400).json({ success: false, message: `Username '${cleanUsername}' is already taken.` });
     }
 
-    // MAP LEGACY 'user' ROLE TO 'kiosk_operator'
-    let targetRole = role || 'kiosk_operator';
-    if (targetRole === 'user') targetRole = 'kiosk_operator';
+    // Map role cleanly for database compatibility
+    let targetRole = role || 'user';
 
     const newUser = await User.create({
       username: cleanUsername,
-      password, // Hash with bcrypt if authentication requires encrypted tokens
+      password, // Stored directly or hashed
       role: targetRole,
       assignedSite: targetRole === 'site_leader' ? (assignedSite || '') : ''
     });
@@ -88,7 +87,7 @@ router.post('/users', async (req, res) => {
 
     res.status(201).json({ success: true, user: userObj });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -98,11 +97,11 @@ router.put('/users/:id', async (req, res) => {
     const updateData = {};
 
     if (role) {
-      updateData.role = role === 'user' ? 'kiosk_operator' : role;
+      updateData.role = role;
     }
     
     if (assignedSite !== undefined) {
-      updateData.assignedSite = updateData.role === 'site_leader' ? assignedSite : '';
+      updateData.assignedSite = (updateData.role === 'site_leader' || role === 'site_leader') ? assignedSite : '';
     }
     
     if (password && password.trim()) {
@@ -117,7 +116,7 @@ router.put('/users/:id', async (req, res) => {
 
     res.json({ success: true, user: updatedUser });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -126,7 +125,7 @@ router.delete('/users/:id', async (req, res) => {
     await User.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'User deleted successfully.' });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
