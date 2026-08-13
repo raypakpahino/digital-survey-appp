@@ -54,6 +54,7 @@
     await refreshDataLedger();
   }
 
+  // NON-BLOCKING TAB SWITCHER (Eliminates INP delay on sidebar clicks)
   function switchTab(tab) {
     if (currentUser && currentUser.role === "site_leader") {
       activeTab = "answers";
@@ -69,12 +70,21 @@
       activeSurveyId = "";
     }
 
+    // Paint UI update immediately
     activeTab = tab;
+
     if (!isDedicatedKioskMode) {
       const targetHash = activeSurveyId && (tab === "builder" || tab === "kiosk" || tab === "answers")
         ? `/${tab}?id=${activeSurveyId}`
         : `/${tab}`;
       window.location.hash = targetHash;
+    }
+
+    // Defer network fetch to next paint loop so main thread is not blocked
+    if (tab === "surveys" || tab === "answers") {
+      setTimeout(() => {
+        refreshDataLedger();
+      }, 0);
     }
   }
 
@@ -532,10 +542,7 @@
                 <!-- 1. SURVEYS PORTAL -->
                 <button
                   class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'surveys' ? (isQrMode ? 'bg-cyan-600 text-white shadow-md' : 'bg-[#1a2b6c] text-white shadow-md') : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
-                  on:click={async () => {
-                    switchTab("surveys");
-                    await refreshDataLedger();
-                  }}
+                  on:click={() => switchTab("surveys")}
                   title={isQrMode ? 'QR Forms Hub' : 'Surveys Portal'}
                 >
                   <svg class="w-5 h-5 shrink-0 fill-current" viewBox="0 0 24 24">
@@ -581,10 +588,7 @@
               <!-- 4. ANSWERS LOG -->
               <button
                 class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'answers' ? (isQrMode ? 'bg-cyan-600 text-white shadow-md' : 'bg-[#1a2b6c] text-white shadow-md') : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
-                on:click={async () => {
-                  switchTab("answers");
-                  await refreshDataLedger();
-                }}
+                on:click={() => switchTab("answers")}
                 title={currentUser?.role === "site_leader" ? `Answers Log (${currentUser.assignedSite || 'Site'})` : "Answers Log"}
               >
                 <svg class="w-5 h-5 shrink-0 fill-current" viewBox="0 0 24 24">
