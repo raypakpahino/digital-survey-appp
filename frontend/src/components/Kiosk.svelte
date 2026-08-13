@@ -419,7 +419,7 @@
 
     {:else}
       <!-- ACTIVE FORM FILLING CANVAS -->
-      <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="w-full bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col justify-between overflow-hidden box-border my-auto h-full">
+      <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="w-full bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col justify-between overflow-visible box-border my-auto h-full">
         
         <div class="space-y-1 shrink-0 w-full">
           <div class="flex items-center justify-between text-[11px] font-mono font-bold">
@@ -463,7 +463,7 @@
           {/if}
         </div>
 
-        <div class="w-full flex-1 flex flex-col justify-center min-h-0 box-border py-2 my-auto overflow-y-auto custom-scrollbar">
+        <div class="w-full flex-1 flex flex-col justify-center min-h-0 box-border py-2 my-auto overflow-visible">
           
           {#if getNormalizedType(currentQuestion.type) === 'smiley'}
             <div class="grid grid-cols-1 landscape:grid-cols-5 gap-3 w-full max-w-3xl landscape:max-w-4xl mx-auto my-auto items-center">
@@ -552,7 +552,7 @@
             </div>
 
           {:else if getNormalizedType(currentQuestion.type) === 'dropdown'}
-            <!-- CUSTOM SEARCHABLE DROPDOWN COMBOBOX -->
+            <!-- ELEGANT DOWNWARD-EXPANDING COMBOBOX WITH SEARCH -->
             <div class="w-full max-w-lg mx-auto space-y-4 my-auto relative" bind:this={dropdownContainerRef}>
               
               <div class="relative">
@@ -572,9 +572,9 @@
                 {#if isDropdownOpen}
                   <div 
                     in:scale={{ duration: 150, start: 0.98 }}
-                    class="absolute z-50 bottom-full mb-2 left-0 right-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-72"
+                    class="absolute z-[9999] top-full mt-2 left-0 right-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-64"
                   >
-                    <!-- SEARCH BAR HEADER -->
+                    <!-- SEARCH INPUT HEADER -->
                     <div class="p-3 border-b border-slate-100 bg-slate-50 shrink-0">
                       <div class="relative flex items-center">
                         <input 
@@ -587,7 +587,7 @@
                       </div>
                     </div>
 
-                    <!-- SCROLLABLE LIST OF ITEMS -->
+                    <!-- SCROLLABLE CHOICES LIST -->
                     <div class="overflow-y-auto custom-scrollbar flex-1 p-1">
                       {#if filteredDropdownOptions.length === 0}
                         <div class="p-4 text-center text-xs text-slate-400 font-semibold">
