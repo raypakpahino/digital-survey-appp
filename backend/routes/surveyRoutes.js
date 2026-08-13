@@ -22,7 +22,7 @@ const generateUniquePin = (existingPins = new Set()) => {
   return pin;
 };
 
-// SANITIZER: Stringifies option objects into clean JSON strings for MongoDB String array compatibility
+// SANITIZER: Preserves enableOtherOption, option images, and JSON options
 const sanitizeQuestions = (questions) => {
   if (!Array.isArray(questions)) return [];
   return questions.map((q) => ({
@@ -33,6 +33,7 @@ const sanitizeQuestions = (questions) => {
     isRequired: Boolean(q.isRequired),
     allowMultiple: Boolean(q.allowMultiple),
     enableOptionImages: Boolean(q.enableOptionImages),
+    enableOtherOption: Boolean(q.enableOtherOption),
     options: Array.isArray(q.options) 
       ? q.options.map(opt => typeof opt === 'object' ? JSON.stringify(opt) : String(opt)) 
       : [],
