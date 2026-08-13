@@ -19,7 +19,7 @@
   let isSidebarExpanded = true;
   let isDarkMode = true;
 
-  // GLOBAL DUAL-APP ENGINE MODE (KIOSK vs QR)
+  // GLOBAL DUAL-APP ENGINE MODE (PERSISTED IN LOCALSTORAGE)
   let isQrMode = false;
 
   // SHARE HUB MODAL STATE
@@ -50,6 +50,7 @@
 
   async function toggleAppMode() {
     isQrMode = !isQrMode;
+    localStorage.setItem("sdx_app_mode", isQrMode ? "qr" : "kiosk");
     await refreshDataLedger();
   }
 
@@ -152,6 +153,12 @@
       document.documentElement.classList.add('dark');
     }
 
+    // PERSIST MODE SELECTION ACROSS PAGE REFRESHES
+    const savedAppMode = localStorage.getItem("sdx_app_mode");
+    if (savedAppMode === "qr") {
+      isQrMode = true;
+    }
+
     const hash = window.location.hash;
     const urlParams = new URLSearchParams(
       hash.includes("?") ? hash.split("?")[1] : window.location.search,
@@ -160,16 +167,15 @@
     const urlSurveyId = urlParams.get("id");
     const modeParam = urlParams.get("mode");
 
-    // Strictly check URL parameters on initial load to prevent accidental Kiosk locking[cite: 14]
     if (urlSurveyId) {
       activeSurveyId = urlSurveyId;
     } else if (hash.startsWith("#/kiosk")) {
-      // Clear trailing kiosk hash if accessing bare domain directly[cite: 14]
       window.location.hash = "/surveys";
     }
 
     if (modeParam === 'qr' || window.location.search.includes("mode=qr")) {
       isQrMode = true;
+      localStorage.setItem("sdx_app_mode", "qr");
       activeTab = "kiosk";
       isDedicatedKioskMode = true;
       isSidebarExpanded = false;
@@ -204,7 +210,7 @@
             const route = hash.replace("#/", "").split("?")[0];
             if (["surveys", "builder", "kiosk", "answers", "devices"].includes(route)) {
               activeTab = route;
-              if (route === "kiosk") {
+              if (route === "kiosk" && !urlSurveyId) {
                 activeSurveyId = "";
               }
             } else {
@@ -443,7 +449,6 @@
     const surveyId = typeof survey === 'object' ? survey._id : survey;
     const isQrSurvey = typeof survey === 'object' ? survey.appMode === 'qr' : isQrMode;
     
-    // Only append &mode=qr if the survey itself is actually a Web QR Hub form
     const modeString = (forceQr || isQrSurvey) ? '&mode=qr' : '';
     return `http://${host}${port}/?id=${surveyId}${modeString}#/kiosk`;
   }
