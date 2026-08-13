@@ -166,15 +166,6 @@
     }
   }
 
-  $: if (currentQuestionIndex !== undefined) {
-    selectedValue = "";
-    otherCustomText = "";
-    selectedMultipleValues = [];
-    validationError = "";
-    isDropdownOpen = false;
-    dropdownSearchQuery = "";
-  }
-
   const satisfactionScale = [
     { label: "ANGRY", emoji: "🤬", color: "hover:bg-rose-50 border-rose-200 text-rose-700 bg-rose-50/50" },
     { label: "SAD", emoji: "😞", color: "hover:bg-orange-50 border-orange-200 text-orange-700 bg-orange-50/50" },
@@ -277,6 +268,44 @@
       onSubmitResponse(answersAccumulator, deviceId);
       startAutoResetLoop();
     }
+  }
+
+  // DYNAMIC PREVIOUS QUESTION STEP BACK
+  function goBackStep() {
+    if (answersAccumulator.length === 0) return;
+
+    const lastRecorded = answersAccumulator.pop();
+    answersAccumulator = [...answersAccumulator];
+
+    let prevIndex = currentQuestionIndex - 1;
+    while (prevIndex >= 0) {
+      if (questions[prevIndex].questionText === lastRecorded.questionText) {
+        break;
+      }
+      prevIndex--;
+    }
+
+    currentQuestionIndex = Math.max(0, prevIndex);
+
+    // Pre-fill previous value for editing
+    const normType = getNormalizedType(questions[currentQuestionIndex]?.type);
+    const prevVal = lastRecorded.value === "Skipped" ? "" : lastRecorded.value;
+
+    if (normType === 'dropdown' && prevVal.startsWith('Other: ')) {
+      selectedValue = 'Other';
+      otherCustomText = prevVal.replace('Other: ', '');
+    } else if (normType === 'multiple-choice' && questions[currentQuestionIndex]?.allowMultiple) {
+      selectedMultipleValues = prevVal ? prevVal.split(', ') : [];
+      selectedValue = "";
+    } else {
+      selectedValue = prevVal;
+      otherCustomText = "";
+    }
+
+    validationError = "";
+    hoveredStarIndex = 0;
+    isDropdownOpen = false;
+    dropdownSearchQuery = "";
   }
 
   function startAutoResetLoop() {
@@ -465,9 +494,21 @@
         
         <div class="space-y-1 shrink-0 w-full">
           <div class="flex items-center justify-between text-[11px] font-mono font-bold">
-            <span class="text-rose-800 bg-rose-50 border border-rose-200 px-3 py-0.5 rounded-full">
-              Question {currentQuestionIndex + 1} of {questions.length}
-            </span>
+            <div class="flex items-center space-x-2">
+              {#if answersAccumulator.length > 0}
+                <button
+                  type="button"
+                  on:click={goBackStep}
+                  class="text-[#1a2b6c] bg-slate-100 hover:bg-[#1a2b6c] hover:text-white border border-slate-200 px-3 py-1 rounded-full text-[11px] font-bold transition-all flex items-center space-x-1 cursor-pointer active:scale-95 shadow-xs"
+                >
+                  <span>← Back</span>
+                </button>
+              {/if}
+              <span class="text-rose-800 bg-rose-50 border border-rose-200 px-3 py-0.5 rounded-full">
+                Question {currentQuestionIndex + 1} of {questions.length}
+              </span>
+            </div>
+
             <span class="text-slate-500 font-semibold">
               {Math.round(((currentQuestionIndex + 1) / questions.length) * 100)}% Completed
             </span>
