@@ -66,11 +66,13 @@
     return [];
   }
 
-  $: if (activeSurveyId !== lastLoadedSurveyId || localQuestions.length === 0) {
-    lastLoadedSurveyId = activeSurveyId;
+  // NON-BLOCKING FORM INITIALIZATION (Replaces infinite reactive $: loop)
+  function loadActiveFormState(targetId) {
+    if (!targetId || targetId === lastLoadedSurveyId) return;
+    lastLoadedSurveyId = targetId;
     localTitle = surveyTitle || "";
     
-    const activeSurvey = surveys.find(s => String(s._id) === String(activeSurveyId));
+    const activeSurvey = surveys.find(s => String(s._id) === String(targetId));
     if (activeSurvey) {
       localThankYouMessage = activeSurvey.thankYouMessage || "Thank you for your feedback! This screen will automatically refresh in a few seconds.";
       localAutoRefreshSeconds = activeSurvey.autoRefreshSeconds !== undefined && activeSurvey.autoRefreshSeconds !== null 
@@ -99,6 +101,8 @@
       };
     });
   }
+
+  $: loadActiveFormState(activeSurveyId);
 
   const availableComponents = [
     {
