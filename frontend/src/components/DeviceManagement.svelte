@@ -108,11 +108,13 @@
     inputDeviceName = dev.deviceName;
     inputPin = dev.accessPin || "";
     
+    const validSurveyTitles = new Set(availableSurveys.map(s => s.title));
+
     if (Array.isArray(dev.allowedFormTitle)) {
-      selectedForms = dev.allowedFormTitle.filter(f => f && f !== "All Forms");
+      selectedForms = dev.allowedFormTitle.filter(f => f && f !== "All Forms" && validSurveyTitles.has(f));
     } else if (typeof dev.allowedFormTitle === 'string' && dev.allowedFormTitle.includes(',')) {
-      selectedForms = dev.allowedFormTitle.split(',').map(s => s.trim()).filter(f => f && f !== "All Forms");
-    } else if (dev.allowedFormTitle && dev.allowedFormTitle !== "All Forms") {
+      selectedForms = dev.allowedFormTitle.split(',').map(s => s.trim()).filter(f => f && f !== "All Forms" && validSurveyTitles.has(f));
+    } else if (dev.allowedFormTitle && dev.allowedFormTitle !== "All Forms" && validSurveyTitles.has(dev.allowedFormTitle)) {
       selectedForms = [dev.allowedFormTitle];
     } else {
       selectedForms = availableSurveys.length > 0 ? [availableSurveys[0].title] : [];
@@ -206,14 +208,19 @@
     }
   }
 
+  // FILTER OUT DELETED FORM TITLES FROM DEVICE ROSTER DISPLAY
   function formatFormDisplay(allowedForms) {
     if (!allowedForms) return "None";
+    const validSurveyTitles = new Set(availableSurveys.map(s => s.title));
+
     if (Array.isArray(allowedForms)) {
-      const cleanList = allowedForms.filter(f => f && f !== "All Forms");
+      const cleanList = allowedForms.filter(f => f && f !== "All Forms" && validSurveyTitles.has(f));
       if (cleanList.length === 0) return "None";
       return cleanList.join(", ");
     }
-    return allowedForms === "All Forms" ? "None" : allowedForms;
+    
+    if (allowedForms === "All Forms") return "None";
+    return validSurveyTitles.has(allowedForms) ? allowedForms : "None";
   }
 
   onMount(() => {
@@ -224,7 +231,6 @@
 </script>
 
 <div class="w-full space-y-8 animate-fade pb-12 box-border">
-  <!-- TOP HEADER -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-5 gap-4">
     <div>
       <h1 class="text-2xl font-black tracking-tight text-[#1a2b6c] dark:text-white">Device & Access Management</h1>
@@ -244,8 +250,6 @@
   </div>
 
   <div class="flex flex-col lg:flex-row items-start gap-0 w-full relative">
-    
-    <!-- LEFT PANEL -->
     <div 
       class="shrink-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5 z-20"
       style="width: {leftPanelWidth}px; position: sticky; top: 1.5rem; height: max-content;"
@@ -271,7 +275,6 @@
       {/if}
 
       <form on:submit|preventDefault={handleAddOrUpdateDevice} class="space-y-4">
-        <!-- 1. DEVICE NAME INPUT -->
         <div class="space-y-1">
           <label for="dev-name-input" class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">1. Device Name</label>
           <input 
@@ -283,7 +286,6 @@
           />
         </div>
 
-        <!-- 2. ACCESS PIN INPUT WITH CUBE BUTTON -->
         <div class="space-y-1">
           <label for="dev-pin-input" class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">2. Form Access PIN (6 Alphanumeric)</label>
           
@@ -311,7 +313,6 @@
           </div>
         </div>
 
-        <!-- 3. AUTHORIZED FORM ACCESS MULTI-SELECT -->
         <div class="space-y-2">
           <span class="text-[10px] font-mono font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">3. Authorized Form Access (Multi-Select)</span>
           
@@ -347,7 +348,6 @@
       </form>
     </div>
 
-    <!-- DRAGGABLE RESIZER -->
     <div
       on:mousedown={startResizing}
       class="hidden lg:flex w-6 cursor-col-resize items-center justify-center shrink-0 group z-30 self-stretch px-1"
@@ -356,7 +356,6 @@
       <div class="w-1.5 h-32 rounded-full bg-slate-300 dark:bg-slate-700 group-hover:bg-[#e31b23] group-hover:scale-110 transition-all"></div>
     </div>
 
-    <!-- RIGHT SCROLLABLE ROSTER TABLE -->
     <div class="flex-1 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4 min-w-0">
       <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
         <h3 class="text-xs font-mono font-extrabold text-[#1a2b6c] dark:text-cyan-400 uppercase tracking-wider">Registered Device Roster</h3>

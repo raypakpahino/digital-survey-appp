@@ -110,13 +110,22 @@ router.post('/surveys', async (req, res) => {
   }
 });
 
+// DYNAMIC TITLE RENAME CASCADING UPDATE
 router.put('/surveys/:id', async (req, res) => {
   try {
     const { title, questions, pinCode, thankYouMessage, autoRefreshSeconds, appMode } = req.body;
     const cleanQuestions = sanitizeQuestions(questions);
 
+    const existingSurvey = await Survey.findById(req.params.id);
+    if (!existingSurvey) {
+      return res.status(404).json({ success: false, message: 'Survey schema not found.' });
+    }
+
+    const oldTitle = existingSurvey.title;
+    const newTitle = String(title || '').trim();
+
     const updatePayload = { 
-      title: String(title || '').trim(), 
+      title: newTitle, 
       pinCode: String(pinCode || '123456').trim().toLowerCase(),
       questions: cleanQuestions 
     };
@@ -130,6 +139,23 @@ router.put('/surveys/:id', async (req, res) => {
       { $set: updatePayload }, 
       { new: true, runValidators: false }
     );
+
+    // CASCADE 1: Update surveyTitle in all Response records if title changed
+    if (oldTitle && newTitle && oldTitle !== newTitle) {
+      await Response.updateMany(
+        { surveyTitle: oldTitle },
+        { $set: { surveyTitle: newTitle } }
+      );
+
+      // CASCADE 2: Update allowedFormTitle in all Device records if title changed
+      const devices = await Device.find({ allowedFormTitle: oldTitle });
+      for (const dev of devices) {
+        if (Array.isArray(dev.allowedFormTitle)) {
+          const updatedForms = dev.allowedFormTitle.map(f => f === oldTitle ? newTitle : f);
+          await Device.findByIdAndUpdate(dev._id, { $set: { allowedFormTitle: updatedForms } });
+        }
+      }
+    }
 
     res.json({ success: true, survey: updatedSurvey });
   } catch (error) {
@@ -211,14 +237,29 @@ router.post('/surveys/:id/verify-pin', async (req, res) => {
   }
 });
 
+// DYNAMIC DEVICE CLEANUP ON SURVEY DELETE
 router.delete('/surveys/:id', async (req, res) => {
   try {
     const surveyToDelete = await Survey.findById(req.params.id);
     if (surveyToDelete) {
-      await Response.deleteMany({ surveyTitle: surveyToDelete.title });
+      const deletedTitle = surveyToDelete.title;
+
+      // 1. Delete associated responses
+      await Response.deleteMany({ surveyTitle: deletedTitle });
+
+      // 2. CLEANUP: Strip deleted title from allowedFormTitle across all devices
+      const devices = await Device.find({ allowedFormTitle: deletedTitle });
+      for (const dev of devices) {
+        if (Array.isArray(dev.allowedFormTitle)) {
+          const updatedForms = dev.allowedFormTitle.filter(f => f !== deletedTitle);
+          await Device.findByIdAndUpdate(dev._id, { $set: { allowedFormTitle: updatedForms } });
+        }
+      }
+
+      // 3. Delete survey schema
       await Survey.findByIdAndDelete(req.params.id);
     }
-    res.json({ success: true, message: 'Survey deleted successfully.' });
+    res.json({ success: true, message: 'Survey deleted and device permissions updated.' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -402,7 +443,7 @@ router.get('/responses', async (req, res) => {
     const targetTz = req.query.tz || 'Asia/Jakarta';
     const mode = req.query.mode || 'kiosk';
 
-    // AUTO-RECONNECT ORPHANED RESPONSES TO RENAMED FORMS
+    // RECONNECT TARGETED LEGACY TITLES
     try {
       await Response.updateMany(
         { surveyTitle: { $regex: /^sodexo$/i } },
