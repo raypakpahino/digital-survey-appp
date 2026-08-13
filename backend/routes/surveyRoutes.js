@@ -401,8 +401,22 @@ router.get('/responses', async (req, res) => {
   try {
     const targetTz = req.query.tz || 'Asia/Jakarta';
     const mode = req.query.mode || 'kiosk';
-    
-    // UPDATED FILTER: In kiosk mode, fetch everything except records explicitly marked as 'qr'
+
+    // AUTO-RECONNECT ORPHANED RESPONSES TO RENAMED FORMS
+    try {
+      await Response.updateMany(
+        { surveyTitle: { $regex: /^sodexo$/i } },
+        { $set: { surveyTitle: 'Sodexo Survey' } }
+      );
+      await Response.updateMany(
+        { surveyTitle: { $regex: /^google$/i } },
+        { $set: { surveyTitle: 'Google Survey' } }
+      );
+    } catch (e) {
+      console.warn("Auto-reconnect mapping warning:", e);
+    }
+
+    // FILTER: Fetch all kiosk responses (including legacy/null appMode)
     const filter = mode === 'qr' 
       ? { appMode: 'qr' }
       : { appMode: { $ne: 'qr' } };
