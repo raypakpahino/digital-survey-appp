@@ -108,21 +108,27 @@
     inputDeviceName = dev.deviceName;
     inputPin = dev.accessPin || "";
     
-    const validSurveyTitles = new Set(availableSurveys.map(s => s.title));
-
+    let rawList = [];
     if (Array.isArray(dev.allowedFormTitle)) {
-      selectedForms = dev.allowedFormTitle.filter(f => f && f !== "All Forms" && validSurveyTitles.has(f));
+      rawList = dev.allowedFormTitle.filter(f => f && f !== "All Forms");
     } else if (typeof dev.allowedFormTitle === 'string' && dev.allowedFormTitle.includes(',')) {
-      selectedForms = dev.allowedFormTitle.split(',').map(s => s.trim()).filter(f => f && f !== "All Forms" && validSurveyTitles.has(f));
-    } else if (dev.allowedFormTitle && dev.allowedFormTitle !== "All Forms" && validSurveyTitles.has(dev.allowedFormTitle)) {
-      selectedForms = [dev.allowedFormTitle];
-    } else {
-      selectedForms = availableSurveys.length > 0 ? [availableSurveys[0].title] : [];
+      rawList = dev.allowedFormTitle.split(',').map(s => s.trim()).filter(f => f && f !== "All Forms");
+    } else if (dev.allowedFormTitle && dev.allowedFormTitle !== "All Forms") {
+      rawList = [dev.allowedFormTitle];
     }
 
-    if (selectedForms.length === 0 && availableSurveys.length > 0) {
-      selectedForms = [availableSurveys[0].title];
-    }
+    const matchedTitles = rawList.map(raw => {
+      const cleanRaw = raw.toLowerCase();
+      const match = availableSurveys.find(s => {
+        const cleanTitle = s.title.toLowerCase();
+        return cleanTitle === cleanRaw || cleanTitle.includes(cleanRaw) || cleanRaw.includes(cleanTitle);
+      });
+      return match ? match.title : null;
+    }).filter(Boolean);
+
+    selectedForms = matchedTitles.length > 0 
+      ? Array.from(new Set(matchedTitles)) 
+      : (availableSurveys.length > 0 ? [availableSurveys[0].title] : []);
 
     formMessage = `Editing '${dev.deviceName}'. Select forms and click 'Save Changes'.`;
     formMessageType = "info";
@@ -208,19 +214,30 @@
     }
   }
 
-  // FILTER OUT DELETED FORM TITLES FROM DEVICE ROSTER DISPLAY
+  // DYNAMIC FORM DISPLAY FORMATTER WITH PARTIAL MATCH FALLBACK
   function formatFormDisplay(allowedForms) {
-    if (!allowedForms) return "None";
-    const validSurveyTitles = new Set(availableSurveys.map(s => s.title));
+    if (!allowedForms) return "All Active Forms";
 
+    let rawList = [];
     if (Array.isArray(allowedForms)) {
-      const cleanList = allowedForms.filter(f => f && f !== "All Forms" && validSurveyTitles.has(f));
-      if (cleanList.length === 0) return "None";
-      return cleanList.join(", ");
+      rawList = allowedForms.filter(f => f && f !== "All Forms");
+    } else if (typeof allowedForms === 'string') {
+      rawList = allowedForms.split(',').map(s => s.trim()).filter(f => f && f !== "All Forms");
     }
-    
-    if (allowedForms === "All Forms") return "None";
-    return validSurveyTitles.has(allowedForms) ? allowedForms : "None";
+
+    if (rawList.length === 0) return "All Active Forms";
+
+    const mappedNames = rawList.map(raw => {
+      const cleanRaw = raw.toLowerCase();
+      const match = availableSurveys.find(s => {
+        const cleanTitle = s.title.toLowerCase();
+        return cleanTitle === cleanRaw || cleanTitle.includes(cleanRaw) || cleanRaw.includes(cleanTitle);
+      });
+      return match ? match.title : raw;
+    });
+
+    const uniqueMapped = Array.from(new Set(mappedNames));
+    return uniqueMapped.join(", ");
   }
 
   onMount(() => {

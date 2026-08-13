@@ -271,6 +271,35 @@ router.delete('/surveys/:id', async (req, res) => {
 
 router.get('/devices', async (req, res) => {
   try {
+    // 1. AUTO-MIGRATE OLD DEVICE FORM PERMISSIONS TO NEW TITLES
+    try {
+      const allSurveys = await Survey.find({});
+      const activeTitles = allSurveys.map(s => s.title);
+
+      const allDevices = await Device.find({});
+      for (const dev of allDevices) {
+        if (Array.isArray(dev.allowedFormTitle)) {
+          let updated = false;
+          const newForms = dev.allowedFormTitle.map(formName => {
+            const cleanForm = String(formName).toLowerCase().trim();
+            const matched = activeTitles.find(t => t.toLowerCase().includes(cleanForm) || cleanForm.includes(t.toLowerCase()));
+            if (matched && matched !== formName) {
+              updated = true;
+              return matched;
+            }
+            return formName;
+          });
+
+          if (updated) {
+            await Device.findByIdAndUpdate(dev._id, { $set: { allowedFormTitle: Array.from(new Set(newForms)) } });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Device form title auto-migration warning:", e);
+    }
+
+    // 2. FETCH REGISTERED DEVICES
     let devices = await Device.find({}).sort({ updatedAt: -1 }).lean();
     const responseDeviceNames = await Response.distinct('deviceId');
     const registeredNames = new Set(devices.map(d => d.deviceName));
