@@ -37,8 +37,15 @@
   $: currentQuestion = questions[currentQuestionIndex] || null;
   $: currentSurvey = surveys.find(s => s._id === activeSurveyId) || null;
 
-  $: filteredDropdownOptions = (currentQuestion?.options || []).filter(opt => 
-    String(opt).toLowerCase().includes(dropdownSearchQuery.trim().toLowerCase())
+  // SITE-BASED OPTION FILTERING FOR PRIVACY ISOLATION
+  $: availableOptions = (currentQuestion?.options || []).filter(opt => {
+    if (typeof opt === 'string') return true;
+    if (!opt.targetSite || opt.targetSite.trim() === "") return true;
+    return String(opt.targetSite).toLowerCase().trim() === String(deviceId).toLowerCase().trim();
+  }).map(opt => typeof opt === 'object' ? opt.text : opt);
+
+  $: filteredDropdownOptions = availableOptions.filter(optText => 
+    String(optText).toLowerCase().includes(dropdownSearchQuery.trim().toLowerCase())
   );
 
   function handleDropdownClickOutside(event) {
@@ -504,12 +511,10 @@
             </div>
 
           {:else if getNormalizedType(currentQuestion.type) === 'multiple-choice'}
-            {@const optCount = currentQuestion.options?.length || 0}
-            
             <div class="w-full my-auto space-y-4">
-              <div class="grid {getGridClass(optCount)} gap-3.5 w-full items-center justify-center">
-                {#if currentQuestion.options && optCount > 0}
-                  {#each currentQuestion.options as option}
+              <div class="grid {getGridClass(availableOptions.length)} gap-3.5 w-full items-center justify-center">
+                {#if availableOptions.length > 0}
+                  {#each availableOptions as option}
                     {@const imgUrl = currentQuestion.enableOptionImages && currentQuestion.optionImages ? currentQuestion.optionImages[option] : ''}
                     {@const isSelected = selectedMultipleValues.includes(option)}
                     
@@ -556,7 +561,7 @@
             </div>
 
           {:else if getNormalizedType(currentQuestion.type) === 'dropdown'}
-            <!-- ELEGANT DOWNWARD-EXPANDING COMBOBOX WITH SEARCH -->
+            <!-- ELEGANT DOWNWARD-EXPANDING COMBOBOX WITH SEARCH & SITE ISOLATION -->
             <div class="w-full max-w-lg mx-auto space-y-4 my-auto relative" bind:this={dropdownContainerRef}>
               
               <div class="relative">

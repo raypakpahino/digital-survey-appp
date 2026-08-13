@@ -54,8 +54,8 @@
     if (norm === 'smiley') return ["ANGRY", "SAD"];
     if (norm === 'stars') return ["1 Stars", "2 Stars"];
     if (norm === 'multiple-choice' || norm === 'dropdown') {
-      return options.filter(opt => {
-        const u = opt.toUpperCase();
+      return options.map(opt => typeof opt === 'object' ? opt.text : opt).filter(optText => {
+        const u = String(optText || '').toUpperCase();
         return u === 'NO' || u.includes('BAD') || u.includes('POOR');
       });
     }
@@ -79,6 +79,7 @@
       const opts = q.options || [];
       return {
         ...q,
+        options: opts.map(opt => typeof opt === 'object' ? opt : { text: opt, targetSite: '' }),
         alertTriggerValues: Array.isArray(q.alertTriggerValues) 
           ? q.alertTriggerValues 
           : getDefaultAlertTriggers(type, opts),
@@ -138,17 +139,22 @@
     let defaultText = "";
     let defaultOptions = [];
 
-    if (type === "smiley")
-      defaultText = "How would you rate your experience today?";
-    if (type === "stars")
-      defaultText = "How would you rate our speed of service?";
+    if (type === "smiley") defaultText = "How would you rate your experience today?";
+    if (type === "stars") defaultText = "How would you rate our speed of service?";
     if (type === "multiple-choice") {
       defaultText = "Would you recommend us to a friend?";
-      defaultOptions = ["Definitely Yes", "Maybe", "No"];
+      defaultOptions = [
+        { text: "Definitely Yes", targetSite: "" },
+        { text: "Maybe", targetSite: "" },
+        { text: "No", targetSite: "" }
+      ];
     }
     if (type === "dropdown") {
       defaultText = "Please select your option from the list:";
-      defaultOptions = Array.from({ length: 30 }, (_, i) => `Choice Item ${i + 1}`);
+      defaultOptions = Array.from({ length: 30 }, (_, i) => ({
+        text: `Choice Item ${i + 1}`,
+        targetSite: ""
+      }));
     }
     if (type === "date") defaultText = "Please select a date:";
     if (type === "text") defaultText = "Do you have any additional comments?";
@@ -203,7 +209,7 @@
   function addOption(qIndex) {
     localQuestions[qIndex].options = [
       ...localQuestions[qIndex].options,
-      `Option ${localQuestions[qIndex].options.length + 1}`,
+      { text: `Option ${localQuestions[qIndex].options.length + 1}`, targetSite: "" }
     ];
   }
 
@@ -212,7 +218,9 @@
   }
 
   function removeOption(qIndex, optIndex) {
-    const optionName = localQuestions[qIndex].options[optIndex];
+    const optionObj = localQuestions[qIndex].options[optIndex];
+    const optionName = typeof optionObj === 'object' ? optionObj.text : optionObj;
+    
     localQuestions[qIndex].options = localQuestions[qIndex].options.filter(
       (_, i) => i !== optIndex,
     );
@@ -304,7 +312,7 @@
       return ["1 Stars", "2 Stars", "3 Stars", "4 Stars", "5 Stars"];
     }
     if (type === 'multiple-choice' || type === 'dropdown') {
-      return targetQ.options || [];
+      return (targetQ.options || []).map(opt => typeof opt === 'object' ? opt.text : opt);
     }
     return [];
   }
@@ -545,14 +553,24 @@
                   <div class="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto custom-scrollbar pr-1">
                     {#each question.options as option, optIndex}
                       <div class="bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
-                        <div class="flex items-center space-x-2">
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                           <span class="text-[10px] font-mono text-slate-400 font-bold w-6">{optIndex + 1}.</span>
                           <input
                             type="text"
-                            bind:value={question.options[optIndex]}
-                            placeholder={`Option ${optIndex + 1}`}
-                            class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-[#1a2b6c] dark:text-slate-200 px-3 py-2 focus:outline-none focus:border-[#e31b23] w-full font-medium"
+                            bind:value={question.options[optIndex].text}
+                            placeholder={`Option ${optIndex + 1} text...`}
+                            class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-[#1a2b6c] dark:text-slate-200 px-3 py-2 flex-1 font-medium"
                           />
+                          <!-- SITE TAG INPUT FOR PRIVATE OPTIONS ISOLATION -->
+                          <div class="flex items-center space-x-1.5">
+                            <span class="text-[9px] font-mono font-bold text-cyan-400 uppercase">Site Tag:</span>
+                            <input
+                              type="text"
+                              bind:value={question.options[optIndex].targetSite}
+                              placeholder="e.g. SiteA (Blank = All)"
+                              class="bg-cyan-950/40 border border-cyan-800/80 rounded-lg text-xs text-cyan-200 font-mono px-2.5 py-2 w-36 focus:outline-none focus:border-cyan-400"
+                            />
+                          </div>
                           <button
                             on:click={() => removeOption(index, optIndex)}
                             class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 text-sm px-2 font-bold transition-all"
@@ -610,13 +628,14 @@
                         <span class="text-[10px] text-slate-400 font-mono">Add options above first to set alert triggers</span>
                       {:else}
                         {#each question.options as optVal}
-                          {@const active = (question.alertTriggerValues || []).includes(optVal)}
+                          {@const optText = typeof optVal === 'object' ? optVal.text : optVal}
+                          {@const active = (question.alertTriggerValues || []).includes(optText)}
                           <button
                             type="button"
-                            on:click={() => toggleAlertTrigger(question, optVal)}
+                            on:click={() => toggleAlertTrigger(question, optText)}
                             class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all border cursor-pointer active:scale-95 {active ? 'bg-rose-950/80 border-rose-500 text-rose-300 ring-1 ring-rose-500/30' : 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'}"
                           >
-                            {optVal} {active ? '🚩' : ''}
+                            {optText} {active ? '🚩' : ''}
                           </button>
                         {/each}
                       {/if}
