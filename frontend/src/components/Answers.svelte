@@ -141,11 +141,18 @@
       if (!selectedSurveyTitles.includes(cleanString(r.surveyTitle))) return false;
     }
 
-    // Role Scoping for Site Leaders
+    // ROLE SCOPING FOR SITE LEADERS: MATCH EITHER LOCATION TAG OR FORM ASSIGNED SITE
     if (currentUser && currentUser.role === "site_leader" && currentUser.assignedSite) {
       const respSite = String(r.deviceId || "").toLowerCase().trim();
       const userSite = String(currentUser.assignedSite).toLowerCase().trim();
-      if (respSite !== userSite) return false;
+      
+      const parentSurvey = surveys.find(s => cleanString(s.title) === cleanString(r.surveyTitle));
+      const surveyAssignedSite = parentSurvey ? String(parentSurvey.assignedSite || "").toLowerCase().trim() : "";
+
+      const matchesLocation = respSite === userSite;
+      const matchesFormSite = surveyAssignedSite === userSite;
+
+      if (!matchesLocation && !matchesFormSite) return false;
     }
 
     if (selectedDevices.length > 0) {
@@ -1286,7 +1293,6 @@
     </div>
 
   </div>
- Himself
 {/if}
 
 <style>
