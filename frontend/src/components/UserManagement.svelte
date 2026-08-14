@@ -393,10 +393,10 @@
       </form>
     </div>
 
-    <!-- ROSTER DIRECTORY (HIGH-CONTRAST IN LIGHT & DARK MODE) -->
+    <!-- ROSTER DIRECTORY (EXPLICIT HIGH CONTRAST IN LIGHT AND DARK MODE) -->
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-        <h3 class="text-xs font-mono font-extrabold text-[#e31b23] dark:text-cyan-400 uppercase tracking-wider">
+        <h3 class="text-xs font-mono font-extrabold text-[#1a2b6c] dark:text-cyan-400 uppercase tracking-wider">
           {isQrMode ? 'Web QR Users' : 'Enterprise Kiosk Users'}
         </h3>
         <span class="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">{filteredUsers.length} Users</span>
@@ -414,31 +414,29 @@
               <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-2">
                   <span class="h-2 w-2 rounded-full {displayRole === 'admin' ? 'bg-purple-500' : (displayRole === 'site_leader' ? 'bg-emerald-500' : 'bg-blue-500')}"></span>
-                  <!-- FIX: Username font color explicitly set for light/dark mode -->
-                  <span class="font-bold text-xs text-slate-900 dark:text-white font-mono">{u.username}</span>
+                  <!-- EXPLICIT USERNAME INLINE STYLE FIX FOR LIGHT MODE -->
+                  <span class="font-black text-xs font-mono user-card-name">{u.username}</span>
                 </div>
                 
-                <span class="text-[9px] uppercase font-mono font-bold px-2 py-0.5 rounded border {displayRole === 'admin' ? 'bg-purple-50 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300 border-purple-200 dark:border-purple-800' : (displayRole === 'site_leader' ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' : 'bg-blue-50 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border-blue-200 dark:border-blue-800')}">
+                <span class="text-[9px] uppercase font-mono font-bold px-2 py-0.5 rounded border {displayRole === 'admin' ? 'bg-purple-100 text-purple-900 dark:bg-purple-950/80 dark:text-purple-300 border-purple-300 dark:border-purple-800' : (displayRole === 'site_leader' ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800' : 'bg-blue-100 text-blue-900 dark:bg-blue-950/80 dark:text-blue-300 border-blue-300 dark:border-blue-800')}">
                   {displayRole.replace('_', ' ')}
                 </span>
               </div>
 
               {#if isQrMode && displayRole === 'site_leader'}
-                <div class="text-[10px] font-mono text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                  <!-- FIX: Scoped QR site sub-labels text color explicitly set for light/dark mode -->
-                  <span class="font-bold text-slate-600 dark:text-slate-400">Scoped QR Site:</span>
+                <div class="text-[10px] font-mono bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                  <span class="font-bold text-slate-700 dark:text-slate-400">Scoped QR Site:</span>
                   <span class="font-black text-[#1a2b6c] dark:text-cyan-300">{u.assignedSite || 'Unassigned'}</span>
                 </div>
               {/if}
 
               <div class="flex items-center justify-end space-x-2 pt-1 border-t border-slate-200/80 dark:border-slate-800">
-                <!-- FIX: Edit & Delete action buttons color explicitly set for high contrast -->
                 <button 
                   type="button"
                   on:click={() => startEditUser(u)}
                   class="text-[10px] font-extrabold text-[#1a2b6c] dark:text-cyan-400 hover:underline cursor-pointer"
                 >Edit Permissions</button>
-                <span class="text-slate-300 dark:text-slate-700 text-[10px]">•</span>
+                <span class="text-slate-400 dark:text-slate-700 text-[10px]">•</span>
                 <button 
                   type="button"
                   on:click={() => handleDeleteUser(u._id)}
@@ -455,6 +453,14 @@
 </div>
 
 <style>
+  /* HARDCODED HIGH CONTRAST USERNAME FIX FOR LIGHT VS DARK MODE */
+  .user-card-name {
+    color: #0f172a !important;
+  }
+  :global(.dark) .user-card-name {
+    color: #ffffff !important;
+  }
+
   .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
