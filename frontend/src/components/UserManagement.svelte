@@ -25,7 +25,9 @@
 
   const API_BASE = "/api";
 
-  $: selectedRole = isQrMode ? "site_leader" : "kiosk_operator";
+  $: if (!editingUserId) {
+    selectedRole = isQrMode ? "site_leader" : "kiosk_operator";
+  }
 
   // FILTER DIRECTORY BASED ON ACTIVE ENGINE MODE
   $: filteredUsers = users.filter(u => {
@@ -95,7 +97,6 @@
   }
 
   async function handleDeleteSite(siteId) {
-    // Non-blocking UI removal
     sites = sites.filter(s => s._id !== siteId);
     try {
       await fetch(`${API_BASE}/sites/${siteId}`, { method: "DELETE" });
@@ -129,7 +130,7 @@
     try {
       let res, data;
       const payload = {
-        username: inputUsername.trim(),
+        username: inputUsername.trim().toLowerCase(),
         role: selectedRole,
         assignedSite: isQrMode && selectedRole === 'site_leader' ? selectedSite : ''
       };
@@ -171,7 +172,7 @@
     inputPassword = "";
     selectedRole = u.role === 'user' ? 'kiosk_operator' : u.role;
     selectedSite = u.assignedSite || (sites.length > 0 ? sites[0].name : "");
-    userMessage = `Editing user '${u.username}'. Update permissions below.`;
+    userMessage = `Editing user '${u.username}'. Update permissions or site assignment below.`;
     userMessageType = "info";
   }
 
@@ -185,7 +186,6 @@
   }
 
   async function handleDeleteUser(userId) {
-    // Non-blocking UI update to prevent INP delays
     users = users.filter(u => u._id !== userId);
 
     try {
@@ -298,7 +298,7 @@
       </div>
     {/if}
 
-    <!-- ACCOUNT CREATION PANEL -->
+    <!-- ACCOUNT CREATION / EDITING PANEL -->
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5 h-fit">
       <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
         <div class="space-y-0.5">
@@ -310,7 +310,7 @@
           </h3>
         </div>
         {#if editingUserId}
-          <button on:click={resetUserForm} class="text-[10px] font-extrabold text-slate-500 hover:text-slate-800 bg-slate-100 px-2 py-1 rounded-lg">Cancel</button>
+          <button on:click={resetUserForm} class="text-[10px] font-extrabold text-slate-500 hover:text-slate-800 bg-slate-100 px-2.5 py-1.5 rounded-lg cursor-pointer">✕ Cancel Edit</button>
         {/if}
       </div>
 
@@ -328,7 +328,7 @@
             type="text" 
             bind:value={inputUsername} 
             disabled={Boolean(editingUserId)}
-            placeholder={isQrMode ? "e.g. site_leader_north" : "e.g. kiosk_operator_1"} 
+            placeholder={isQrMode ? "e.g. sodexositeleader or googlesiteleader" : "e.g. kiosk_operator_1"} 
             class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-white font-mono font-bold rounded-xl p-3 focus:outline-none focus:border-[#e31b23] disabled:opacity-50" 
           />
         </div>
@@ -379,7 +379,7 @@
                 {/each}
               {/if}
             </select>
-            <p class="text-[10px] text-slate-500 mt-1 leading-tight">Site Leaders can ONLY inspect feedback submissions logged under this exact site name.</p>
+            <p class="text-[10px] text-slate-500 mt-1 leading-tight">Site Leaders will ONLY see forms & responses assigned to this exact site name.</p>
           </div>
         {/if}
 
@@ -388,7 +388,7 @@
           class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-3 px-4 rounded-xl text-xs transition-all shadow-md active:scale-95 cursor-pointer"
           style="color: #ffffff !important; background-color: #1a2b6c !important;"
         >
-          <span style="color: #ffffff !important; font-weight: 800 !important;">{editingUserId ? 'Save Changes' : 'Save Account'}</span>
+          <span style="color: #ffffff !important; font-weight: 800 !important;">{editingUserId ? 'Save Account Changes' : 'Save Account'}</span>
         </button>
       </form>
     </div>
