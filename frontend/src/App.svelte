@@ -187,7 +187,6 @@
 
     const storedToken = localStorage.getItem("sdx_token");
 
-    // FIX 1: DEDICATED PUBLIC UNATHENTICATED KIOSK DETECTION ONLY
     if (!storedToken && (urlSurveyId || modeParam === 'qr' || window.location.search.includes("mode=qr"))) {
       isQrMode = true;
       localStorage.setItem("sdx_app_mode", "qr");
@@ -530,8 +529,8 @@
   <!-- AUTHENTICATED PORTAL WORKSPACE -->
   <div class="flex h-screen w-screen max-w-full max-h-screen theme-bg-main theme-text-primary overflow-hidden m-0 p-0 fixed inset-0">
     
-    <!-- PROFESSIONAL COLLAPSIBLE SIDEBAR -->
-    {#if !isDedicatedKioskMode}
+    <!-- PROFESSIONAL COLLAPSIBLE SIDEBAR: HIDDEN WHEN FILLING FORMS (activeTab === 'kiosk') -->
+    {#if !isDedicatedKioskMode && activeTab !== 'kiosk'}
       <aside class="{isSidebarExpanded ? 'w-64' : 'w-20'} theme-bg-sidebar theme-border border-r flex flex-col justify-between shrink-0 h-full z-40 transition-all duration-300 overflow-hidden text-slate-100">
         <div class="flex flex-col h-full justify-between">
           <div>
@@ -678,8 +677,8 @@
     <!-- MAIN BODY CANVAS -->
     <div class="flex-1 flex flex-col h-full min-w-0 max-w-full overflow-hidden relative">
       
-      <!-- STICKY TOP NAVIGATION BAR -->
-      {#if !isDedicatedKioskMode}
+      <!-- STICKY TOP NAVIGATION BAR: HIDDEN WHEN FILLING FORMS (activeTab === 'kiosk') -->
+      {#if !isDedicatedKioskMode && activeTab !== 'kiosk'}
         <header class="sticky top-0 z-30 w-full h-16 theme-bg-card theme-border border-b flex items-center justify-between px-4 sm:px-6 shrink-0 box-border transition-colors duration-300 theme-shadow">
           <div class="flex items-center space-x-3 min-w-0">
             {#if !isSidebarExpanded}
@@ -756,8 +755,8 @@
       {/if}
 
       <!-- SCROLLABLE CANVAS -->
-      <main class="flex-1 theme-bg-main overflow-y-auto overflow-x-hidden w-full max-w-full box-border transition-colors duration-300 {isDedicatedKioskMode ? 'p-0' : 'p-4 sm:p-6 lg:p-8'}">
-        <div class="w-full h-full min-w-0 max-w-full {isDedicatedKioskMode || activeTab === 'kiosk' ? '' : 'max-w-7xl mx-auto'}">
+      <main class="flex-1 theme-bg-main overflow-y-auto overflow-x-hidden w-full max-w-full box-border transition-colors duration-300 {activeTab === 'kiosk' || isDedicatedKioskMode ? 'p-0' : 'p-4 sm:p-6 lg:p-8'}">
+        <div class="w-full h-full min-w-0 max-w-full {activeTab === 'kiosk' || isDedicatedKioskMode ? '' : 'max-w-7xl mx-auto'}">
           {#if activeTab === "surveys" && currentUser?.role === "admin"}
             <div class="w-full h-full min-w-0">
               <Dashboard

@@ -270,7 +270,6 @@
     }
   }
 
-  // DYNAMIC PREVIOUS QUESTION STEP BACK
   function goBackStep() {
     if (answersAccumulator.length === 0) return;
 
@@ -287,7 +286,6 @@
 
     currentQuestionIndex = Math.max(0, prevIndex);
 
-    // Pre-fill previous value for editing
     const normType = getNormalizedType(questions[currentQuestionIndex]?.type);
     const prevVal = lastRecorded.value === "Skipped" ? "" : lastRecorded.value;
 
