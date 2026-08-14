@@ -239,7 +239,7 @@
         </div>
 
         {#if siteMessage}
-          <div class="text-xs font-bold p-3 rounded-xl border {siteMessageType === 'success' ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-rose-50 text-rose-900 border-rose-300'}">
+          <div class="text-xs font-bold p-3 rounded-xl border {siteMessageType === 'success' ? 'bg-emerald-50 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800' : 'bg-rose-50 text-rose-900 dark:bg-rose-950/80 dark:text-rose-200 border-rose-300 dark:border-rose-800'}">
             {siteMessage}
           </div>
         {/if}
@@ -277,10 +277,10 @@
         </form>
 
         <div class="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
-          <span class="text-[10px] font-mono font-extrabold text-slate-500 uppercase tracking-wider block">Active Dynamic QR Sites ({sites.length})</span>
+          <span class="text-[10px] font-mono font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Active Dynamic QR Sites ({sites.length})</span>
           <div class="max-h-48 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
             {#if sites.length === 0}
-              <span class="text-xs text-slate-400 italic">No QR sites registered yet.</span>
+              <span class="text-xs text-slate-400 dark:text-slate-500 italic">No QR sites registered yet.</span>
             {:else}
               {#each sites as site}
                 <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono">
@@ -288,7 +288,7 @@
                   <button 
                     type="button"
                     on:click={() => handleDeleteSite(site._id)}
-                    class="text-rose-500 hover:text-rose-700 font-bold px-1.5 py-0.5 rounded text-[10px] hover:bg-rose-50 dark:hover:bg-rose-950 transition-colors cursor-pointer"
+                    class="text-rose-600 dark:text-rose-400 hover:text-rose-800 font-bold px-1.5 py-0.5 rounded text-[10px] hover:bg-rose-50 dark:hover:bg-rose-950 transition-colors cursor-pointer"
                   >✕</button>
                 </div>
               {/each}
@@ -310,12 +310,12 @@
           </h3>
         </div>
         {#if editingUserId}
-          <button on:click={resetUserForm} class="text-[10px] font-extrabold text-slate-500 hover:text-slate-800 bg-slate-100 px-2.5 py-1.5 rounded-lg cursor-pointer">✕ Cancel Edit</button>
+          <button on:click={resetUserForm} class="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 rounded-lg cursor-pointer">✕ Cancel Edit</button>
         {/if}
       </div>
 
       {#if userMessage}
-        <div class="text-xs font-bold p-3 rounded-xl border {userMessageType === 'success' ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-rose-50 text-rose-900 border-rose-300'}">
+        <div class="text-xs font-bold p-3 rounded-xl border {userMessageType === 'success' ? 'bg-emerald-50 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800' : 'bg-rose-50 text-rose-900 dark:bg-rose-950/80 dark:text-rose-200 border-rose-300 dark:border-rose-800'}">
           {userMessage}
         </div>
       {/if}
@@ -369,7 +369,7 @@
             <select 
               id="site-assign-select"
               bind:value={selectedSite}
-              class="w-full bg-rose-50/50 dark:bg-rose-950/20 border border-rose-300 dark:border-rose-800 text-xs text-[#1a2b6c] dark:text-rose-200 font-mono font-bold rounded-xl p-3 focus:outline-none focus:border-[#e31b23]"
+              class="w-full bg-slate-50 dark:bg-rose-950/20 border border-slate-300 dark:border-rose-800 text-xs text-[#1a2b6c] dark:text-rose-200 font-mono font-bold rounded-xl p-3 focus:outline-none focus:border-[#e31b23]"
             >
               {#if sites.length === 0}
                 <option value="" disabled>Create a site first in the left panel!</option>
@@ -379,7 +379,7 @@
                 {/each}
               {/if}
             </select>
-            <p class="text-[10px] text-slate-500 mt-1 leading-tight">Site Leaders will ONLY see forms & responses assigned to this exact site name.</p>
+            <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">Site Leaders will ONLY see forms & responses assigned to this exact site name.</p>
           </div>
         {/if}
 
@@ -393,10 +393,10 @@
       </form>
     </div>
 
-    <!-- ROSTER DIRECTORY (FILTERED FOR CURRENT MODE) -->
+    <!-- ROSTER DIRECTORY (HIGH-CONTRAST IN LIGHT & DARK MODE) -->
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-        <h3 class="text-xs font-mono font-extrabold text-[#1a2b6c] dark:text-cyan-400 uppercase tracking-wider">
+        <h3 class="text-xs font-mono font-extrabold text-[#e31b23] dark:text-cyan-400 uppercase tracking-wider">
           {isQrMode ? 'Web QR Users' : 'Enterprise Kiosk Users'}
         </h3>
         <span class="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">{filteredUsers.length} Users</span>
@@ -404,7 +404,7 @@
 
       <div class="space-y-2.5 max-h-[28rem] overflow-y-auto custom-scrollbar pr-1">
         {#if filteredUsers.length === 0}
-          <div class="p-6 text-center text-xs text-slate-400 italic font-mono">
+          <div class="p-6 text-center text-xs text-slate-400 dark:text-slate-500 italic font-mono">
             No accounts configured for this engine mode yet.
           </div>
         {:else}
@@ -414,32 +414,35 @@
               <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-2">
                   <span class="h-2 w-2 rounded-full {displayRole === 'admin' ? 'bg-purple-500' : (displayRole === 'site_leader' ? 'bg-emerald-500' : 'bg-blue-500')}"></span>
+                  <!-- FIX: Username font color explicitly set for light/dark mode -->
                   <span class="font-bold text-xs text-slate-900 dark:text-white font-mono">{u.username}</span>
                 </div>
                 
-                <span class="text-[9px] uppercase font-mono font-bold px-2 py-0.5 rounded border {displayRole === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-200' : (displayRole === 'site_leader' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-blue-50 text-blue-700 border-blue-200')}">
+                <span class="text-[9px] uppercase font-mono font-bold px-2 py-0.5 rounded border {displayRole === 'admin' ? 'bg-purple-50 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300 border-purple-200 dark:border-purple-800' : (displayRole === 'site_leader' ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' : 'bg-blue-50 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border-blue-200 dark:border-blue-800')}">
                   {displayRole.replace('_', ' ')}
                 </span>
               </div>
 
               {#if isQrMode && displayRole === 'site_leader'}
-                <div class="text-[10px] font-mono text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                  <span>Scoped QR Site:</span>
+                <div class="text-[10px] font-mono text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                  <!-- FIX: Scoped QR site sub-labels text color explicitly set for light/dark mode -->
+                  <span class="font-bold text-slate-600 dark:text-slate-400">Scoped QR Site:</span>
                   <span class="font-black text-[#1a2b6c] dark:text-cyan-300">{u.assignedSite || 'Unassigned'}</span>
                 </div>
               {/if}
 
-              <div class="flex items-center justify-end space-x-2 pt-1 border-t border-slate-200/60 dark:border-slate-800">
+              <div class="flex items-center justify-end space-x-2 pt-1 border-t border-slate-200/80 dark:border-slate-800">
+                <!-- FIX: Edit & Delete action buttons color explicitly set for high contrast -->
                 <button 
                   type="button"
                   on:click={() => startEditUser(u)}
-                  class="text-[10px] font-bold text-[#1a2b6c] dark:text-cyan-400 hover:underline cursor-pointer"
+                  class="text-[10px] font-extrabold text-[#1a2b6c] dark:text-cyan-400 hover:underline cursor-pointer"
                 >Edit Permissions</button>
-                <span class="text-slate-300 text-[10px]">•</span>
+                <span class="text-slate-300 dark:text-slate-700 text-[10px]">•</span>
                 <button 
                   type="button"
                   on:click={() => handleDeleteUser(u._id)}
-                  class="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
+                  class="text-[10px] font-extrabold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
                 >Delete</button>
               </div>
             </div>
