@@ -152,7 +152,6 @@
       const matchesLocation = respSite === userSite;
       const matchesFormSite = surveyAssignedSite === userSite;
 
-      // Match EITHER submission location OR form template assigned site
       if (!matchesLocation && !matchesFormSite) return false;
     }
 
@@ -620,71 +619,73 @@
       </div>
     {/if}
 
-    <!-- HIGH-SCALE SITE/LOCATION FILTER -->
-    <div class="flex-1 pt-2 sm:pt-0 lg:pt-2 border-t sm:border-t-0 lg:border-t border-slate-800/80 space-y-2 shrink-0">
-      <div class="flex items-center justify-between">
-        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-          {isQrMode ? 'Filter by Site' : 'Tablet Sites'} {#if selectedDevices.length > 0}<span class="text-emerald-400 font-mono">({selectedDevices.length}/{availableDevices.length})</span>{/if}
-        </span>
-        <div class="flex items-center space-x-1">
-          {#if availableDevices.length > 0}
-            <button on:click={selectAllDevices} class="text-[9px] font-bold text-emerald-400 hover:underline cursor-pointer">All</button>
-            <span class="text-slate-600 text-[9px]">•</span>
-          {/if}
-          {#if selectedDevices.length > 0 || deviceSearchQuery}
-            <button on:click={clearDeviceFilters} class="text-[9px] font-bold text-rose-400 hover:underline cursor-pointer">Clear</button>
-          {/if}
+    <!-- HIGH-SCALE SITE/LOCATION FILTER (HIDDEN FOR SITE LEADERS WHO ARE ALREADY SCOPED TO ONE SITE) -->
+    {#if !currentUser || currentUser.role !== 'site_leader'}
+      <div class="flex-1 pt-2 sm:pt-0 lg:pt-2 border-t sm:border-t-0 lg:border-t border-slate-800/80 space-y-2 shrink-0">
+        <div class="flex items-center justify-between">
+          <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+            {isQrMode ? 'Filter by Site' : 'Tablet Sites'} {#if selectedDevices.length > 0}<span class="text-emerald-400 font-mono">({selectedDevices.length}/{availableDevices.length})</span>{/if}
+          </span>
+          <div class="flex items-center space-x-1">
+            {#if availableDevices.length > 0}
+              <button on:click={selectAllDevices} class="text-[9px] font-bold text-emerald-400 hover:underline cursor-pointer">All</button>
+              <span class="text-slate-600 text-[9px]">•</span>
+            {/if}
+            {#if selectedDevices.length > 0 || deviceSearchQuery}
+              <button on:click={clearDeviceFilters} class="text-[9px] font-bold text-rose-400 hover:underline cursor-pointer">Clear</button>
+            {/if}
+          </div>
         </div>
-      </div>
 
-      {#if availableDevices.length > 0}
-        <div class="relative">
-          <input
-            type="text"
-            bind:value={deviceSearchQuery}
-            placeholder="Search {availableDevices.length} locations..."
-            class="w-full bg-slate-950 border border-slate-800 text-[10px] text-slate-200 pl-7 pr-2 py-1.5 rounded-lg focus:outline-none focus:border-emerald-500 transition-all placeholder:text-slate-600"
-          />
-          <svg class="w-3.5 h-3.5 fill-current text-slate-500 absolute left-2 top-2" viewBox="0 0 24 24">
-            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-          </svg>
-        </div>
-      {/if}
-
-      <div class="space-y-1 max-h-36 overflow-y-auto custom-scrollbar pt-0.5 pr-0.5">
-        {#if availableDevices.length === 0}
-          <span class="text-[9px] text-slate-500 font-mono block">No location logs available</span>
-        {:else if filteredAvailableDevices.length === 0}
-          <span class="text-[9px] text-slate-500 font-mono block">No locations match "{deviceSearchQuery}"</span>
-        {:else}
-          {#each filteredAvailableDevices as devId}
-            {@const isSelected = selectedDevices.includes(devId)}
-            {@const devLogCount = responses.filter(r => (r.deviceId || "Tablet-A") === devId).length}
-
-            <button
-              on:click={() => toggleDeviceFilter(devId)}
-              class="w-full text-left px-2.5 py-1.5 rounded-lg text-[10px] font-mono transition-all border flex items-center justify-between shadow-xs active:scale-[0.99] cursor-pointer group {isSelected ? 'bg-emerald-950/80 border-emerald-500/80 text-emerald-200 ring-1 ring-emerald-500/30 font-bold' : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200'}"
-            >
-              <div class="flex items-center space-x-2 truncate pr-1">
-                <input 
-                  type="checkbox" 
-                  checked={isSelected} 
-                  class="accent-emerald-500 w-3 h-3 rounded shrink-0 pointer-events-none"
-                />
-                <span class="truncate flex items-center space-x-1">
-                  <svg class="w-3 h-3 fill-current inline-block shrink-0 opacity-70 group-hover:opacity-100" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
-                  <span class="truncate">{devId}</span>
-                </span>
-              </div>
-
-              <span class="text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0 ml-1 {isSelected ? 'bg-emerald-900/80 text-emerald-300' : 'bg-slate-900 text-slate-500'}">
-                {devLogCount}
-              </span>
-            </button>
-          {/each}
+        {#if availableDevices.length > 0}
+          <div class="relative">
+            <input
+              type="text"
+              bind:value={deviceSearchQuery}
+              placeholder="Search {availableDevices.length} locations..."
+              class="w-full bg-slate-950 border border-slate-800 text-[10px] text-slate-200 pl-7 pr-2 py-1.5 rounded-lg focus:outline-none focus:border-emerald-500 transition-all placeholder:text-slate-600"
+            />
+            <svg class="w-3.5 h-3.5 fill-current text-slate-500 absolute left-2 top-2" viewBox="0 0 24 24">
+              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+          </div>
         {/if}
+
+        <div class="space-y-1 max-h-36 overflow-y-auto custom-scrollbar pt-0.5 pr-0.5">
+          {#if availableDevices.length === 0}
+            <span class="text-[9px] text-slate-500 font-mono block">No location logs available</span>
+          {:else if filteredAvailableDevices.length === 0}
+            <span class="text-[9px] text-slate-500 font-mono block">No locations match "{deviceSearchQuery}"</span>
+          {:else}
+            {#each filteredAvailableDevices as devId}
+              {@const isSelected = selectedDevices.includes(devId)}
+              {@const devLogCount = responses.filter(r => (r.deviceId || "Tablet-A") === devId).length}
+
+              <button
+                on:click={() => toggleDeviceFilter(devId)}
+                class="w-full text-left px-2.5 py-1.5 rounded-lg text-[10px] font-mono transition-all border flex items-center justify-between shadow-xs active:scale-[0.99] cursor-pointer group {isSelected ? 'bg-emerald-950/80 border-emerald-500/80 text-emerald-200 ring-1 ring-emerald-500/30 font-bold' : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200'}"
+              >
+                <div class="flex items-center space-x-2 truncate pr-1">
+                  <input 
+                    type="checkbox" 
+                    checked={isSelected} 
+                    class="accent-emerald-500 w-3 h-3 rounded shrink-0 pointer-events-none"
+                  />
+                  <span class="truncate flex items-center space-x-1">
+                    <svg class="w-3 h-3 fill-current inline-block shrink-0 opacity-70 group-hover:opacity-100" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+                    <span class="truncate">{devId}</span>
+                  </span>
+                </div>
+
+                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0 ml-1 {isSelected ? 'bg-emerald-900/80 text-emerald-300' : 'bg-slate-900 text-slate-500'}">
+                  {devLogCount}
+                </span>
+              </button>
+            {/each}
+          {/if}
+        </div>
       </div>
-    </div>
+    {/if}
 
     <!-- DATE FILTERS PANEL -->
     <div class="flex-1 pt-2 sm:pt-0 lg:pt-2 border-t sm:border-t-0 lg:border-t border-slate-800/80 space-y-2 shrink-0">
