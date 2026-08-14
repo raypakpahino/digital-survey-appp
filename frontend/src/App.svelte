@@ -56,12 +56,17 @@
     await refreshDataLedger();
   }
 
-  // NON-BLOCKING TAB SWITCHER (Eliminates INP delay on sidebar clicks)
+  // NON-BLOCKING TAB SWITCHER
   function switchTab(tab) {
     const isOperator = currentUser && (currentUser.role === "kiosk_operator" || currentUser.role === "user");
     const isSiteLeader = currentUser && currentUser.role === "site_leader";
 
-    if (isSiteLeader || isOperator) {
+    if (isOperator) {
+      activeTab = "answers";
+      return;
+    }
+
+    if (isSiteLeader && (tab === "surveys" || tab === "builder" || tab === "devices" || tab === "users")) {
       activeTab = "answers";
       return;
     }
@@ -192,7 +197,7 @@
       activeSurveyId = urlSurveyId;
     }
 
-    // FIX 1: PUBLIC SCANNED QR URL DETECTION (PREVENTS BLANK SCREEN)
+    // PUBLIC SCANNED QR URL DETECTION
     if (urlSurveyId || modeParam === 'qr' || window.location.search.includes("mode=qr") || hash.startsWith("#/kiosk")) {
       isQrMode = true;
       localStorage.setItem("sdx_app_mode", "qr");
@@ -479,6 +484,7 @@
     copyBannerMessage = "";
   }
 
+  // AUTOMATIC SITE QUERY TAGGING FOR GENERATED QR LINKS
   function getKioskLink(survey, forceQr = false) {
     let host = window.location.hostname;
     if (host === 'localhost' || host === '127.0.0.1') {
@@ -491,11 +497,19 @@
     const isQrSurvey = typeof survey === 'object' ? survey.appMode === 'qr' : isQrMode;
     
     const modeString = (forceQr || isQrSurvey) ? '&mode=qr' : '';
-    const siteString = (currentUser && currentUser.assignedSite) ? `&site=${encodeURIComponent(currentUser.assignedSite)}` : '';
+
+    // Automatically append assignedSite from survey object or currentUser if available
+    let targetSite = "";
+    if (typeof survey === 'object' && survey.assignedSite) {
+      targetSite = survey.assignedSite;
+    } else if (currentUser && currentUser.assignedSite) {
+      targetSite = currentUser.assignedSite;
+    }
+
+    const siteString = targetSite ? `&site=${encodeURIComponent(targetSite)}` : '';
     return `${protocol}//${host}/?id=${surveyId}${modeString}${siteString}#/kiosk`;
   }
 
-  // FIX 2: NON-BLOCKING COPY LINK (ELIMINATES INP THREAD LOCKING)
   function copyKioskLink(survey, forceQr = false) {
     const directLink = getKioskLink(survey, forceQr);
     navigator.clipboard.writeText(directLink).then(() => {
@@ -590,7 +604,7 @@
               {/if}
 
               <!-- 3. LIVE KIOSK / PREVIEW MODE -->
-              {#if currentUser?.role !== "site_leader" && currentUser?.role !== "kiosk_operator" && currentUser?.role !== "user"}
+              {#if currentUser?.role !== "kiosk_operator" && currentUser?.role !== "user"}
                 <button
                   class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'kiosk' ? (isQrMode ? 'bg-cyan-600 text-white shadow-md' : 'bg-[#1a2b6c] text-white shadow-md') : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={() => switchTab("kiosk")}
@@ -690,7 +704,6 @@
           </div>
 
           <div class="flex items-center space-x-3 shrink-0">
-            <!-- ABSOLUTE HIGH-CONTRAST MODE SWITCHER WITH HARDCODED INLINE STYLES FOR LIGHT/DARK MODE -->
             <button
               on:click={toggleAppMode}
               class="px-3 py-1.5 rounded-xl text-xs font-mono font-bold border transition-all flex items-center space-x-2 shadow-xs cursor-pointer {isQrMode ? 'bg-cyan-50 dark:bg-cyan-950 border-cyan-300 dark:border-cyan-500 text-cyan-900 dark:text-cyan-200' : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-cyan-400 hover:bg-slate-200 dark:hover:bg-slate-700'}"
@@ -781,7 +794,7 @@
                 onSaveSurvey={persistActiveSurveyState}
               />
             </div>
-          {:else if activeTab === "kiosk" && (currentUser?.role === "admin" || isDedicatedKioskMode)}
+          {:else if activeTab === "kiosk"}
             <div class="w-full h-full min-w-0 flex items-center justify-center">
               <Kiosk
                 surveyTitle={activeSurvey.title}
@@ -821,7 +834,7 @@
     </div>
   </div>
 
-  <!-- ROOT-LEVEL SHARE HUB MODAL OVERLAY WITH INP-SAFE BANNER -->
+  <!-- ROOT-LEVEL SHARE HUB MODAL OVERLAY -->
   {#if showShareModal && activeShareSurvey}
     {@const dynamicKioskUrl = getKioskLink(activeShareSurvey, activeShareSurvey.appMode === 'qr')}
     <div class="fixed inset-0 z-[9999] w-screen h-screen bg-slate-900/30 dark:bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4">
