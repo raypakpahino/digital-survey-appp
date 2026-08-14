@@ -126,7 +126,7 @@
     return acc;
   }, []);
 
-  // FIXED: Fetch all unique devices from all loaded responses so they stop disappearing from the sidebar
+  // Fetch all unique devices from all loaded responses
   $: availableDevices = Array.from(new Set(
     responses.map((r) => r.deviceId || "Tablet-A")
   )).sort();
@@ -375,13 +375,13 @@
         .trim() || rawVal;
     }
 
-    let headers = ["Record ID", "Form Title", "Site / Location ID", "Submission Timestamp"];
+    let headers = ["Record ID", "Form & Assigned Site", "Location / Site", "Submission Timestamp"];
     targetQuestions.forEach((q) => headers.push(q.questionText));
 
     let rowsHtml = filteredResponses.map((r, index) => {
       let recId = r._id ? r._id.slice(-8) : `LOG-${index + 1}`;
-      let formName = r.surveyTitle || "Form";
-      let tabletId = r.deviceId || "Tablet-A";
+      let tabletId = r.deviceId || "Site-A";
+      let formName = isQrMode ? `${r.surveyTitle || 'Form'} [${tabletId}]` : (r.surveyTitle || "Form");
       let timestamp = new Date(r.timestamp).toLocaleString();
 
       let rowCells = [
@@ -988,8 +988,8 @@
                     {response._id ? response._id.slice(-6) : 'Log'}
                   </td>
                   <td class="p-2.5 border-r border-slate-800/40">
-                    <span class="text-cyan-300 bg-cyan-950/60 border border-cyan-800/60 font-semibold px-2 py-0.5 rounded text-[10px] inline-block truncate max-w-[140px]">
-                      {response.surveyTitle || 'Form'}
+                    <span class="text-cyan-300 bg-cyan-950/60 border border-cyan-800/60 font-semibold px-2 py-0.5 rounded text-[10px] inline-block truncate max-w-[160px]">
+                      {isQrMode ? `${response.surveyTitle || 'Form'} [${response.deviceId || 'Site'}]` : (response.surveyTitle || 'Form')}
                     </span>
                   </td>
                   <td class="p-2.5 border-r border-slate-800/40">
@@ -1286,6 +1286,7 @@
     </div>
 
   </div>
+ Himself
 {/if}
 
 <style>
