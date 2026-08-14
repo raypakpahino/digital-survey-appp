@@ -26,6 +26,7 @@
   // SHARE HUB MODAL STATE
   let activeShareSurvey = null;
   let showShareModal = false;
+  let copyBannerMessage = "";
 
   // AUTHENTICATION STATE
   let currentUser = null;
@@ -189,25 +190,15 @@
 
     if (urlSurveyId) {
       activeSurveyId = urlSurveyId;
-    } else if (hash.startsWith("#/kiosk")) {
-      window.location.hash = "/surveys";
     }
 
-    if (modeParam === 'qr' || window.location.search.includes("mode=qr")) {
+    // FIX 1: PUBLIC SCANNED QR URL DETECTION (PREVENTS BLANK SCREEN)
+    if (urlSurveyId || modeParam === 'qr' || window.location.search.includes("mode=qr") || hash.startsWith("#/kiosk")) {
       isQrMode = true;
       localStorage.setItem("sdx_app_mode", "qr");
       activeTab = "kiosk";
       isDedicatedKioskMode = true;
       isSidebarExpanded = false;
-      isAuthChecking = false;
-      await refreshDataLedger();
-      return;
-    }
-
-    if (urlSurveyId && (hash.startsWith("#/kiosk") || window.location.search.includes("id="))) {
-      isDedicatedKioskMode = true;
-      isSidebarExpanded = false;
-      activeTab = "kiosk";
       isAuthChecking = false;
       await refreshDataLedger();
       return;
@@ -280,7 +271,7 @@
       if (surveyData.success) {
         let rawSurveys = (surveyData.surveys || []).map(normalizeSurvey);
 
-        // FILTER VISIBLE SURVEIS FOR SITE_LEADER ROLE IN QR MODE
+        // FILTER VISIBLE SURVEYS FOR SITE_LEADER ROLE IN QR MODE
         if (isQrMode && currentUser && currentUser.role === "site_leader" && currentUser.assignedSite) {
           const userSite = String(currentUser.assignedSite).toLowerCase().trim();
           rawSurveys = rawSurveys.filter(s => 
@@ -479,32 +470,42 @@
   function handleOpenShareModal(survey) {
     activeShareSurvey = survey;
     showShareModal = true;
+    copyBannerMessage = "";
   }
 
   function handleCloseShareModal() {
     showShareModal = false;
     activeShareSurvey = null;
+    copyBannerMessage = "";
   }
 
   function getKioskLink(survey, forceQr = false) {
     let host = window.location.hostname;
     if (host === 'localhost' || host === '127.0.0.1') {
-      host = '10.136.33.33'; 
+      host = 'digital-survey-appp-zeta.vercel.app'; 
+    } else {
+      host = window.location.host;
     }
-    const port = window.location.port ? `:${window.location.port}` : '';
+    const protocol = window.location.protocol;
     const surveyId = typeof survey === 'object' ? survey._id : survey;
     const isQrSurvey = typeof survey === 'object' ? survey.appMode === 'qr' : isQrMode;
     
     const modeString = (forceQr || isQrSurvey) ? '&mode=qr' : '';
     const siteString = (currentUser && currentUser.assignedSite) ? `&site=${encodeURIComponent(currentUser.assignedSite)}` : '';
-    return `http://${host}${port}/?id=${surveyId}${modeString}${siteString}#/kiosk`;
+    return `${protocol}//${host}/?id=${surveyId}${modeString}${siteString}#/kiosk`;
   }
 
+  // FIX 2: NON-BLOCKING COPY LINK (ELIMINATES INP THREAD LOCKING)
   function copyKioskLink(survey, forceQr = false) {
     const directLink = getKioskLink(survey, forceQr);
-    navigator.clipboard.writeText(directLink);
-    const isQr = typeof survey === 'object' ? survey.appMode === 'qr' : isQrMode;
-    alert(isQr ? "📱 Quick Scan Web Link copied!" : "🚀 Enterprise Kiosk Link copied!");
+    navigator.clipboard.writeText(directLink).then(() => {
+      copyBannerMessage = "✓ Public Web Link copied to clipboard!";
+      setTimeout(() => {
+        copyBannerMessage = "";
+      }, 3000);
+    }).catch(() => {
+      copyBannerMessage = "⚠️ Failed to copy link.";
+    });
   }
 </script>
 
@@ -780,7 +781,7 @@
                 onSaveSurvey={persistActiveSurveyState}
               />
             </div>
-          {:else if activeTab === "kiosk" && currentUser?.role === "admin"}
+          {:else if activeTab === "kiosk" && (currentUser?.role === "admin" || isDedicatedKioskMode)}
             <div class="w-full h-full min-w-0 flex items-center justify-center">
               <Kiosk
                 surveyTitle={activeSurvey.title}
@@ -820,7 +821,7 @@
     </div>
   </div>
 
-  <!-- ROOT-LEVEL SHARE HUB MODAL OVERLAY WITH DYNAMIC LINK ROUTING -->
+  <!-- ROOT-LEVEL SHARE HUB MODAL OVERLAY WITH INP-SAFE BANNER -->
   {#if showShareModal && activeShareSurvey}
     {@const dynamicKioskUrl = getKioskLink(activeShareSurvey, activeShareSurvey.appMode === 'qr')}
     <div class="fixed inset-0 z-[9999] w-screen h-screen bg-slate-900/30 dark:bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4">
@@ -849,13 +850,20 @@
           Scan this QR code to load and complete this survey directly on any phone or browser.
         </p>
 
+        {#if copyBannerMessage}
+          <div class="bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold py-2 px-3 rounded-xl animate-fade font-mono">
+            {copyBannerMessage}
+          </div>
+        {/if}
+
         <div class="pt-2 border-t border-slate-100 dark:border-slate-800/60">
           <button 
+            type="button"
             on:click={() => copyKioskLink(activeShareSurvey, activeShareSurvey.appMode === 'qr')} 
             class="w-full bg-[#1a2b6c] hover:bg-[#e31b23] font-bold py-3.5 px-4 text-xs rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center space-x-2 cursor-pointer"
             style="color: #ffffff !important; font-weight: 700 !important; background-color: #1a2b6c !important;"
           >
-            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" style="fill: #ffffff !important;">
+            <svg class="w-4 h-4 fill-current text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;">
               <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
             </svg>
             <span style="color: #ffffff !important; font-weight: 700 !important;">Copy Share Link</span>
