@@ -268,7 +268,7 @@ router.delete('/surveys/:id', async (req, res) => {
 
 router.get('/devices', async (req, res) => {
   try {
-    // CLEAN SWEEP: Purge references to deleted surveys from device records in MongoDB
+    // Clean sweep active survey forms for registered devices
     try {
       const allSurveys = await Survey.find({});
       const activeTitlesSet = new Set(allSurveys.map(s => s.title));
@@ -304,32 +304,7 @@ router.get('/devices', async (req, res) => {
       console.warn("Device form title sanitization warning:", e);
     }
 
-    let devices = await Device.find({}).sort({ updatedAt: -1 }).lean();
-    const responseDeviceNames = await Response.distinct('deviceId');
-    const registeredNames = new Set(devices.map(d => d.deviceName));
-
-    const missingNames = responseDeviceNames.filter(name => name && name !== 'Tablet-Unassigned' && !registeredNames.has(name));
-    if (missingNames.length > 0) {
-      const existingPins = new Set(devices.map(d => String(d.accessPin || '').toLowerCase()));
-      const firstSurvey = await Survey.findOne({});
-      const defaultFormList = firstSurvey ? [firstSurvey.title] : [];
-
-      const newDocs = missingNames.map(name => {
-        const uniquePin = generateUniquePin(existingPins);
-        existingPins.add(uniquePin);
-        return {
-          deviceName: name.trim(),
-          accessPin: uniquePin,
-          allowedFormTitle: defaultFormList,
-          loggedInUser: 'Operator',
-          status: 'paired',
-          lastActive: new Date()
-        };
-      });
-      await Device.insertMany(newDocs);
-      devices = await Device.find({}).sort({ updatedAt: -1 }).lean();
-    }
-
+    const devices = await Device.find({}).sort({ updatedAt: -1 }).lean();
     res.json({ success: true, devices });
   } catch (error) {
     console.error("Error in GET /api/devices:", error);
@@ -431,6 +406,7 @@ router.put('/devices/:id', async (req, res) => {
   }
 });
 
+// REMOVE DEVICE & REASSIGN ITS RESPONSE LOGS TO 'Tablet-Unassigned'
 router.delete('/devices/:id', async (req, res) => {
   try {
     const deviceToDelete = await Device.findById(req.params.id);
@@ -502,6 +478,34 @@ router.get('/responses', async (req, res) => {
     }));
 
     res.json({ success: true, responses });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE A SINGLE RESPONSE LOG
+router.delete('/responses/:id', async (req, res) => {
+  try {
+    const deletedResponse = await Response.findByIdAndDelete(req.params.id);
+    if (!deletedResponse) {
+      return res.status(404).json({ success: false, message: 'Response record not found.' });
+    }
+    res.json({ success: true, message: 'Response entry permanently deleted.' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// CLEAR ALL RESPONSES FOR A SPECIFIC FORM TITLE
+router.post('/responses/clear-by-title', async (req, res) => {
+  try {
+    const { title } = req.body;
+    if (!title) {
+      return res.status(400).json({ success: false, message: 'Form title is required.' });
+    }
+
+    const result = await Response.deleteMany({ surveyTitle: String(title).trim() });
+    res.json({ success: true, message: `Cleared ${result.deletedCount} response entries for '${title}'.` });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
