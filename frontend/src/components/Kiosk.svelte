@@ -55,7 +55,6 @@
     return String(opt.targetSite).toLowerCase().trim() === String(deviceId).toLowerCase().trim();
   }).map(opt => opt.text);
 
-  // Force-append "Other" option if enabled via boolean flag or legacy presence
   $: availableOptions = (currentQuestion && (currentQuestion.enableOtherOption || currentQuestion.enableOtherOption === "true") && !rawParsedOptions.includes("Other")) 
     ? [...rawParsedOptions, "Other"] 
     : rawParsedOptions;
@@ -353,8 +352,8 @@
   });
 </script>
 
-<div class="w-full h-full min-h-full flex-1 bg-slate-100 text-slate-800 p-3 sm:p-5 font-sans box-border overflow-hidden flex flex-col justify-between select-none">
-  <main class="w-full max-w-6xl mx-auto flex-1 flex flex-col justify-between min-h-0 py-1 box-border relative">
+<div class="w-full h-full min-h-screen flex-1 bg-slate-100 text-slate-800 p-3 sm:p-6 lg:p-8 font-sans box-border overflow-y-auto flex flex-col justify-between select-none">
+  <main class="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center min-h-0 py-6 sm:py-10 box-border relative my-auto">
     
     <!-- PURE BLUR OVERLAY (EXCLUSIVELY FOR KIOSK MODE) -->
     {#if !isQrMode && (selectedSurveyForPin || (!isPinVerifiedForCurrentSurvey && activeSurveyId))}
@@ -396,9 +395,9 @@
     {#if !activeSurveyId || !surveyTitle || questions.length === 0}
       
       <!-- SELECTION LAUNCHER MENU CARD -->
-      <div in:scale={{ duration: 300, start: 0.96 }} class="w-full bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col justify-between my-auto">
+      <div in:scale={{ duration: 300, start: 0.96 }} class="w-full bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-xl flex flex-col justify-between my-auto">
         
-        <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
           <div class="flex items-center space-x-2">
             <div class="h-2.5 w-2.5 rounded-full {isQrMode ? 'bg-cyan-600' : 'bg-[#e31b23]'} animate-pulse"></div>
             <span class="text-xs font-black font-mono tracking-widest text-[#1a2b6c] uppercase">
@@ -410,30 +409,30 @@
             <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 hidden sm:inline">
               {isQrMode ? "LOCATION:" : "TABLET ID:"}
             </span>
-            <span class="bg-[#1a2b6c] text-white font-mono font-bold text-xs px-3 py-1 rounded-full flex items-center space-x-1.5 shadow-xs" style="background-color: #1a2b6c !important; color: #ffffff !important;">
+            <span class="bg-[#1a2b6c] text-white font-mono font-bold text-xs px-3.5 py-1.5 rounded-full flex items-center space-x-1.5 shadow-xs" style="background-color: #1a2b6c !important; color: #ffffff !important;">
               <svg class="w-3.5 h-3.5 fill-current text-white shrink-0" viewBox="0 0 24 24" style="fill: #ffffff !important;"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
               <span style="color: #ffffff !important; font-weight: 700 !important;">{deviceId}</span>
             </span>
           </div>
         </div>
 
-        <div class="text-center space-y-1 mb-4">
-          <h1 class="text-2xl font-black tracking-tight text-[#1a2b6c]">Select Survey Form</h1>
-          <p class="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+        <div class="text-center space-y-2 mb-6">
+          <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-[#1a2b6c]">Select Survey Form</h1>
+          <p class="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
             {isQrMode ? "Choose a web form sequence below to launch directly." : "Choose an active form sequence below to launch Live Kiosk Mode."}
           </p>
         </div>
 
         {#if surveys.length === 0}
-          <div class="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center text-xs text-slate-400 my-auto">
+          <div class="border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center text-xs text-slate-400 my-auto">
             No active forms available in storage. Please create a form first in the QR Form Designer.
           </div>
         {:else}
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[22rem] overflow-y-auto custom-scrollbar my-2 pr-1">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[26rem] overflow-y-auto custom-scrollbar my-2 pr-1">
             {#each surveys.filter(s => !s.isDraft && !String(s._id).startsWith("DRAFT-")) as survey}
               <button
                 on:click={() => handlePromptSurveyPin(survey)}
-                class="text-left bg-slate-50 hover:bg-white border border-slate-200 hover:border-[#e31b23] border-t-4 border-t-[#1a2b6c] rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between group active:scale-[0.98] shadow-xs hover:shadow-md space-y-4 cursor-pointer"
+                class="text-left bg-slate-50 hover:bg-white border border-slate-200 hover:border-[#e31b23] border-t-4 border-t-[#1a2b6c] rounded-2xl p-5 sm:p-6 transition-all duration-200 flex flex-col justify-between group active:scale-[0.98] shadow-xs hover:shadow-md space-y-4 cursor-pointer"
               >
                 <div class="space-y-1.5">
                   <div class="flex items-center justify-between">
@@ -445,7 +444,7 @@
                       {survey.questions?.length || 0} Fields
                     </span>
                   </div>
-                  <h3 class="text-base font-bold text-[#1a2b6c] group-hover:text-[#e31b23] transition-colors truncate pt-1">
+                  <h3 class="text-base sm:text-lg font-bold text-[#1a2b6c] group-hover:text-[#e31b23] transition-colors truncate pt-1">
                     {survey.title || "Untitled Form"}
                   </h3>
                 </div>
@@ -465,7 +464,7 @@
           </div>
         {/if}
 
-        <div class="pt-4 mt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-mono tracking-wider font-semibold">
+        <div class="pt-5 mt-4 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-mono tracking-wider font-semibold">
           <span>{isQrMode ? "📱 Web Scan Responsive Terminal" : "🔒 Secure Enterprise Client Terminal"}</span>
           <span>{isQrMode ? "Public Web QR Mode" : "Terminal Kiosk Mode"}</span>
         </div>
@@ -473,36 +472,37 @@
 
     {:else if isSubmitted}
       <!-- DYNAMIC SUBMISSION CONFIRMATION -->
-      <div in:scale={{ duration: 400, start: 0.95 }} class="w-full max-w-xl mx-auto bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-xl flex flex-col items-center justify-center text-center space-y-4 my-auto">
-        <div class="h-16 w-16 bg-emerald-100 border border-emerald-300 rounded-full flex items-center justify-center text-emerald-600 shadow-sm shrink-0">
-          <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+      <div in:scale={{ duration: 400, start: 0.95 }} class="w-full max-w-xl mx-auto bg-white border border-slate-200 rounded-3xl p-8 sm:p-12 shadow-xl flex flex-col items-center justify-center text-center space-y-5 my-auto">
+        <div class="h-20 w-20 bg-emerald-100 border border-emerald-300 rounded-full flex items-center justify-center text-emerald-600 shadow-sm shrink-0">
+          <svg class="w-10 h-10 fill-current" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
         </div>
-        <h2 class="text-xl sm:text-3xl font-black tracking-tight text-[#1a2b6c] leading-snug">
+        <h2 class="text-2xl sm:text-3xl font-black tracking-tight text-[#1a2b6c] leading-snug">
           {currentSurvey?.thankYouMessage || "Thank you for your feedback! This screen will automatically refresh in a few seconds."}
         </h2>
         <p class="text-xs sm:text-sm text-slate-600 max-w-md leading-relaxed">
           Registered under location <span class="font-bold text-[#1a2b6c]">{deviceId}</span>. Resets to question 1 in 
-          <span class="text-[#e31b23] font-mono font-bold text-base sm:text-lg px-1">{countdownSeconds}s</span>...
+          <span class="text-[#e31b23] font-mono font-bold text-lg sm:text-xl px-1">{countdownSeconds}s</span>...
         </p>
       </div>
 
     {:else}
-      <!-- ACTIVE FORM FILLING CANVAS -->
-      <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="w-full bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col justify-between overflow-visible box-border my-auto h-full">
+      <!-- ACTIVE FORM FILLING CANVAS: BALANCED VERTICAL CENTERING & PADDING -->
+      <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="w-full bg-white border border-slate-200 rounded-3xl p-5 sm:p-8 lg:p-10 shadow-xl flex flex-col justify-between box-border my-auto">
         
-        <div class="space-y-1 shrink-0 w-full">
-          <div class="flex items-center justify-between text-[11px] font-mono font-bold">
+        <!-- TOP PROGRESS HEADER -->
+        <div class="space-y-2 shrink-0 w-full mb-4">
+          <div class="flex items-center justify-between text-xs font-mono font-bold">
             <div class="flex items-center space-x-2">
               {#if answersAccumulator.length > 0}
                 <button
                   type="button"
                   on:click={goBackStep}
-                  class="text-[#1a2b6c] bg-slate-100 hover:bg-[#1a2b6c] hover:text-white border border-slate-200 px-3 py-1 rounded-full text-[11px] font-bold transition-all flex items-center space-x-1 cursor-pointer active:scale-95 shadow-xs"
+                  class="text-[#1a2b6c] bg-slate-100 hover:bg-[#1a2b6c] hover:text-white border border-slate-200 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center space-x-1 cursor-pointer active:scale-95 shadow-xs"
                 >
                   <span>← Back</span>
                 </button>
               {/if}
-              <span class="text-rose-800 bg-rose-50 border border-rose-200 px-3 py-0.5 rounded-full">
+              <span class="text-rose-800 bg-rose-50 border border-rose-200 px-3.5 py-1 rounded-full">
                 Question {currentQuestionIndex + 1} of {questions.length}
               </span>
             </div>
@@ -512,7 +512,7 @@
             </span>
           </div>
 
-          <div class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+          <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
             <div 
               class="h-full bg-gradient-to-r from-[#1a2b6c] to-[#e31b23] transition-all duration-300 rounded-full"
               style="width: {((currentQuestionIndex + 1) / questions.length) * 100}%"
@@ -520,10 +520,11 @@
           </div>
         </div>
 
-        <div class="text-center space-y-2 shrink-0 py-2">
+        <!-- QUESTION TITLE & IMAGE SECTION -->
+        <div class="text-center space-y-3 shrink-0 py-4 my-2">
           {#if currentQuestion.isRequired}
             <div class="flex items-center justify-center">
-              <span class="text-rose-600 font-bold text-[10px] bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full">* Required Field</span>
+              <span class="text-rose-600 font-bold text-[11px] bg-rose-50 border border-rose-200 px-3 py-1 rounded-full">* Required Field</span>
             </div>
           {/if}
 
@@ -533,29 +534,30 @@
             </div>
           {/if}
 
-          <h1 class="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-[#1a2b6c] leading-tight px-2">
+          <h1 class="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-[#1a2b6c] leading-tight px-2">
             {currentQuestion.questionText}
           </h1>
 
           {#if validationError}
-            <div class="text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1 rounded-xl inline-block animate-pulse">
+            <div class="text-xs sm:text-sm font-bold text-rose-700 bg-rose-50 border border-rose-200 px-4 py-2 rounded-xl inline-block animate-pulse">
               ⚠️ {validationError}
             </div>
           {/if}
         </div>
 
-        <div class="w-full flex-1 flex flex-col justify-center min-h-0 box-border py-2 my-auto overflow-visible">
+        <!-- CENTERED COMPONENT INPUT SECTION -->
+        <div class="w-full flex-1 flex flex-col justify-center min-h-0 box-border py-4 my-2">
           
           {#if getNormalizedType(currentQuestion.type) === 'smiley'}
-            <div class="grid grid-cols-1 landscape:grid-cols-5 gap-3 w-full max-w-3xl landscape:max-w-4xl mx-auto my-auto items-center">
+            <div class="grid grid-cols-1 sm:grid-cols-5 gap-3 sm:gap-4 w-full max-w-3xl mx-auto my-auto items-center">
               {#each satisfactionScale as option}
                 <button 
                   on:click={() => handleSelectOption(`${option.emoji} ${option.label}`)}
-                  class="flex flex-col items-center justify-center p-3.5 sm:p-5 rounded-2xl border transition-all duration-200 group active:scale-95 shadow-sm bg-slate-50 cursor-pointer {option.color}">
-                  <span class="text-4xl sm:text-5xl transform group-hover:scale-110 transition-transform duration-200 select-none filter drop-shadow-xs">
+                  class="flex flex-col items-center justify-center p-4 sm:p-6 rounded-2xl border transition-all duration-200 group active:scale-95 shadow-sm bg-slate-50 cursor-pointer {option.color}">
+                  <span class="text-4xl sm:text-6xl transform group-hover:scale-110 transition-transform duration-200 select-none filter drop-shadow-xs">
                     {option.emoji}
                   </span>
-                  <span class="mt-2 text-xs font-black tracking-widest uppercase font-mono text-slate-700">
+                  <span class="mt-3 text-xs sm:text-sm font-black tracking-widest uppercase font-mono text-slate-700">
                     {option.label}
                   </span>
                 </button>
@@ -564,7 +566,7 @@
 
           {:else if getNormalizedType(currentQuestion.type) === 'stars'}
             <div 
-              class="flex items-center justify-center space-x-3 sm:space-x-8 w-full my-auto py-4"
+              class="flex items-center justify-center space-x-2 sm:space-x-6 w-full my-auto py-6"
               on:mouseleave={() => hoveredStarIndex = 0}
             >
               {#each [1, 2, 3, 4, 5] as starValue}
@@ -572,7 +574,7 @@
                   type="button"
                   on:mouseenter={() => hoveredStarIndex = starValue}
                   on:click={() => handleSelectOption(`${starValue} Stars`)}
-                  class="text-5xl sm:text-8xl transform hover:scale-125 active:scale-95 transition-all duration-150 outline-none select-none filter drop-shadow-xs focus:outline-none cursor-pointer"
+                  class="text-5xl sm:text-7xl lg:text-8xl transform hover:scale-125 active:scale-95 transition-all duration-150 outline-none select-none filter drop-shadow-xs focus:outline-none cursor-pointer p-1"
                   style="color: {starValue <= (hoveredStarIndex || 0) ? '#e31b23' : '#cbd5e1'}"
                 >
                   {starValue <= (hoveredStarIndex || 0) ? '★' : '☆'}
@@ -581,8 +583,8 @@
             </div>
 
           {:else if getNormalizedType(currentQuestion.type) === 'multiple-choice'}
-            <div class="w-full my-auto space-y-4">
-              <div class="grid {getGridClass(availableOptions.length)} gap-3.5 w-full items-center justify-center">
+            <div class="w-full my-auto space-y-5 max-w-3xl mx-auto">
+              <div class="grid {getGridClass(availableOptions.length)} gap-3 sm:gap-4 w-full items-center justify-center">
                 {#if availableOptions.length > 0}
                   {#each availableOptions as option}
                     {@const imgUrl = currentQuestion.enableOptionImages && currentQuestion.optionImages ? currentQuestion.optionImages[option] : ''}
@@ -596,22 +598,22 @@
                           handleSelectOption(option);
                         }
                       }}
-                      class="w-full text-left bg-slate-50 border rounded-2xl p-3.5 sm:p-4 transition-all shadow-sm active:scale-[0.98] flex flex-col justify-between group h-auto cursor-pointer {currentQuestion.allowMultiple && isSelected ? 'border-[#e31b23] bg-rose-50 text-rose-900 ring-2 ring-[#e31b23]/30' : 'border-slate-200 hover:border-[#e31b23] text-slate-800'}"
+                      class="w-full text-left bg-slate-50 border rounded-2xl p-4 sm:p-5 transition-all shadow-sm active:scale-[0.98] flex flex-col justify-between group h-auto cursor-pointer {currentQuestion.allowMultiple && isSelected ? 'border-[#e31b23] bg-rose-50 text-rose-900 ring-2 ring-[#e31b23]/30' : 'border-slate-200 hover:border-[#e31b23] text-slate-800'}"
                     >
                       {#if imgUrl}
-                        <div class="w-full h-28 sm:h-36 shrink-0 rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center p-1.5 shadow-inner mb-2">
+                        <div class="w-full h-28 sm:h-36 shrink-0 rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center p-1.5 shadow-inner mb-3">
                           <img src={imgUrl} alt={option} class="w-full h-full object-contain rounded-lg" />
                         </div>
                       {/if}
 
                       <div class="flex items-center justify-between w-full shrink-0 pt-1">
-                        <span class="text-sm sm:text-base font-bold group-hover:text-[#e31b23] transition-colors truncate">{option}</span>
+                        <span class="text-sm sm:text-base font-bold group-hover:text-[#e31b23] transition-colors truncate pr-2">{option}</span>
                         {#if currentQuestion.allowMultiple}
-                          <div class="w-5 h-5 rounded-md border flex items-center justify-center transition-all shrink-0 ml-1 {isSelected ? 'bg-[#e31b23] border-[#e31b23] text-white font-bold text-xs' : 'border-slate-300 bg-white'}">
+                          <div class="w-6 h-6 rounded-md border flex items-center justify-center transition-all shrink-0 ml-1 {isSelected ? 'bg-[#e31b23] border-[#e31b23] text-white font-bold text-xs' : 'border-slate-300 bg-white'}">
                             {#if isSelected}✓{/if}
                           </div>
                         {:else}
-                          <span class="text-slate-400 group-hover:text-[#e31b23] font-extrabold text-sm transition-colors shrink-0 ml-1">➔</span>
+                          <span class="text-slate-400 group-hover:text-[#e31b23] font-extrabold text-base transition-colors shrink-0 ml-1">➔</span>
                         {/if}
                       </div>
                     </button>
@@ -622,7 +624,7 @@
               {#if currentQuestion.allowMultiple}
                 <button
                   on:click={advanceStep}
-                  class="w-full max-w-md mx-auto bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-3.5 px-4 text-sm rounded-xl transition-all shadow-md active:scale-[0.98] flex items-center justify-center space-x-2 block cursor-pointer"
+                  class="w-full max-w-md mx-auto bg-[#1a2b6c] hover:bg-[#e31b23] text-white font-extrabold py-4 px-6 text-base rounded-2xl transition-all shadow-md active:scale-[0.98] flex items-center justify-center space-x-2 block cursor-pointer"
                   style="color: #ffffff !important; background-color: #1a2b6c !important;"
                 >
                   <span style="color: #ffffff !important; font-weight: 800 !important;">Confirm & Continue ➔</span>
@@ -631,14 +633,14 @@
             </div>
 
           {:else if getNormalizedType(currentQuestion.type) === 'dropdown'}
-            <!-- ELEGANT DOWNWARD-EXPANDING COMBOBOX WITH SEARCH & "OTHER" TEXT FIELD -->
+            <!-- ELEGANT COMBOBOX WITH SEARCH & "OTHER" TEXT FIELD -->
             <div class="w-full max-w-lg mx-auto space-y-4 my-auto relative" bind:this={dropdownContainerRef}>
               
               <div class="relative">
                 <button 
                   type="button"
                   on:click={() => (isDropdownOpen = !isDropdownOpen)}
-                  class="w-full bg-slate-50 border-2 border-slate-200 text-[#1a2b6c] font-bold rounded-2xl p-4 text-base sm:text-lg flex items-center justify-between transition-all shadow-inner focus:outline-none focus:border-[#e31b23] cursor-pointer"
+                  class="w-full bg-slate-50 border-2 border-slate-200 text-[#1a2b6c] font-bold rounded-2xl p-4 sm:p-5 text-base sm:text-lg flex items-center justify-between transition-all shadow-inner focus:outline-none focus:border-[#e31b23] cursor-pointer"
                 >
                   <span class={selectedValue ? "text-[#1a2b6c]" : "text-slate-400 font-normal"}>
                     {selectedValue || "Select an option from list..."}
@@ -660,7 +662,7 @@
                           type="text"
                           bind:value={dropdownSearchQuery}
                           placeholder="Search choices..."
-                          class="w-full bg-white border border-slate-200 text-slate-800 text-sm font-semibold rounded-xl pl-9 pr-3 py-2 outline-none focus:border-[#1a2b6c]"
+                          class="w-full bg-white border border-slate-200 text-slate-800 text-sm font-semibold rounded-xl pl-9 pr-3 py-2.5 outline-none focus:border-[#1a2b6c]"
                         />
                         <svg class="w-4 h-4 text-slate-400 absolute left-3 fill-current" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
                       </div>
@@ -683,7 +685,7 @@
                               validationError = "";
                               isDropdownOpen = false;
                             }}
-                            class="w-full text-left px-4 py-3 text-sm font-bold rounded-xl transition-all flex items-center justify-between cursor-pointer {isSelected ? 'bg-[#1a2b6c] text-white' : 'hover:bg-slate-100 text-slate-700'}"
+                            class="w-full text-left px-4 py-3.5 text-sm font-bold rounded-xl transition-all flex items-center justify-between cursor-pointer {isSelected ? 'bg-[#1a2b6c] text-white' : 'hover:bg-slate-100 text-slate-700'}"
                           >
                             <span class="truncate pr-2">{option}</span>
                             {#if isSelected}
@@ -723,7 +725,6 @@
             </div>
 
           {:else if getNormalizedType(currentQuestion.type) === 'number'}
-            <!-- NUMBER INPUT KIOSK FIELD -->
             <form on:submit|preventDefault={advanceStep} class="w-full max-w-md mx-auto space-y-4 my-auto">
               <div class="relative flex items-center">
                 <input 
@@ -731,7 +732,7 @@
                   bind:value={selectedValue}
                   on:input={() => (validationError = "")}
                   placeholder={currentQuestion.isRequired ? "Enter numeric value (Required)..." : "Enter numeric value..."}
-                  class="w-full bg-slate-50 border border-slate-200 text-[#1a2b6c] font-bold rounded-2xl p-4 text-xl outline-none transition-all shadow-inner focus:border-[#e31b23] focus:ring-2 focus:ring-rose-500/20"
+                  class="w-full bg-slate-50 border border-slate-200 text-[#1a2b6c] font-bold rounded-2xl p-4 sm:p-5 text-xl outline-none transition-all shadow-inner focus:border-[#e31b23] focus:ring-2 focus:ring-rose-500/20"
                 />
               </div>
               <button 
@@ -744,14 +745,13 @@
             </form>
 
           {:else if getNormalizedType(currentQuestion.type) === 'date'}
-            <!-- DATE PICKER KIOSK INPUT -->
             <form on:submit|preventDefault={advanceStep} class="w-full max-w-md mx-auto space-y-4 my-auto">
               <div class="relative flex items-center">
                 <input 
                   type="date" 
                   bind:value={selectedValue}
                   on:input={() => (validationError = "")}
-                  class="w-full bg-slate-50 border border-slate-200 text-[#1a2b6c] font-bold rounded-2xl p-4 text-lg outline-none transition-all shadow-inner focus:border-[#e31b23] focus:ring-2 focus:ring-rose-500/20 cursor-pointer"
+                  class="w-full bg-slate-50 border border-slate-200 text-[#1a2b6c] font-bold rounded-2xl p-4 sm:p-5 text-lg outline-none transition-all shadow-inner focus:border-[#e31b23] focus:ring-2 focus:ring-rose-500/20 cursor-pointer"
                 />
               </div>
               <button 
@@ -764,13 +764,13 @@
             </form>
 
           {:else}
-            <form on:submit|preventDefault={advanceStep} class="w-full max-w-xl mx-auto space-y-3 my-auto">
+            <form on:submit|preventDefault={advanceStep} class="w-full max-w-xl mx-auto space-y-4 my-auto">
               <input 
                 type="text" 
                 bind:value={selectedValue}
                 on:input={() => (validationError = "")}
                 placeholder={currentQuestion.isRequired ? "Type your response here (Required)..." : "Type your response here..."}
-                class="w-full bg-slate-50 border border-slate-200 text-[#1a2b6c] placeholder-slate-400 rounded-2xl p-4 text-base outline-none transition-all shadow-inner {validationError ? 'border-rose-500 focus:border-rose-400' : 'focus:border-[#e31b23] focus:ring-2 focus:ring-rose-500/20'}"
+                class="w-full bg-slate-50 border border-slate-200 text-[#1a2b6c] placeholder-slate-400 rounded-2xl p-4 sm:p-5 text-base sm:text-lg outline-none transition-all shadow-inner {validationError ? 'border-rose-500 focus:border-rose-400' : 'focus:border-[#e31b23] focus:ring-2 focus:ring-rose-500/20'}"
               />
               <button 
                 type="submit"
@@ -784,7 +784,8 @@
 
         </div>
 
-        <div class="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-mono tracking-wider font-semibold">
+        <!-- FOOTER INFO -->
+        <div class="pt-5 mt-4 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-mono tracking-wider font-semibold">
           <span>{isQrMode ? "📱 Web Scan Responsive Terminal" : "🔒 Secure Enterprise Client Terminal"}</span>
           <span>{isQrMode ? "Public Web QR Mode" : "Terminal Kiosk Mode"}</span>
         </div>
