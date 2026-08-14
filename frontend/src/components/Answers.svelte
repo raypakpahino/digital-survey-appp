@@ -16,7 +16,6 @@
   // MULTI-FORM SELECTION STATE
   let selectedSurveyIds = [];
 
-  // Automatically select ALL surveys in QR Mode to create a unified database log
   $: if (surveys.length > 0) {
     if (isQrMode) {
       selectedSurveyIds = surveys.map(s => s._id);
@@ -136,22 +135,24 @@
   );
 
   $: filteredResponses = responses.filter((r) => {
+    // 1. IN KIOSK MODE, CHECK SELECTED FORMS
     if (!isQrMode) {
       if (selectedSurveys.length === 0) return false;
       if (!selectedSurveyTitles.includes(cleanString(r.surveyTitle))) return false;
     }
 
-    // ROLE SCOPING FOR SITE LEADERS: MATCH EITHER LOCATION TAG OR FORM ASSIGNED SITE
+    // 2. ROLE SCOPING FOR SITE LEADERS IN QR MODE
     if (currentUser && currentUser.role === "site_leader" && currentUser.assignedSite) {
-      const respSite = String(r.deviceId || "").toLowerCase().trim();
-      const userSite = String(currentUser.assignedSite).toLowerCase().trim();
+      const respSite = cleanString(r.deviceId);
+      const userSite = cleanString(currentUser.assignedSite);
       
       const parentSurvey = surveys.find(s => cleanString(s.title) === cleanString(r.surveyTitle));
-      const surveyAssignedSite = parentSurvey ? String(parentSurvey.assignedSite || "").toLowerCase().trim() : "";
+      const surveyAssignedSite = parentSurvey ? cleanString(parentSurvey.assignedSite) : "";
 
       const matchesLocation = respSite === userSite;
       const matchesFormSite = surveyAssignedSite === userSite;
 
+      // Match EITHER submission location OR form template assigned site
       if (!matchesLocation && !matchesFormSite) return false;
     }
 
@@ -836,7 +837,7 @@
 
       {:else if activeViewMode === "analytics"}
         <div class="space-y-6 pb-4">
-          {#each surveys as survey}
+          {#each (isQrMode ? surveys : selectedSurveys) as survey}
             {@const surveyQs = (survey.questions || []).filter(q => isAnalyticsEligible(q.type))}
             {@const surveyResponses = filteredResponses.filter(r => cleanString(r.surveyTitle) === cleanString(survey.title))}
 

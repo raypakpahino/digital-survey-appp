@@ -80,17 +80,12 @@
       activeSurveyId = "";
     }
 
-    // Paint UI update immediately
     activeTab = tab;
 
     if (!isDedicatedKioskMode) {
-      const targetHash = activeSurveyId && (tab === "builder" || tab === "kiosk" || tab === "answers")
-        ? `/${tab}?id=${activeSurveyId}`
-        : `/${tab}`;
-      window.location.hash = targetHash;
+      window.location.hash = `/${tab}`;
     }
 
-    // Defer network fetch to next paint loop so main thread is not blocked
     if (tab === "surveys" || tab === "answers") {
       setTimeout(() => {
         refreshDataLedger();
@@ -100,13 +95,6 @@
 
   $: if (activeSurveyId) {
     localStorage.setItem("sdx_active_survey_id", activeSurveyId);
-    if (!isDedicatedKioskMode && (activeTab === "builder" || activeTab === "kiosk" || activeTab === "answers")) {
-      const currentHashPath = window.location.hash.split("?")[0];
-      const targetHashPath = `/#/${activeTab}`;
-      if (currentHashPath !== targetHashPath || !window.location.hash.includes(`id=${activeSurveyId}`)) {
-        window.location.hash = `/${activeTab}?id=${activeSurveyId}`;
-      }
-    }
   }
 
   function normalizeSurvey(s) {
@@ -197,8 +185,10 @@
       activeSurveyId = urlSurveyId;
     }
 
-    // PUBLIC SCANNED QR URL DETECTION
-    if (urlSurveyId || modeParam === 'qr' || window.location.search.includes("mode=qr") || hash.startsWith("#/kiosk")) {
+    const storedToken = localStorage.getItem("sdx_token");
+
+    // FIX 1: DEDICATED PUBLIC UNATHENTICATED KIOSK DETECTION ONLY
+    if (!storedToken && (urlSurveyId || modeParam === 'qr' || window.location.search.includes("mode=qr"))) {
       isQrMode = true;
       localStorage.setItem("sdx_app_mode", "qr");
       activeTab = "kiosk";
@@ -209,7 +199,6 @@
       return;
     }
 
-    const storedToken = localStorage.getItem("sdx_token");
     if (storedToken) {
       try {
         const res = await fetch(`${API_BASE}/auth/me`, {
@@ -226,9 +215,6 @@
             const route = hash.replace("#/", "").split("?")[0];
             if (["surveys", "builder", "kiosk", "answers", "devices", "users"].includes(route)) {
               activeTab = route;
-              if (route === "kiosk" && !urlSurveyId) {
-                activeSurveyId = "";
-              }
             } else {
               window.location.hash = "/surveys";
             }
@@ -265,6 +251,10 @@
     currentUser = null;
   }
 
+  function cleanString(str) {
+    return String(str || '').trim().toLowerCase();
+  }
+
   async function refreshDataLedger() {
     try {
       const currentModeQuery = isQrMode ? "qr" : "kiosk";
@@ -276,11 +266,10 @@
       if (surveyData.success) {
         let rawSurveys = (surveyData.surveys || []).map(normalizeSurvey);
 
-        // FILTER VISIBLE SURVEYS FOR SITE_LEADER ROLE IN QR MODE
         if (isQrMode && currentUser && currentUser.role === "site_leader" && currentUser.assignedSite) {
-          const userSite = String(currentUser.assignedSite).toLowerCase().trim();
+          const userSite = cleanString(currentUser.assignedSite);
           rawSurveys = rawSurveys.filter(s => 
-            !s.assignedSite || String(s.assignedSite).toLowerCase().trim() === userSite
+            !s.assignedSite || cleanString(s.assignedSite) === userSite
           );
         }
 
@@ -298,11 +287,15 @@
         if (responseData.success && responseData.responses) {
           let rawResp = responseData.responses;
 
-          // STRICT SITE SCOPING ONLY FOR SITE_LEADER IN QR MODE
           if (currentUser && currentUser.role === "site_leader" && currentUser.assignedSite) {
-            rawResp = rawResp.filter(r => 
-              String(r.deviceId || '').toLowerCase().trim() === String(currentUser.assignedSite).toLowerCase().trim()
-            );
+            rawResp = rawResp.filter(r => {
+              const respSite = cleanString(r.deviceId);
+              const userSite = cleanString(currentUser.assignedSite);
+              const parentSurvey = surveysList.find(s => cleanString(s.title) === cleanString(r.surveyTitle));
+              const surveySite = parentSurvey ? cleanString(parentSurvey.assignedSite) : '';
+
+              return respSite === userSite || surveySite === userSite;
+            });
           }
 
           responses = rawResp;
@@ -484,7 +477,6 @@
     copyBannerMessage = "";
   }
 
-  // AUTOMATIC SITE QUERY TAGGING FOR GENERATED QR LINKS
   function getKioskLink(survey, forceQr = false) {
     let host = window.location.hostname;
     if (host === 'localhost' || host === '127.0.0.1') {
@@ -498,7 +490,6 @@
     
     const modeString = (forceQr || isQrSurvey) ? '&mode=qr' : '';
 
-    // Automatically append assignedSite from survey object or currentUser if available
     let targetSite = "";
     if (typeof survey === 'object' && survey.assignedSite) {
       targetSite = survey.assignedSite;
