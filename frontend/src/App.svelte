@@ -108,6 +108,7 @@
     return {
       ...s,
       appMode: s.appMode || "kiosk",
+      assignedSite: s.assignedSite || "",
       pinCode: s.pinCode || "1234",
       thankYouMessage: s.thankYouMessage || "Thank you for your feedback! This screen will automatically refresh in a few seconds.",
       autoRefreshSeconds: s.autoRefreshSeconds !== undefined && s.autoRefreshSeconds !== null ? Number(s.autoRefreshSeconds) : 4,
@@ -277,7 +278,17 @@
       }
       const surveyData = await surveyRes.json();
       if (surveyData.success) {
-        surveysList = (surveyData.surveys || []).map(normalizeSurvey);
+        let rawSurveys = (surveyData.surveys || []).map(normalizeSurvey);
+
+        // FILTER VISIBLE SURVEIS FOR SITE_LEADER ROLE IN QR MODE
+        if (isQrMode && currentUser && currentUser.role === "site_leader" && currentUser.assignedSite) {
+          const userSite = String(currentUser.assignedSite).toLowerCase().trim();
+          rawSurveys = rawSurveys.filter(s => 
+            !s.assignedSite || String(s.assignedSite).toLowerCase().trim() === userSite
+          );
+        }
+
+        surveysList = rawSurveys;
         isOfflineMode = false;
 
         if (!activeSurveyId && surveysList.length > 0 && activeTab !== "kiosk") {
@@ -317,7 +328,8 @@
     questions: [],
     pinCode: "1234",
     thankYouMessage: "Thank you for your feedback! This screen will automatically refresh in a few seconds.",
-    autoRefreshSeconds: 4
+    autoRefreshSeconds: 4,
+    assignedSite: ""
   };
 
   function handleCreateNewSurvey() {
@@ -327,6 +339,7 @@
       _id: draftId,
       title: isQrMode ? "New Web QR Form Schema" : "New Kiosk Terminal Schema",
       appMode: isQrMode ? "qr" : "kiosk",
+      assignedSite: "",
       pinCode: "1234",
       thankYouMessage: "Thank you for your feedback! This screen will automatically refresh in a few seconds.",
       autoRefreshSeconds: 4,
@@ -339,7 +352,7 @@
     switchTab("builder");
   }
 
-  async function persistActiveSurveyState(updatedTitle, updatedQuestions, updatedThankYouMessage, updatedAutoRefreshSeconds, updatedPin) {
+  async function persistActiveSurveyState(updatedTitle, updatedQuestions, updatedThankYouMessage, updatedAutoRefreshSeconds, assignedSiteParam) {
     if (!activeSurveyId || currentUser?.role !== "admin") return;
 
     const questionsToSave = typeof structuredClone === 'function'
@@ -351,7 +364,8 @@
     const payload = {
       title: String(updatedTitle || '').trim(),
       appMode: isQrMode ? "qr" : "kiosk",
-      pinCode: updatedPin || activeSurvey.pinCode || "1234",
+      assignedSite: typeof assignedSiteParam === 'string' ? assignedSiteParam : (activeSurvey.assignedSite || ""),
+      pinCode: activeSurvey.pinCode || "1234",
       questions: questionsToSave,
       thankYouMessage: updatedThankYouMessage !== undefined ? updatedThankYouMessage : activeSurvey.thankYouMessage,
       autoRefreshSeconds: cleanSeconds
@@ -760,6 +774,7 @@
                 questions={activeSurvey.questions}
                 surveys={surveysList}
                 {activeSurveyId}
+                {isQrMode}
                 onSelectSurvey={(id) => (activeSurveyId = id)}
                 onCreateNewSurvey={handleCreateNewSurvey}
                 onSaveSurvey={persistActiveSurveyState}

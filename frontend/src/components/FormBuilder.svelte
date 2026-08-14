@@ -1,9 +1,12 @@
 <script>
+  import { onMount } from 'svelte';
+
   export let surveyTitle = "";
   export let questions = [];
   export let surveys = [];
   export let activeSurveyId = "";
-  export let onSaveSurvey = (title, qs, thankYouMsg, autoRefreshSec) => {};
+  export let isQrMode = false;
+  export let onSaveSurvey = (title, qs, thankYouMsg, autoRefreshSec, assignedSite) => {};
   export let onSelectSurvey = (id) => {};
   export let onCreateNewSurvey = () => {};
 
@@ -11,6 +14,8 @@
   let localQuestions = [];
   let localThankYouMessage = "Thank you for your feedback! This screen will automatically refresh in a few seconds.";
   let localAutoRefreshSeconds = 4;
+  let localAssignedSite = "";
+  let availableSites = [];
   let saveContainerRef;
   let lastLoadedSurveyId = "";
 
@@ -19,6 +24,20 @@
 
   let leftPanelWidth = 320;
   let isResizing = false;
+
+  async function loadRegisteredSites() {
+    try {
+      const res = await fetch('/api/sites');
+      const data = await res.json();
+      if (data.success) {
+        availableSites = data.sites || [];
+      }
+    } catch (err) {
+      console.warn("Failed loading site registry:", err);
+    }
+  }
+
+  onMount(loadRegisteredSites);
 
   function startResizing(event) {
     event.preventDefault();
@@ -96,6 +115,7 @@
       localAutoRefreshSeconds = activeSurvey.autoRefreshSeconds !== undefined && activeSurvey.autoRefreshSeconds !== null 
         ? Number(activeSurvey.autoRefreshSeconds) 
         : 4;
+      localAssignedSite = activeSurvey.assignedSite || "";
     }
 
     if (targetId !== lastLoadedSurveyId || localQuestions.length === 0) {
@@ -362,7 +382,7 @@
 
     const cleanSeconds = Math.max(1, parseInt(localAutoRefreshSeconds, 10) || 4);
     
-    await onSaveSurvey(localTitle.trim(), localQuestions, localThankYouMessage, cleanSeconds);
+    await onSaveSurvey(localTitle.trim(), localQuestions, localThankYouMessage, cleanSeconds, localAssignedSite);
 
     isSavingSchema = false;
     saveSuccessBanner = "💾 Form schema saved successfully!";
@@ -477,6 +497,21 @@
             {/each}
           {/if}
         </select>
+
+        {#if isQrMode}
+          <div class="flex items-center space-x-2 shrink-0">
+            <span class="text-[11px] font-bold text-[#e31b23] uppercase tracking-wider whitespace-nowrap">Target Site:</span>
+            <select
+              bind:value={localAssignedSite}
+              class="bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-[#1a2b6c] dark:text-rose-200 font-bold text-xs rounded-xl px-3 py-2.5 focus:outline-none cursor-pointer"
+            >
+              <option value="">All Sites (Public)</option>
+              {#each availableSites as site}
+                <option value={site.name}>{site.name}</option>
+              {/each}
+            </select>
+          </div>
+        {/if}
       </div>
 
       <div class="flex items-center space-x-2">
@@ -634,7 +669,6 @@
                             placeholder={`Option ${optIndex + 1} text...`}
                             class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-[#1a2b6c] dark:text-slate-200 px-3 py-2 flex-1 font-medium"
                           />
-                          <!-- SITE TAG INPUT FOR PRIVATE OPTIONS ISOLATION -->
                           <div class="flex items-center space-x-1.5">
                             <span class="text-[9px] font-mono font-bold text-cyan-400 uppercase">Site Tag:</span>
                             <input
@@ -720,7 +754,6 @@
               <!-- TOGGLES SECTION -->
               <div class="pt-4 border-t border-slate-200 dark:border-slate-900/80 space-y-3 max-w-md">
                 {#if normType === 'multiple-choice'}
-                  <!-- 1. ENABLE IMAGES -->
                   <div class="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60">
                     <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Enable images for options</span>
                     <button
@@ -735,7 +768,6 @@
                     </button>
                   </div>
 
-                  <!-- 2. ALLOW MULTIPLE -->
                   <div class="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60">
                     <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Allow selection of multiple options</span>
                     <button
@@ -749,7 +781,6 @@
                 {/if}
 
                 {#if normType === 'dropdown'}
-                  <!-- 2B. ENABLE OTHER OPEN TEXT OPTION (FOR DROPDOWN) -->
                   <div class="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60">
                     <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Enable "Other" custom text field</span>
                     <button
@@ -762,7 +793,6 @@
                   </div>
                 {/if}
 
-                <!-- 3. REQUIRED QUESTION -->
                 <div class="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60">
                   <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Required question</span>
                   <button
@@ -774,7 +804,6 @@
                   </button>
                 </div>
 
-                <!-- 4. CONDITIONAL SKIP LOGIC TOGGLE & CONTROLS -->
                 {#if index > 0}
                   <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60 space-y-3">
                     <div class="flex items-center justify-between">
