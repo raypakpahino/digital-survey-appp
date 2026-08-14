@@ -110,7 +110,7 @@
     localTitle = currentTitle || "";
     
     const activeSurvey = surveys.find(s => String(s._id) === String(targetId));
-    if (activeSurvey) {
+    if (activeSurvey && targetId !== lastLoadedSurveyId) {
       localThankYouMessage = activeSurvey.thankYouMessage || "Thank you for your feedback! This screen will automatically refresh in a few seconds.";
       localAutoRefreshSeconds = activeSurvey.autoRefreshSeconds !== undefined && activeSurvey.autoRefreshSeconds !== null 
         ? Number(activeSurvey.autoRefreshSeconds) 

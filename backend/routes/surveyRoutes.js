@@ -94,11 +94,12 @@ router.get('/surveys', async (req, res) => {
 
 router.post('/surveys', async (req, res) => {
   try {
-    const { title, questions, pinCode, thankYouMessage, autoRefreshSeconds, appMode } = req.body;
+    const { title, questions, pinCode, thankYouMessage, autoRefreshSeconds, appMode, assignedSite } = req.body;
     const cleanQuestions = sanitizeQuestions(questions);  
     const newSurvey = await Survey.create({ 
       title: String(title || '').trim(), 
       appMode: appMode === 'qr' ? 'qr' : 'kiosk',
+      assignedSite: String(assignedSite || '').trim(),
       pinCode: String(pinCode || '123456').trim().toLowerCase(),
       questions: cleanQuestions,
       thankYouMessage: thankYouMessage || 'Thank you for your feedback! This screen will automatically refresh in a few seconds.',
@@ -110,10 +111,10 @@ router.post('/surveys', async (req, res) => {
   }
 });
 
-// DYNAMIC TITLE RENAME CASCADING UPDATE
+// DYNAMIC TITLE RENAME CASCADING UPDATE & ASSIGNED SITE PERSISTENCE
 router.put('/surveys/:id', async (req, res) => {
   try {
-    const { title, questions, pinCode, thankYouMessage, autoRefreshSeconds, appMode } = req.body;
+    const { title, questions, pinCode, thankYouMessage, autoRefreshSeconds, appMode, assignedSite } = req.body;
     const cleanQuestions = sanitizeQuestions(questions);
 
     const existingSurvey = await Survey.findById(req.params.id);
@@ -131,6 +132,7 @@ router.put('/surveys/:id', async (req, res) => {
     };
 
     if (appMode) updatePayload.appMode = appMode;
+    if (assignedSite !== undefined) updatePayload.assignedSite = String(assignedSite || '').trim();
     if (thankYouMessage !== undefined) updatePayload.thankYouMessage = thankYouMessage;
     if (autoRefreshSeconds !== undefined) updatePayload.autoRefreshSeconds = Number(autoRefreshSeconds);
 
@@ -279,18 +281,15 @@ router.get('/devices', async (req, res) => {
 
           for (const formName of dev.allowedFormTitle) {
             const cleanForm = String(formName).trim();
-            // Check for exact active match or legacy mapped match
             if (activeTitlesSet.has(cleanForm)) {
               cleanedForms.push(cleanForm);
             } else {
-              // Try legacy mapping
               const lowerForm = cleanForm.toLowerCase();
               const match = allSurveys.find(s => s.title.toLowerCase().includes(lowerForm) || lowerForm.includes(s.title.toLowerCase()));
               if (match) {
                 cleanedForms.push(match.title);
                 updated = true;
               } else {
-                // Dead/deleted form reference -> strip it
                 updated = true;
               }
             }
