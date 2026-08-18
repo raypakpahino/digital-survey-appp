@@ -265,13 +265,6 @@
       if (surveyData.success) {
         let rawSurveys = (surveyData.surveys || []).map(normalizeSurvey);
 
-        if (isQrMode && currentUser && currentUser.role === "site_leader" && currentUser.assignedSite) {
-          const userSite = cleanString(currentUser.assignedSite);
-          rawSurveys = rawSurveys.filter(s => 
-            !s.assignedSite || cleanString(s.assignedSite) === userSite
-          );
-        }
-
         surveysList = rawSurveys;
         isOfflineMode = false;
 
@@ -284,20 +277,7 @@
       if (responseRes.ok) {
         const responseData = await responseRes.json();
         if (responseData.success && responseData.responses) {
-          let rawResp = responseData.responses;
-
-          if (currentUser && currentUser.role === "site_leader" && currentUser.assignedSite) {
-            rawResp = rawResp.filter(r => {
-              const respSite = cleanString(r.deviceId);
-              const userSite = cleanString(currentUser.assignedSite);
-              const parentSurvey = surveysList.find(s => cleanString(s.title) === cleanString(r.surveyTitle));
-              const surveySite = parentSurvey ? cleanString(parentSurvey.assignedSite) : '';
-
-              return respSite === userSite || surveySite === userSite;
-            });
-          }
-
-          responses = rawResp;
+          responses = responseData.responses;
         }
       }
     } catch (err) {
@@ -349,10 +329,14 @@
 
     const cleanSeconds = Math.max(1, Number(updatedAutoRefreshSeconds) || 4);
 
+    const resolvedAssignedSite = typeof assignedSiteParam === 'string' 
+      ? assignedSiteParam.trim() 
+      : (activeSurvey.assignedSite || "").trim();
+
     const payload = {
       title: String(updatedTitle || '').trim(),
       appMode: isQrMode ? "qr" : "kiosk",
-      assignedSite: typeof assignedSiteParam === 'string' ? assignedSiteParam : (activeSurvey.assignedSite || ""),
+      assignedSite: resolvedAssignedSite,
       pinCode: activeSurvey.pinCode || "1234",
       questions: questionsToSave,
       thankYouMessage: updatedThankYouMessage !== undefined ? updatedThankYouMessage : activeSurvey.thankYouMessage,
