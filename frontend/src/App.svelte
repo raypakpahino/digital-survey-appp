@@ -66,7 +66,7 @@
       return;
     }
 
-    if (isSiteLeader && (tab === "surveys" || tab === "builder" || tab === "devices" || tab === "users")) {
+    if (isSiteLeader && (tab === "surveys" || tab === "builder" || tab === "devices" || tab === "users" || tab === "kiosk")) {
       activeTab = "answers";
       return;
     }
@@ -577,8 +577,8 @@
                 </button>
               {/if}
 
-              <!-- 3. LIVE KIOSK / PREVIEW MODE -->
-              {#if currentUser?.role !== "kiosk_operator" && currentUser?.role !== "user"}
+              <!-- 3. LIVE KIOSK / PREVIEW MODE (HIDDEN FOR SITE LEADERS & OPERATORS) -->
+              {#if currentUser?.role !== "site_leader" && currentUser?.role !== "kiosk_operator" && currentUser?.role !== "user"}
                 <button
                   class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'kiosk' ? (isQrMode ? 'bg-cyan-600 text-white shadow-md' : 'bg-[#1a2b6c] text-white shadow-md') : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={() => switchTab("kiosk")}
@@ -593,7 +593,7 @@
                 </button>
               {/if}
 
-              <!-- 4. ANSWERS LOG -->
+              <!-- 4. ANSWERS LOG (EXCLUSIVELY VISIBLE FOR SITE LEADERS) -->
               <button
                 class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'answers' ? (isQrMode ? 'bg-cyan-600 text-white shadow-md' : 'bg-[#1a2b6c] text-white shadow-md') : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                 on:click={() => switchTab("answers")}
