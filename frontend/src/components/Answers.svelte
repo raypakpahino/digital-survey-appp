@@ -15,6 +15,7 @@
   let endDate = "";
   let activePreset = "ALL";
   let registeredDevicesList = [];
+  let isDevicesLoaded = false;
   
   function cleanString(str) {
     return String(str || '').trim().toLowerCase();
@@ -38,6 +39,7 @@
     } catch (e) {
       console.warn("Failed fetching device mapping:", e);
     }
+    isDevicesLoaded = true;
   }
 
   onMount(loadRegisteredDevices);
@@ -47,14 +49,12 @@
     let deviceScopes = [];
 
     if (user) {
-      // 1. Site Leader Scopes
       if (Array.isArray(user.assignedSites) && user.assignedSites.length > 0) {
         siteScopes = user.assignedSites.map(cleanString);
       } else if (user.assignedSite) {
         siteScopes = parseArray(user.assignedSite);
       }
 
-      // 2. Kiosk Operator Scopes
       if (Array.isArray(user.assignedDevices) && user.assignedDevices.length > 0) {
         deviceScopes = user.assignedDevices.map(cleanString);
       } else if (Array.isArray(user.allowedDevices) && user.allowedDevices.length > 0) {
@@ -75,7 +75,6 @@
   $: ({ siteScopes: userAssignedSites, deviceScopes: userAssignedDevices } = parseUserScopes(currentUser));
 
   // Compute all authorized form titles across the operator's assigned devices
-  // Fallback: If no device rule is explicitly mapped in Device Registry, allow all surveys
   $: operatorAuthorizedForms = Array.from(new Set(
     registeredDevicesList
       .filter(d => userAssignedDevices.includes(cleanString(d.deviceName)))
@@ -91,10 +90,11 @@
         .filter(s => userAssignedSites.includes(cleanString(s.assignedSite)))
         .map(s => s._id);
     } else if (!isQrMode && currentUser && (currentUser.role === "kiosk_operator" || currentUser.role === "user")) {
+      // Force all surveys authorized in device registry to appear immediately for this operator
       selectedSurveyIds = surveys
         .filter(s => {
           const sTitle = cleanString(s.title);
-          if (operatorAuthorizedForms.length === 0) return true; // Fallback if device registry is empty
+          if (operatorAuthorizedForms.length === 0) return true; // Fallback if registry hasn't loaded yet
           return operatorAuthorizedForms.includes(sTitle) || 
                  operatorAuthorizedForms.includes('all') || 
                  operatorAuthorizedForms.includes('all forms');
@@ -116,18 +116,13 @@
   let selectedDevices = [];
   let deviceSearchQuery = "";
 
-  // Active question focus for full-screen expanded mode
   let focusedQuestion = null;
-
-  // NOTIFICATION PANEL STATE
   let isNotificationOpen = false;
   let expandedAlertIds = new Set();
 
-  // DRAGGABLE RESIZER STATE
   let leftPanelWidth = 280;
   let isResizing = false;
 
-  // DYNAMIC HOVER & RECTANGLE TOOLTIP STATE
   let activeHoveredSlice = null;
   let mousePos = { x: 0, y: 0 };
 
@@ -149,17 +144,14 @@
   function startResizing(event) {
     event.preventDefault();
     isResizing = true;
-    
     document.body.style.userSelect = "none";
     document.body.style.cursor = "col-resize";
-
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", stopResizing);
   }
 
   function handleMouseMove(event) {
     if (!isResizing) return;
-    
     const minWidth = 180;
     const maxWidth = 550;
     const newWidth = event.clientX - 260;
@@ -171,10 +163,8 @@
   function stopResizing() {
     if (!isResizing) return;
     isResizing = false;
-
     document.body.style.userSelect = "";
     document.body.style.cursor = "";
-
     window.removeEventListener("mousemove", handleMouseMove);
     window.removeEventListener("mouseup", stopResizing);
   }
@@ -196,7 +186,6 @@
     s.title.toLowerCase().includes(formSearchQuery.trim().toLowerCase())
   );
 
-  // Available devices
   $: rawAvailableDevices = Array.from(new Set(
     responses.map((r) => r.deviceId || "Tablet-A")
   )).sort();
@@ -218,7 +207,7 @@
     return acc;
   }, []);
 
-  // Strict Security & Device Scoping Filter for Responses
+  // Strict Device Scoping Filter for Responses
   $: filteredResponses = responses.filter((r) => {
     if (isQrMode && currentUser && currentUser.role === "site_leader") {
       if (userAssignedSites.length === 0) return false;
@@ -236,7 +225,7 @@
       if (userAssignedDevices.length === 0) return false;
       const respDevice = cleanString(r.deviceId || "Tablet-A");
       
-      // Must strictly belong to one of the operator's assigned devices
+      // Must strictly belong to the operator's assigned devices
       if (!userAssignedDevices.includes(respDevice)) return false;
     }
     else {
