@@ -153,7 +153,6 @@
       document.documentElement.classList.add('dark');
     }
 
-    // ROBUST SEARCH PARSER ACROSS BOTH SEARCH QUERY AND HASH QUERY
     const searchParams = new URLSearchParams(window.location.search);
     const hashPart = window.location.hash;
     const hashParams = new URLSearchParams(hashPart.includes("?") ? hashPart.split("?")[1] : "");
@@ -170,7 +169,7 @@
       activeSurveyId = urlSurveyId;
     }
 
-    // IF ENTERING DIRECTLY VIA QR CODE / LINK
+    // IF ENTERING DIRECTLY VIA QR CODE / PUBLIC LINK
     if (urlSurveyId || modeParam || hashPart.includes("kiosk")) {
       if (modeParam === 'qr') {
         isQrMode = true;
@@ -182,8 +181,8 @@
       activeTab = "kiosk";
       isDedicatedKioskMode = true;
       isSidebarExpanded = false;
-      isAuthChecking = false;
-      await refreshDataLedger();
+      isAuthChecking = false; // UNBLOCK IMMEDIATELY SO KIOSK RENDERS
+      refreshDataLedger();
       return;
     }
 
@@ -267,47 +266,48 @@
 
       const currentModeQuery = isQrMode ? "qr" : "kiosk";
       const surveyRes = await fetch(`${API_BASE}/surveys?mode=${currentModeQuery}`);
-      if (!surveyRes.ok) {
-        throw new Error(`HTTP error! status: ${surveyRes.status}`);
-      }
-      const surveyData = await surveyRes.json();
-      if (surveyData.success) {
-        let rawSurveys = (surveyData.surveys || []).map(normalizeSurvey);
+      if (surveyRes.ok) {
+        const surveyData = await surveyRes.json();
+        if (surveyData.success) {
+          let rawSurveys = (surveyData.surveys || []).map(normalizeSurvey);
 
-        if (urlSurveyId && !rawSurveys.some(s => s._id === urlSurveyId)) {
-          try {
-            const fallbackRes = await fetch(`${API_BASE}/surveys?mode=${isQrMode ? 'kiosk' : 'qr'}`);
-            const fallbackData = await fallbackRes.json();
-            if (fallbackData.success && Array.isArray(fallbackData.surveys)) {
-              const extraSurveys = fallbackData.surveys.map(normalizeSurvey);
-              rawSurveys = [...rawSurveys, ...extraSurveys];
-            }
-          } catch (e) {}
-        }
-
-        surveysList = rawSurveys;
-        isOfflineMode = false;
-
-        if (urlSurveyId && surveysList.some(s => s._id === urlSurveyId)) {
-          activeSurveyId = urlSurveyId;
-          const targetSurveyObj = surveysList.find(s => s._id === urlSurveyId);
-          if (targetSurveyObj && targetSurveyObj.appMode === 'kiosk' && !currentUser) {
-            isQrMode = false;
+          if (urlSurveyId && !rawSurveys.some(s => String(s._id) === String(urlSurveyId))) {
+            try {
+              const fallbackRes = await fetch(`${API_BASE}/surveys?mode=${isQrMode ? 'kiosk' : 'qr'}`);
+              const fallbackData = await fallbackRes.json();
+              if (fallbackData.success && Array.isArray(fallbackData.surveys)) {
+                rawSurveys = [...rawSurveys, ...fallbackData.surveys.map(normalizeSurvey)];
+              }
+            } catch (e) {}
           }
-        } else if (!activeSurveyId && surveysList.length > 0 && activeTab !== "kiosk") {
-          activeSurveyId = surveysList[0]._id;
+
+          surveysList = rawSurveys;
+          isOfflineMode = false;
+
+          if (urlSurveyId && surveysList.some(s => String(s._id) === String(urlSurveyId))) {
+            activeSurveyId = urlSurveyId;
+            const targetSurveyObj = surveysList.find(s => String(s._id) === String(urlSurveyId));
+            if (targetSurveyObj && targetSurveyObj.appMode === 'kiosk' && !currentUser) {
+              isQrMode = false;
+            }
+          } else if (!activeSurveyId && surveysList.length > 0 && activeTab !== "kiosk") {
+            activeSurveyId = surveysList[0]._id;
+          }
         }
       }
 
-      const responseRes = await fetch(`${API_BASE}/responses?mode=${currentModeQuery}`);
-      if (responseRes.ok) {
-        const responseData = await responseRes.json();
-        if (responseData.success && responseData.responses) {
-          responses = responseData.responses;
+      // ONLY FETCH RESPONSES IF LOGGED IN / IN ANSWERS TAB TO AVOID BOTTLENECKING PUBLIC SURVEYS
+      if (!isDedicatedKioskMode && activeTab !== "kiosk") {
+        const responseRes = await fetch(`${API_BASE}/responses?mode=${currentModeQuery}`);
+        if (responseRes.ok) {
+          const responseData = await responseRes.json();
+          if (responseData.success && responseData.responses) {
+            responses = responseData.responses;
+          }
         }
       }
     } catch (err) {
-      console.warn("Backend API endpoint unreachable or DB offline:", err);
+      console.warn("API link delay:", err);
       isOfflineMode = true;
     }
   }

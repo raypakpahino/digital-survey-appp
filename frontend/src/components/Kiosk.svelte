@@ -36,10 +36,11 @@
   let dropdownSearchQuery = "";
   let dropdownContainerRef;
 
-  $: currentQuestion = questions[currentQuestionIndex] || null;
-  $: currentSurvey = surveys.find(s => s._id === activeSurveyId) || null;
+  $: currentQuestion = (questions && questions.length > 0 && currentQuestionIndex < questions.length) 
+    ? questions[currentQuestionIndex] 
+    : null;
 
-  $: isDirectLinkOrScan = Boolean(new URLSearchParams(window.location.hash.includes("?") ? window.location.hash.split("?")[1] : window.location.search).get("id"));
+  $: currentSurvey = surveys.find(s => s._id === activeSurveyId) || selectedSurveyForPin || null;
 
   function parseOption(opt) {
     if (typeof opt === 'object' && opt !== null) {
@@ -77,60 +78,56 @@
     }
   }
 
-  onMount(() => {
-    window.addEventListener('click', handleDropdownClickOutside);
+  function resolveSurveyFromUrl() {
+    const searchParams = new URLSearchParams(window.location.search);
+    const hashPart = window.location.hash;
+    const hashParams = new URLSearchParams(hashPart.includes("?") ? hashPart.split("?")[1] : "");
 
-    const hash = window.location.hash;
-    const urlParams = new URLSearchParams(hash.includes("?") ? hash.split("?")[1] : window.location.search);
-    const urlSurveyId = urlParams.get("id");
-    const urlSiteParam = urlParams.get("site");
-    const modeParam = urlParams.get("mode");
+    const urlSurveyId = searchParams.get("id") || hashParams.get("id") || activeSurveyId;
+    const modeParam = searchParams.get("mode") || hashParams.get("mode");
+    const siteParam = searchParams.get("site") || hashParams.get("site");
     const savedDeviceId = localStorage.getItem("sdx_device_id");
 
-    if (urlSiteParam) {
-      deviceId = urlSiteParam.trim();
+    if (siteParam) {
+      deviceId = siteParam.trim();
       localStorage.setItem("sdx_device_id", deviceId);
     } else if (savedDeviceId) {
       deviceId = savedDeviceId;
     }
 
-    // Direct QR Code scan or Direct Web link with ?id=
-    if (urlSurveyId) {
-      const targetSurvey = surveys.find(s => s._id === urlSurveyId);
+    if (urlSurveyId && surveys.length > 0) {
+      const targetSurvey = surveys.find(s => String(s._id) === String(urlSurveyId));
       if (targetSurvey) {
-        const requiresPin = targetSurvey.appMode === 'kiosk' || modeParam === 'kiosk' || (!isQrMode && targetSurvey.appMode !== 'qr');
-        if (!requiresPin) {
-          isPinVerifiedForCurrentSurvey = true;
+        const isKioskMode = targetSurvey.appMode === 'kiosk' || modeParam === 'kiosk' || (!isQrMode && targetSurvey.appMode !== 'qr');
+        if (isKioskMode) {
+          if (!isPinVerifiedForCurrentSurvey) {
+            selectedSurveyForPin = targetSurvey;
+          }
           onSelectSurvey(targetSurvey._id);
-          resetTerminal();
         } else {
-          isPinVerifiedForCurrentSurvey = false;
-          selectedSurveyForPin = targetSurvey;
+          isPinVerifiedForCurrentSurvey = true;
+          selectedSurveyForPin = null;
           onSelectSurvey(targetSurvey._id);
         }
       }
     }
+  }
+
+  onMount(() => {
+    window.addEventListener('click', handleDropdownClickOutside);
+    resolveSurveyFromUrl();
   });
 
-  $: if (activeSurveyId && isDirectLinkOrScan && surveys.length > 0 && !isPinVerifiedForCurrentSurvey && !selectedSurveyForPin) {
-    const matched = surveys.find(s => s._id === activeSurveyId);
-    if (matched) {
-      const requiresPin = matched.appMode === 'kiosk' || (!isQrMode && matched.appMode !== 'qr');
-      if (!requiresPin) {
-        isPinVerifiedForCurrentSurvey = true;
-      } else {
-        isPinVerifiedForCurrentSurvey = false;
-        selectedSurveyForPin = matched;
-      }
-    }
+  $: if (surveys.length > 0 && activeSurveyId) {
+    resolveSurveyFromUrl();
   }
 
   function handlePromptSurveyPin(survey) {
     const requiresPin = survey.appMode === 'kiosk' || (!isQrMode && survey.appMode !== 'qr');
     if (!requiresPin) {
       isPinVerifiedForCurrentSurvey = true;
-      onSelectSurvey(survey._id);
       selectedSurveyForPin = null;
+      onSelectSurvey(survey._id);
       resetTerminal();
       return;
     }
@@ -361,7 +358,7 @@
 <div class="w-full h-full min-h-screen flex-1 bg-slate-100 text-slate-800 p-3 sm:p-6 lg:p-8 font-sans box-border overflow-y-auto flex flex-col justify-between select-none">
   <main class="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center min-h-0 py-6 sm:py-10 box-border relative my-auto">
     
-    <!-- PIN PROMPT (TRIGGERED UPON SELECTING A KIOSK FORM OR SCANNING A KIOSK QR LINK) -->
+    <!-- PIN PROMPT (ENTERPRISE KIOSK PIN GATE) -->
     {#if !isQrMode && selectedSurveyForPin && !isPinVerifiedForCurrentSurvey}
       <div in:scale={{ duration: 200 }} class="fixed inset-0 z-50 backdrop-blur-xl bg-slate-900/60 flex items-center justify-center p-4">
         <div class="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center space-y-4 shadow-2xl relative">
@@ -404,10 +401,9 @@
           </form>
         </div>
       </div>
-    {/if}
 
-    <!-- FORM SELECTION LAUNCHER MENU: SHOWN WHEN NAVIGATING VIA SIDEBAR OR WHEN NO FORM IS ACTIVE/VERIFIED -->
-    {#if (!isDirectLinkOrScan && (!isPinVerifiedForCurrentSurvey || !activeSurveyId)) || (!activeSurveyId && questions.length === 0)}
+    <!-- FORM SELECTION LAUNCHER (ONLY WHEN NO SPECIFIC FORM IS LOCKED/ACTIVE) -->
+    {:else if (!activeSurveyId && surveys.length > 0) || (!isQrMode && !selectedSurveyForPin && !isPinVerifiedForCurrentSurvey && !activeSurveyId)}
       <div in:scale={{ duration: 300, start: 0.96 }} class="w-full bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-xl flex flex-col justify-between my-auto">
         
         <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
@@ -436,46 +432,40 @@
           </p>
         </div>
 
-        {#if surveys.length === 0}
-          <div class="border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center text-xs text-slate-400 my-auto">
-            No active forms available in storage. Please create a form first in the Form Designer.
-          </div>
-        {:else}
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[26rem] overflow-y-auto custom-scrollbar my-2 pr-1">
-            {#each surveys.filter(s => !s.isDraft && !String(s._id).startsWith("DRAFT-")) as survey}
-              <button
-                on:click={() => handlePromptSurveyPin(survey)}
-                class="text-left bg-slate-50 hover:bg-white border border-slate-200 hover:border-[#e31b23] border-t-4 border-t-[#1a2b6c] rounded-2xl p-5 sm:p-6 transition-all duration-200 flex flex-col justify-between group active:scale-[0.98] shadow-xs hover:shadow-md space-y-4 cursor-pointer"
-              >
-                <div class="space-y-1.5">
-                  <div class="flex items-center justify-between">
-                    <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full flex items-center space-x-1">
-                      <span class="h-1.5 w-1.5 rounded-full inline-block animate-pulse shrink-0" style="background-color: #10b981 !important;"></span>
-                      <span>LIVE READY</span>
-                    </span>
-                    <span class="text-[10px] font-mono text-slate-500 font-bold">
-                      {survey.questions?.length || 0} Fields
-                    </span>
-                  </div>
-                  <h3 class="text-base sm:text-lg font-bold text-[#1a2b6c] group-hover:text-[#e31b23] transition-colors truncate pt-1">
-                    {survey.title || "Untitled Form"}
-                  </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[26rem] overflow-y-auto custom-scrollbar my-2 pr-1">
+          {#each surveys.filter(s => !s.isDraft && !String(s._id).startsWith("DRAFT-")) as survey}
+            <button
+              on:click={() => handlePromptSurveyPin(survey)}
+              class="text-left bg-slate-50 hover:bg-white border border-slate-200 hover:border-[#e31b23] border-t-4 border-t-[#1a2b6c] rounded-2xl p-5 sm:p-6 transition-all duration-200 flex flex-col justify-between group active:scale-[0.98] shadow-xs hover:shadow-md space-y-4 cursor-pointer"
+            >
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full flex items-center space-x-1">
+                    <span class="h-1.5 w-1.5 rounded-full inline-block animate-pulse shrink-0" style="background-color: #10b981 !important;"></span>
+                    <span>LIVE READY</span>
+                  </span>
+                  <span class="text-[10px] font-mono text-slate-500 font-bold">
+                    {survey.questions?.length || 0} Fields
+                  </span>
                 </div>
+                <h3 class="text-base sm:text-lg font-bold text-[#1a2b6c] group-hover:text-[#e31b23] transition-colors truncate pt-1">
+                  {survey.title || "Untitled Form"}
+                </h3>
+              </div>
 
-                <div class="flex items-center justify-between pt-3 border-t border-slate-200">
-                  <span class="text-[11px] text-slate-600 font-semibold group-hover:text-slate-900 transition-colors">
-                    {isQrMode || survey.appMode === 'qr' ? "Public Web Access" : "PIN Protected"}
+              <div class="flex items-center justify-between pt-3 border-t border-slate-200">
+                <span class="text-[11px] text-slate-600 font-semibold group-hover:text-slate-900 transition-colors">
+                  {isQrMode || survey.appMode === 'qr' ? "Public Web Access" : "PIN Protected"}
+                </span>
+                <span class="text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition-all flex items-center space-x-1.5 group-hover:scale-105 bg-[#1a2b6c] group-hover:bg-[#e31b23] text-white" style="color: #ffffff !important; background-color: #1a2b6c !important;">
+                  <span style="color: #ffffff !important; font-weight: 800 !important;">
+                    {isQrMode || survey.appMode === 'qr' ? "Launch Web Form ➔" : "Enter PIN & Launch ➔"}
                   </span>
-                  <span class="text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition-all flex items-center space-x-1.5 group-hover:scale-105 bg-[#1a2b6c] group-hover:bg-[#e31b23] text-white" style="color: #ffffff !important; background-color: #1a2b6c !important;">
-                    <span style="color: #ffffff !important; font-weight: 800 !important;">
-                      {isQrMode || survey.appMode === 'qr' ? "Launch Web Form ➔" : "Enter PIN & Launch ➔"}
-                    </span>
-                  </span>
-                </div>
-              </button>
-            {/each}
-          </div>
-        {/if}
+                </span>
+              </div>
+            </button>
+          {/each}
+        </div>
 
         <div class="pt-5 mt-4 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-mono tracking-wider font-semibold">
           <span>{isQrMode ? "📱 Web Scan Responsive Terminal" : "🔒 Secure Enterprise Client Terminal"}</span>
@@ -483,8 +473,8 @@
         </div>
       </div>
 
+    <!-- SUBMISSION CONFIRMATION -->
     {:else if isSubmitted}
-      <!-- SUBMISSION CONFIRMATION -->
       <div in:scale={{ duration: 400, start: 0.95 }} class="w-full max-w-xl mx-auto bg-white border border-slate-200 rounded-3xl p-8 sm:p-12 shadow-xl flex flex-col items-center justify-center text-center space-y-5 my-auto">
         <div class="h-20 w-20 bg-emerald-100 border border-emerald-300 rounded-full flex items-center justify-center text-emerald-600 shadow-sm shrink-0">
           <svg class="w-10 h-10 fill-current" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
@@ -498,8 +488,8 @@
         </p>
       </div>
 
-    {:else}
-      <!-- ACTIVE FORM QUESTIONNAIRE CANVAS -->
+    <!-- ACTIVE QUESTIONNAIRE CANVAS (SAFELY GUARDED) -->
+    {:else if currentQuestion}
       <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="w-full bg-white border border-slate-200 rounded-3xl p-5 sm:p-8 lg:p-10 shadow-xl flex flex-col justify-between box-border my-auto">
         
         <!-- TOP PROGRESS HEADER -->
@@ -558,9 +548,8 @@
           {/if}
         </div>
 
-        <!-- CENTERED COMPONENT INPUT SECTION -->
+        <!-- INPUT FIELDS -->
         <div class="w-full flex-1 flex flex-col justify-center min-h-0 box-border py-4 my-2">
-          
           {#if getNormalizedType(currentQuestion.type) === 'smiley'}
             <div class="grid grid-cols-1 sm:grid-cols-5 gap-3 sm:gap-4 w-full max-w-3xl mx-auto my-auto items-center">
               {#each satisfactionScale as option}
@@ -789,7 +778,6 @@
               </button>
             </form>
           {/if}
-
         </div>
 
         <!-- FOOTER INFO -->
@@ -797,6 +785,13 @@
           <span>{isQrMode ? "📱 Web Scan Responsive Terminal" : "🔒 Secure Enterprise Client Terminal"}</span>
           <span>{isQrMode ? "Public Web QR Mode" : "Terminal Kiosk Mode"}</span>
         </div>
+      </div>
+
+    <!-- IN-FLIGHT LOADING STATE -->
+    {:else}
+      <div class="w-full max-w-sm mx-auto bg-white border border-slate-200 rounded-3xl p-8 shadow-xl flex flex-col items-center justify-center text-center space-y-4 my-auto">
+        <div class="w-8 h-8 border-4 border-[#1a2b6c] border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-xs font-mono font-bold text-[#1a2b6c]">Loading Terminal Schema...</p>
       </div>
     {/if}
   </main>
