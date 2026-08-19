@@ -75,6 +75,7 @@
   $: ({ siteScopes: userAssignedSites, deviceScopes: userAssignedDevices } = parseUserScopes(currentUser));
 
   // Compute all authorized form titles across the operator's assigned devices
+  // Fallback: If no device rule is explicitly mapped in Device Registry, allow all surveys
   $: operatorAuthorizedForms = Array.from(new Set(
     registeredDevicesList
       .filter(d => userAssignedDevices.includes(cleanString(d.deviceName)))
@@ -90,12 +91,11 @@
         .filter(s => userAssignedSites.includes(cleanString(s.assignedSite)))
         .map(s => s._id);
     } else if (!isQrMode && currentUser && (currentUser.role === "kiosk_operator" || currentUser.role === "user")) {
-      // Automatically select all surveys authorized for this operator's assigned devices
       selectedSurveyIds = surveys
         .filter(s => {
           const sTitle = cleanString(s.title);
-          return operatorAuthorizedForms.length === 0 || 
-                 operatorAuthorizedForms.includes(sTitle) || 
+          if (operatorAuthorizedForms.length === 0) return true; // Fallback if device registry is empty
+          return operatorAuthorizedForms.includes(sTitle) || 
                  operatorAuthorizedForms.includes('all') || 
                  operatorAuthorizedForms.includes('all forms');
         })
@@ -183,7 +183,7 @@
     '#06b6d4', '#f59e0b', '#10b981', '#3b82f6', '#f43f5e', '#8b5cf6', '#ec4899'
   ];
 
-  // Active Selected Survey Objects (Includes all authorized forms for Kiosk Operators)
+  // Active Selected Survey Objects
   $: selectedSurveys = (isQrMode && currentUser && currentUser.role === "site_leader")
     ? surveys.filter(s => userAssignedSites.includes(cleanString(s.assignedSite)))
     : (!isQrMode && currentUser && (currentUser.role === "kiosk_operator" || currentUser.role === "user"))
@@ -218,7 +218,7 @@
     return acc;
   }, []);
 
-  // Filter responses strictly to assigned devices and authorized forms
+  // Strict Security & Device Scoping Filter for Responses
   $: filteredResponses = responses.filter((r) => {
     if (isQrMode && currentUser && currentUser.role === "site_leader") {
       if (userAssignedSites.length === 0) return false;
@@ -235,12 +235,9 @@
     else if (!isQrMode && currentUser && (currentUser.role === 'kiosk_operator' || currentUser.role === 'user')) {
       if (userAssignedDevices.length === 0) return false;
       const respDevice = cleanString(r.deviceId || "Tablet-A");
-      const respSurvey = cleanString(r.surveyTitle);
-
-      const matchesDevice = userAssignedDevices.includes(respDevice);
-      const matchesAuthorizedForm = operatorAuthorizedForms.length === 0 || operatorAuthorizedForms.includes(respSurvey) || operatorAuthorizedForms.includes('all');
-
-      if (!matchesDevice || !matchesAuthorizedForm) return false;
+      
+      // Must strictly belong to one of the operator's assigned devices
+      if (!userAssignedDevices.includes(respDevice)) return false;
     }
     else {
       if (selectedSurveys.length > 0) {
