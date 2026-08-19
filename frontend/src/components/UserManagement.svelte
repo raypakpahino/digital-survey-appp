@@ -6,6 +6,7 @@
 
   let users = [];
   let sites = [];
+  let devices = [];
   let isLoading = false;
 
   // USER FORM STATE
@@ -13,7 +14,8 @@
   let inputUsername = "";
   let inputPassword = "";
   let selectedRole = isQrMode ? "site_leader" : "kiosk_operator";
-  let selectedSite = "";
+  let selectedSites = [];
+  let selectedDevices = [];
   let userMessage = "";
   let userMessageType = "info";
 
@@ -40,28 +42,50 @@
     }
   });
 
+  function parseArrayField(val) {
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string' && val.trim()) {
+      return val.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    return [];
+  }
+
   async function loadData() {
     isLoading = true;
     try {
-      const [userRes, siteRes] = await Promise.all([
+      const [userRes, siteRes, devRes] = await Promise.all([
         fetch(`${API_BASE}/users`),
-        fetch(`${API_BASE}/sites`)
+        fetch(`${API_BASE}/sites`),
+        fetch(`${API_BASE}/devices`)
       ]);
 
       const userData = await userRes.json();
       const siteData = await siteRes.json();
+      const devData = await devRes.json();
 
       if (userData.success) users = userData.users || [];
-      if (siteData.success) {
-        sites = siteData.sites || [];
-        if (sites.length > 0 && !selectedSite) {
-          selectedSite = sites[0].name;
-        }
-      }
+      if (siteData.success) sites = siteData.sites || [];
+      if (devData.success) devices = devData.devices || [];
     } catch (err) {
-      console.warn("Error loading user records:", err);
+      console.warn("Error loading records:", err);
     }
     isLoading = false;
+  }
+
+  function toggleSiteSelection(siteName) {
+    if (selectedSites.includes(siteName)) {
+      selectedSites = selectedSites.filter(s => s !== siteName);
+    } else {
+      selectedSites = [...selectedSites, siteName];
+    }
+  }
+
+  function toggleDeviceSelection(devName) {
+    if (selectedDevices.includes(devName)) {
+      selectedDevices = selectedDevices.filter(d => d !== devName);
+    } else {
+      selectedDevices = [...selectedDevices, devName];
+    }
   }
 
   async function handleAddSite() {
@@ -121,8 +145,14 @@
       return;
     }
 
-    if (isQrMode && selectedRole === 'site_leader' && !selectedSite) {
-      userMessage = "Site Leaders must have an assigned site location.";
+    if (isQrMode && selectedRole === 'site_leader' && selectedSites.length === 0) {
+      userMessage = "Site Leaders must be assigned to at least one site location.";
+      userMessageType = "error";
+      return;
+    }
+
+    if (!isQrMode && selectedRole === 'kiosk_operator' && selectedDevices.length === 0) {
+      userMessage = "Kiosk Operators must be assigned to at least one tablet device.";
       userMessageType = "error";
       return;
     }
@@ -132,7 +162,9 @@
       const payload = {
         username: inputUsername.trim().toLowerCase(),
         role: selectedRole,
-        assignedSite: isQrMode && selectedRole === 'site_leader' ? selectedSite : ''
+        assignedSites: isQrMode && selectedRole === 'site_leader' ? selectedSites : [],
+        assignedDevices: !isQrMode && selectedRole === 'kiosk_operator' ? selectedDevices : [],
+        assignedSite: (isQrMode && selectedRole === 'site_leader' && selectedSites.length > 0) ? selectedSites[0] : ''
       };
       if (inputPassword.trim()) payload.password = inputPassword.trim();
 
@@ -171,8 +203,16 @@
     inputUsername = u.username;
     inputPassword = "";
     selectedRole = u.role === 'user' ? 'kiosk_operator' : u.role;
-    selectedSite = u.assignedSite || (sites.length > 0 ? sites[0].name : "");
-    userMessage = `Editing user '${u.username}'. Update permissions or site assignment below.`;
+    
+    selectedSites = u.assignedSites && u.assignedSites.length > 0
+      ? u.assignedSites
+      : parseArrayField(u.assignedSite);
+
+    selectedDevices = u.assignedDevices && u.assignedDevices.length > 0
+      ? u.assignedDevices
+      : parseArrayField(u.allowedDevices);
+
+    userMessage = `Editing user '${u.username}'. Update permissions or site/device assignments below.`;
     userMessageType = "info";
   }
 
@@ -181,7 +221,8 @@
     inputUsername = "";
     inputPassword = "";
     selectedRole = isQrMode ? "site_leader" : "kiosk_operator";
-    selectedSite = sites.length > 0 ? sites[0].name : "";
+    selectedSites = [];
+    selectedDevices = [];
     userMessage = "";
   }
 
@@ -213,8 +254,8 @@
       </h1>
       <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1">
         {isQrMode 
-          ? "Configure public QR site locations and provision Site Leaders with scoped access." 
-          : "Configure accounts for Kiosk Operators to view all terminal submission logs."}
+          ? "Configure QR site locations and provision Site Leaders with single or multi-site access." 
+          : "Configure Kiosk Operators and scope their access to specific terminal devices."}
       </p>
     </div>
     
@@ -354,32 +395,92 @@
             class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-white font-mono font-bold rounded-xl p-3 focus:outline-none focus:border-[#e31b23]"
           >
             {#if isQrMode}
-              <option value="site_leader">Site Leader (Scoped to QR Site)</option>
+              <option value="site_leader">Site Leader (Scoped to QR Sites)</option>
               <option value="admin">Administrator (Full Access)</option>
             {:else}
-              <option value="kiosk_operator">Kiosk Operator (Unfiltered Kiosk Logs)</option>
+              <option value="kiosk_operator">Kiosk Operator (Scoped to Tablet Devices)</option>
               <option value="admin">Administrator (Full Access)</option>
             {/if}
           </select>
         </div>
 
+        <!-- MULTI-SITE SELECTION CHECKLIST FOR SITE LEADERS -->
         {#if isQrMode && selectedRole === 'site_leader'}
-          <div class="space-y-1 pt-1">
-            <label for="site-assign-select" class="text-[10px] font-mono font-extrabold text-[#e31b23] dark:text-rose-400 uppercase tracking-widest block">Assign Scoped Site Location</label>
-            <select 
-              id="site-assign-select"
-              bind:value={selectedSite}
-              class="w-full bg-slate-50 dark:bg-rose-950/20 border border-slate-300 dark:border-rose-800 text-xs text-[#1a2b6c] dark:text-rose-200 font-mono font-bold rounded-xl p-3 focus:outline-none focus:border-[#e31b23]"
-            >
+          <div class="space-y-2 pt-1">
+            <div class="flex items-center justify-between">
+              <label class="text-[10px] font-mono font-extrabold text-[#e31b23] dark:text-rose-400 uppercase tracking-widest block">
+                Assign Scoped QR Sites ({selectedSites.length} Selected)
+              </label>
+              {#if sites.length > 0}
+                <button 
+                  type="button" 
+                  on:click={() => selectedSites = selectedSites.length === sites.length ? [] : sites.map(s => s.name)}
+                  class="text-[9px] font-mono font-bold text-cyan-400 hover:underline cursor-pointer"
+                >
+                  {selectedSites.length === sites.length ? 'Deselect All' : 'Select All'}
+                </button>
+              {/if}
+            </div>
+
+            <div class="max-h-36 overflow-y-auto space-y-1.5 custom-scrollbar p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
               {#if sites.length === 0}
-                <option value="" disabled>Create a site first in the left panel!</option>
+                <span class="text-xs text-slate-400 italic">No sites created yet. Create a site first in the left panel.</span>
               {:else}
                 {#each sites as site}
-                  <option value={site.name}>{site.name}</option>
+                  {@const isChecked = selectedSites.includes(site.name)}
+                  <button
+                    type="button"
+                    on:click={() => toggleSiteSelection(site.name)}
+                    class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-mono transition-all flex items-center justify-between border cursor-pointer {isChecked ? 'bg-cyan-950/80 border-cyan-500 text-cyan-200 font-bold' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400'}"
+                  >
+                    <span class="truncate">{site.name}</span>
+                    <input type="checkbox" checked={isChecked} class="accent-cyan-500 pointer-events-none" />
+                  </button>
                 {/each}
               {/if}
-            </select>
-            <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">Site Leaders will ONLY see forms & responses assigned to this exact site name.</p>
+            </div>
+            <p class="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">Site Leaders can access and export logs for all assigned locations.</p>
+          </div>
+        {/if}
+
+        <!-- MULTI-DEVICE SELECTION CHECKLIST FOR KIOSK OPERATORS -->
+        {#if !isQrMode && selectedRole === 'kiosk_operator'}
+          <div class="space-y-2 pt-1">
+            <div class="flex items-center justify-between">
+              <label class="text-[10px] font-mono font-extrabold text-[#1a2b6c] dark:text-cyan-400 uppercase tracking-widest block">
+                Assign Scoped Tablet Devices ({selectedDevices.length} Selected)
+              </label>
+              {#if devices.length > 0}
+                <button 
+                  type="button" 
+                  on:click={() => selectedDevices = selectedDevices.length === devices.length ? [] : devices.map(d => d.deviceName)}
+                  class="text-[9px] font-mono font-bold text-cyan-400 hover:underline cursor-pointer"
+                >
+                  {selectedDevices.length === devices.length ? 'Deselect All' : 'Select All'}
+                </button>
+              {/if}
+            </div>
+
+            <div class="max-h-36 overflow-y-auto space-y-1.5 custom-scrollbar p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
+              {#if devices.length === 0}
+                <span class="text-xs text-slate-400 italic">No tablet devices registered yet.</span>
+              {:else}
+                {#each devices as dev}
+                  {@const isChecked = selectedDevices.includes(dev.deviceName)}
+                  <button
+                    type="button"
+                    on:click={() => toggleDeviceSelection(dev.deviceName)}
+                    class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-mono transition-all flex items-center justify-between border cursor-pointer {isChecked ? 'bg-emerald-950/80 border-emerald-500 text-emerald-200 font-bold' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400'}"
+                  >
+                    <span class="truncate flex items-center space-x-1">
+                      <span>📱 {dev.deviceName}</span>
+                    </span>
+                    <input type="checkbox" checked={isChecked} class="accent-emerald-500 pointer-events-none" />
+                  </button>
+                {/each}
+              {/if}
+            </div>
+            <p class="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">Operators will strictly see response logs originating from their assigned devices.</p>
           </div>
         {/if}
 
@@ -393,7 +494,7 @@
       </form>
     </div>
 
-    <!-- ROSTER DIRECTORY (EXPLICIT HIGH CONTRAST IN LIGHT AND DARK MODE) -->
+    <!-- ROSTER DIRECTORY -->
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
         <h3 class="text-xs font-mono font-extrabold text-[#1a2b6c] dark:text-cyan-400 uppercase tracking-wider">
@@ -410,11 +511,13 @@
         {:else}
           {#each filteredUsers as u}
             {@const displayRole = u.role === 'user' ? 'kiosk_operator' : u.role}
+            {@const userSites = u.assignedSites && u.assignedSites.length > 0 ? u.assignedSites : parseArrayField(u.assignedSite)}
+            {@const userDevs = u.assignedDevices && u.assignedDevices.length > 0 ? u.assignedDevices : parseArrayField(u.allowedDevices)}
+
             <div class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2">
               <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-2">
                   <span class="h-2 w-2 rounded-full {displayRole === 'admin' ? 'bg-purple-500' : (displayRole === 'site_leader' ? 'bg-emerald-500' : 'bg-blue-500')}"></span>
-                  <!-- EXPLICIT USERNAME INLINE STYLE FIX FOR LIGHT MODE -->
                   <span class="font-black text-xs font-mono user-card-name">{u.username}</span>
                 </div>
                 
@@ -424,9 +527,18 @@
               </div>
 
               {#if isQrMode && displayRole === 'site_leader'}
-                <div class="text-[10px] font-mono bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                  <span class="font-bold text-slate-700 dark:text-slate-400">Scoped QR Site:</span>
-                  <span class="font-black text-[#1a2b6c] dark:text-cyan-300">{u.assignedSite || 'Unassigned'}</span>
+                <div class="text-[10px] font-mono bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col space-y-1">
+                  <span class="font-bold text-slate-500 dark:text-slate-400">Scoped QR Sites ({userSites.length}):</span>
+                  <span class="font-black text-[#1a2b6c] dark:text-cyan-300 truncate">
+                    {userSites.length > 0 ? userSites.join(', ') : 'Unassigned'}
+                  </span>
+                </div>
+              {:else if !isQrMode && displayRole === 'kiosk_operator'}
+                <div class="text-[10px] font-mono bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col space-y-1">
+                  <span class="font-bold text-slate-500 dark:text-slate-400">Scoped Tablet Devices ({userDevs.length}):</span>
+                  <span class="font-black text-emerald-600 dark:text-emerald-400 truncate">
+                    {userDevs.length > 0 ? userDevs.join(', ') : 'All Kiosk Devices'}
+                  </span>
                 </div>
               {/if}
 
@@ -453,7 +565,6 @@
 </div>
 
 <style>
-  /* HARDCODED HIGH CONTRAST USERNAME FIX FOR LIGHT VS DARK MODE */
   .user-card-name {
     color: #0f172a !important;
   }

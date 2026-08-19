@@ -17,14 +17,30 @@
     return String(str || '').trim().toLowerCase();
   }
 
+  function parseUserScopes(user) {
+    let siteScopes = [];
+    let deviceScopes = [];
+
+    if (user) {
+      if (Array.isArray(user.assignedSites)) siteScopes = user.assignedSites.map(cleanString);
+      else if (user.assignedSite) siteScopes = [cleanString(user.assignedSite)];
+
+      if (Array.isArray(user.assignedDevices)) deviceScopes = user.assignedDevices.map(cleanString);
+      else if (user.allowedDevices) deviceScopes = [cleanString(user.allowedDevices)];
+    }
+
+    return { siteScopes: siteScopes.filter(Boolean), deviceScopes: deviceScopes.filter(Boolean) };
+  }
+
+  $: ({ siteScopes: userAssignedSites, deviceScopes: userAssignedDevices } = parseUserScopes(currentUser));
+
   // MULTI-FORM SELECTION STATE
   let selectedSurveyIds = [];
 
   $: if (surveys.length > 0) {
-    if (isQrMode && currentUser && currentUser.role === "site_leader" && currentUser.assignedSite) {
-      const userSite = cleanString(currentUser.assignedSite);
+    if (isQrMode && currentUser && currentUser.role === "site_leader" && userAssignedSites.length > 0) {
       selectedSurveyIds = surveys
-        .filter(s => cleanString(s.assignedSite) === userSite)
+        .filter(s => userAssignedSites.includes(cleanString(s.assignedSite)))
         .map(s => s._id);
     } else if (isQrMode && selectedSurveyIds.length === 0) {
       selectedSurveyIds = surveys.map(s => s._id);
@@ -106,37 +122,33 @@
   }
 
   const SLICE_COLORS = [
-    '#06b6d4', // cyan-500
-    '#f59e0b', // amber-500
-    '#10b981', // emerald-500
-    '#3b82f6', // blue-500
-    '#f43f5e', // rose-500
-    '#8b5cf6', // violet-500
-    '#ec4899'  // pink-500
+    '#06b6d4', '#f59e0b', '#10b981', '#3b82f6', '#f43f5e', '#8b5cf6', '#ec4899'
   ];
 
-  // Active Selected Survey Objects (Strictly scoped to assignedSite for Site Leaders)
-  $: selectedSurveys = (isQrMode && currentUser && currentUser.role === "site_leader" && currentUser.assignedSite)
-    ? surveys.filter(s => cleanString(s.assignedSite) === cleanString(currentUser.assignedSite))
+  // Active Selected Survey Objects (Multi-site scoped for Site Leaders)
+  $: selectedSurveys = (isQrMode && currentUser && currentUser.role === "site_leader" && userAssignedSites.length > 0)
+    ? surveys.filter(s => userAssignedSites.includes(cleanString(s.assignedSite)))
     : surveys.filter(s => selectedSurveyIds.includes(s._id));
 
-  // Form Titles array for clean matching
   $: selectedSurveyTitles = selectedSurveys.map(s => cleanString(s.title));
 
   $: filteredSurveysForList = surveys.filter(s => 
     s.title.toLowerCase().includes(formSearchQuery.trim().toLowerCase())
   );
 
-  // Fetch all unique devices from loaded responses for Enterprise Kiosk Mode
-  $: availableDevices = Array.from(new Set(
+  // Available devices
+  $: rawAvailableDevices = Array.from(new Set(
     responses.map((r) => r.deviceId || "Tablet-A")
   )).sort();
+
+  $: availableDevices = (!isQrMode && currentUser && (currentUser.role === 'kiosk_operator' || currentUser.role === 'user') && userAssignedDevices.length > 0)
+    ? rawAvailableDevices.filter(d => userAssignedDevices.includes(cleanString(d)))
+    : rawAvailableDevices;
 
   $: filteredAvailableDevices = availableDevices.filter(devId => 
     devId.toLowerCase().includes(deviceSearchQuery.trim().toLowerCase())
   );
 
-  // Dynamically collect distinct questions across all selected forms
   $: displayedQuestions = selectedSurveys.reduce((acc, survey) => {
     (survey.questions || []).forEach(q => {
       if (!acc.some(existingQ => cleanString(existingQ.questionText) === cleanString(q.questionText))) {
@@ -152,27 +164,31 @@
       if (!selectedSurveyTitles.includes(cleanString(r.surveyTitle))) return false;
     }
 
-    // 2. STRICT ROLE SCOPING FOR SITE LEADERS IN QR MODE
-    if (isQrMode && currentUser && currentUser.role === "site_leader" && currentUser.assignedSite) {
-      const userSite = cleanString(currentUser.assignedSite);
+    // 2. MULTI-SITE SCOPING FOR SITE LEADERS (WEB QR MODE)
+    if (isQrMode && currentUser && currentUser.role === "site_leader" && userAssignedSites.length > 0) {
       const parentSurvey = surveys.find(s => cleanString(s.title) === cleanString(r.surveyTitle));
       if (!parentSurvey) return false;
 
       const surveyAssignedSite = cleanString(parentSurvey.assignedSite);
       const respSite = cleanString(r.deviceId);
 
-      // Must belong to this site leader's assigned site and not be cross-tagged to another specific site
-      if (surveyAssignedSite !== userSite && respSite !== userSite) return false;
-      if (surveyAssignedSite && surveyAssignedSite !== userSite) return false;
+      const matchesAssigned = userAssignedSites.includes(surveyAssignedSite) || userAssignedSites.includes(respSite);
+      if (!matchesAssigned) return false;
     }
 
-    // 3. TABLET DEVICE SELECTION FILTER (FOR ENTERPRISE KIOSK MODE)
+    // 3. MULTI-DEVICE SCOPING FOR KIOSK OPERATORS (ENTERPRISE KIOSK MODE)
+    if (!isQrMode && currentUser && (currentUser.role === 'kiosk_operator' || currentUser.role === 'user') && userAssignedDevices.length > 0) {
+      const respDevice = cleanString(r.deviceId || "Tablet-A");
+      if (!userAssignedDevices.includes(respDevice)) return false;
+    }
+
+    // 4. TABLET DEVICE SELECTION FILTER (FOR ADMINS IN ENTERPRISE KIOSK MODE)
     if (!isQrMode && selectedDevices.length > 0) {
       const respDevice = r.deviceId || "Tablet-A";
       if (!selectedDevices.includes(respDevice)) return false;
     }
 
-    // 4. DATE RANGE FILTERS
+    // 5. DATE RANGE FILTERS
     if (startDate || endDate) {
       const responseTime = new Date(r.timestamp).getTime();
       
@@ -656,12 +672,12 @@
           <span class="text-xs font-bold text-cyan-300 uppercase tracking-wider font-mono">Scoped Site Database</span>
         </div>
         <p class="text-[10px] text-slate-400 leading-tight">
-          Submissions are automatically filtered to <strong class="text-emerald-400 font-mono">{currentUser.assignedSite}</strong>.
+          Submissions are automatically filtered to: <strong class="text-emerald-400 font-mono">{userAssignedSites.join(', ') || 'Assigned Sites'}</strong>.
         </p>
       </div>
     {/if}
 
-    <!-- SECTION 2: HARDWARE TABLET SITES FILTER (ENTERPRISE KIOSK MODE EXCLUSIVE) -->
+    <!-- SECTION 2: HARDWARE TABLET SITES FILTER (ENTERPRISE KIOSK MODE) -->
     {#if !isQrMode}
       <div class="flex-1 pt-2 sm:pt-0 lg:pt-2 border-t sm:border-t-0 lg:border-t border-slate-800/80 space-y-2 shrink-0">
         <div class="flex items-center justify-between">
@@ -795,7 +811,7 @@
       <div>
         <h2 class="text-sm sm:text-base font-bold text-white tracking-tight border-l-2 border-cyan-500 pl-2.5">
           {#if currentUser?.role === "site_leader"}
-            Web QR Consolidated Response Hub <span class="text-cyan-400 font-mono text-xs">({currentUser.assignedSite})</span>
+            Web QR Consolidated Response Hub <span class="text-cyan-400 font-mono text-xs">({userAssignedSites.join(', ') || 'All Assigned Sites'})</span>
           {:else if selectedSurveys.length === 1}
             {selectedSurveys[0].title}
           {:else if selectedSurveys.length > 1}
@@ -807,7 +823,7 @@
         <p class="text-[11px] text-slate-400 mt-0.5">
           Showing <span class="text-cyan-400 font-bold">{filteredResponses.length}</span> matching submission records 
           {#if currentUser?.role === "site_leader"}
-            (Scoped to: <span class="text-emerald-400 font-mono font-bold">{currentUser.assignedSite}</span>)
+            (Scoped to: <span class="text-emerald-400 font-mono font-bold">{userAssignedSites.join(', ') || 'Assigned Sites'}</span>)
           {:else if selectedDevices.length > 0}
             (Filtered by: <span class="text-emerald-400 font-mono font-bold">{selectedDevices.join(', ')}</span>)
           {:else if selectedSurveys.length > 0}

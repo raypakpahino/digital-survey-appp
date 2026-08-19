@@ -113,15 +113,7 @@
         enableOtherOption: Boolean(q.enableOtherOption),
         options: q.options || [],
         optionImages: q.optionImages || {},
-        skipLogic: q.skipLogic ? {
-          enabled: Boolean(q.skipLogic.enabled),
-          dependsOnIndex: q.skipLogic.dependsOnIndex ?? null,
-          requiredValue: q.skipLogic.requiredValue || ""
-        } : {
-          enabled: false,
-          dependsOnIndex: null,
-          requiredValue: ""
-        }
+        alertTriggerValues: q.alertTriggerValues || []
       })),
     };
   }
@@ -180,7 +172,7 @@
 
     const storedToken = localStorage.getItem("sdx_token");
 
-    // UNATHENTICATED PUBLIC SCAN OR DIRECT SURVEY ID LINK
+    // UNAUTHENTICATED PUBLIC SCAN OR DIRECT SURVEY ID LINK
     if (!storedToken && (urlSurveyId || modeParam || window.location.search.includes("mode=") || hash.includes("kiosk"))) {
       if (modeParam === 'qr') {
         isQrMode = true;
@@ -627,14 +619,14 @@
               <button
                 class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'answers' ? (isQrMode ? 'bg-cyan-600 text-white shadow-md' : 'bg-[#1a2b6c] text-white shadow-md') : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                 on:click={() => switchTab("answers")}
-                title={currentUser?.role === "site_leader" ? `Answers Log (${currentUser.assignedSite || 'Site'})` : "Answers Log"}
+                title="Answers Log"
               >
                 <svg class="w-5 h-5 shrink-0 fill-current" viewBox="0 0 24 24">
                   <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
                 </svg>
                 {#if isSidebarExpanded}
                   <span class="truncate">
-                    {isQrMode ? 'QR Answers Log' : 'Answers Log'} {#if currentUser?.role === "site_leader"}<span class="text-[10px] text-cyan-300 font-mono">({currentUser.assignedSite})</span>{/if}
+                    {isQrMode ? 'QR Answers Log' : 'Answers Log'}
                   </span>
                 {/if}
               </button>
