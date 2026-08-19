@@ -1,4 +1,6 @@
 <script>
+  import { onMount } from 'svelte';
+
   export let responses = [];
   export let surveys = [];
   export let activeSurveyId = "";
@@ -12,10 +14,33 @@
   let startDate = "";
   let endDate = "";
   let activePreset = "ALL";
+  let registeredDevicesList = [];
   
   function cleanString(str) {
     return String(str || '').trim().toLowerCase();
   }
+
+  function parseArray(val) {
+    if (Array.isArray(val)) return val.map(cleanString).filter(Boolean);
+    if (typeof val === 'string' && val.trim()) {
+      return val.split(',').map(cleanString).filter(Boolean);
+    }
+    return [];
+  }
+
+  async function loadRegisteredDevices() {
+    try {
+      const res = await fetch(`${API_BASE}/devices`);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.devices)) {
+        registeredDevicesList = data.devices;
+      }
+    } catch (e) {
+      console.warn("Failed fetching device mapping:", e);
+    }
+  }
+
+  onMount(loadRegisteredDevices);
 
   function parseUserScopes(user) {
     let siteScopes = [];
@@ -26,7 +51,7 @@
       if (Array.isArray(user.assignedSites) && user.assignedSites.length > 0) {
         siteScopes = user.assignedSites.map(cleanString);
       } else if (user.assignedSite) {
-        siteScopes = String(user.assignedSite).split(',').map(cleanString);
+        siteScopes = parseArray(user.assignedSite);
       }
 
       // 2. Kiosk Operator Scopes
@@ -35,9 +60,9 @@
       } else if (Array.isArray(user.allowedDevices) && user.allowedDevices.length > 0) {
         deviceScopes = user.allowedDevices.map(cleanString);
       } else if (user.assignedDevice) {
-        deviceScopes = String(user.assignedDevice).split(',').map(cleanString);
+        deviceScopes = parseArray(user.assignedDevice);
       } else if (user.allowedDevices && typeof user.allowedDevices === 'string') {
-        deviceScopes = String(user.allowedDevices).split(',').map(cleanString);
+        deviceScopes = parseArray(user.allowedDevices);
       }
     }
 
@@ -49,6 +74,13 @@
 
   $: ({ siteScopes: userAssignedSites, deviceScopes: userAssignedDevices } = parseUserScopes(currentUser));
 
+  // Compute all authorized form titles across the operator's assigned devices
+  $: operatorAuthorizedForms = Array.from(new Set(
+    registeredDevicesList
+      .filter(d => userAssignedDevices.includes(cleanString(d.deviceName)))
+      .flatMap(d => parseArray(d.allowedFormTitle))
+  ));
+
   // MULTI-FORM SELECTION STATE
   let selectedSurveyIds = [];
 
@@ -58,8 +90,14 @@
         .filter(s => userAssignedSites.includes(cleanString(s.assignedSite)))
         .map(s => s._id);
     } else if (!isQrMode && currentUser && (currentUser.role === "kiosk_operator" || currentUser.role === "user")) {
-      // Kiosk operators select all active forms so all assigned devices' logs are displayed
-      selectedSurveyIds = surveys.map(s => s._id);
+      selectedSurveyIds = surveys
+        .filter(s => {
+          const sTitle = cleanString(s.title);
+          const isAuthorizedByDeviceRule = operatorAuthorizedForms.length === 0 || operatorAuthorizedForms.includes(sTitle) || operatorAuthorizedForms.includes('all') || operatorAuthorizedForms.includes('all forms');
+          const hasResponsesFromDevice = responses.some(r => cleanString(r.surveyTitle) === sTitle && userAssignedDevices.includes(cleanString(r.deviceId)));
+          return isAuthorizedByDeviceRule || hasResponsesFromDevice;
+        })
+        .map(s => s._id);
     } else if (isQrMode && selectedSurveyIds.length === 0) {
       selectedSurveyIds = surveys.map(s => s._id);
     } else if (selectedSurveyIds.length === 0) {
@@ -147,7 +185,7 @@
   $: selectedSurveys = (isQrMode && currentUser && currentUser.role === "site_leader")
     ? surveys.filter(s => userAssignedSites.includes(cleanString(s.assignedSite)))
     : (!isQrMode && currentUser && (currentUser.role === "kiosk_operator" || currentUser.role === "user"))
-      ? surveys
+      ? surveys.filter(s => selectedSurveyIds.includes(s._id))
       : surveys.filter(s => selectedSurveyIds.includes(s._id));
 
   $: selectedSurveyTitles = selectedSurveys.map(s => cleanString(s.title));
@@ -195,9 +233,15 @@
 
     // 2. STRICT MULTI-DEVICE SCOPING FOR KIOSK OPERATORS (ENTERPRISE KIOSK MODE)
     else if (!isQrMode && currentUser && (currentUser.role === 'kiosk_operator' || currentUser.role === 'user')) {
-      if (userAssignedDevices.length === 0) return false; // Block access if no devices are assigned
+      if (userAssignedDevices.length === 0) return false;
       const respDevice = cleanString(r.deviceId || "Tablet-A");
-      if (!userAssignedDevices.includes(respDevice)) return false; // Strictly only allow assigned devices
+      const respSurvey = cleanString(r.surveyTitle);
+
+      const matchesDevice = userAssignedDevices.includes(respDevice);
+      const matchesAuthorizedForm = operatorAuthorizedForms.includes(respSurvey);
+
+      // Must belong to their assigned devices or their devices' authorized form rules
+      if (!matchesDevice && !matchesAuthorizedForm) return false;
     }
 
     // 3. ADMIN FORM & DEVICE SELECTION FILTERS
@@ -664,7 +708,7 @@
               class="w-full bg-slate-950 border border-slate-800 text-[10px] text-slate-200 pl-7 pr-2 py-1.5 rounded-lg focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600"
             />
             <svg class="w-3.5 h-3.5 fill-current text-slate-500 absolute left-2 top-2" viewBox="0 0 24 24">
-              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 14z"/>
+              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
             </svg>
           </div>
         {/if}
@@ -739,7 +783,7 @@
               class="w-full bg-slate-950 border border-slate-800 text-[10px] text-slate-200 pl-7 pr-2 py-1.5 rounded-lg focus:outline-none focus:border-emerald-500 transition-all placeholder:text-slate-600"
             />
             <svg class="w-3.5 h-3.5 fill-current text-slate-500 absolute left-2 top-2" viewBox="0 0 24 24">
-              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 14z"/>
             </svg>
           </div>
         {/if}
@@ -765,7 +809,7 @@
                     class="accent-emerald-500 w-3 h-3 rounded shrink-0 pointer-events-none"
                   />
                   <span class="truncate flex items-center space-x-1">
-                    <svg class="w-3.5 h-3.5 fill-current text-slate-400 shrink-0" viewBox="0 0 24 24"><path d="M4 6h16v10H4V6zm16 12c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4z"/></svg>
+                    <svg class="w-3.5 h-3.5 fill-current inline-block shrink-0 opacity-70 group-hover:opacity-100" viewBox="0 0 24 24"><path d="M4 6h16v10H4V6zm16 12c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4z"/></svg>
                     <span class="truncate">{devId}</span>
                   </span>
                 </div>
@@ -930,9 +974,9 @@
 
     <!-- MAIN GRID CARDS -->
     <div class="flex-1 overflow-y-auto mt-3 custom-scrollbar pr-1 box-border">
-      {#if filteredResponses.length === 0}
+      {#if selectedSurveys.length === 0}
         <div class="border-2 border-dashed border-slate-800 rounded-2xl p-8 text-center text-slate-500 text-xs">
-          No submission records match your active location/device parameters.
+          No surveys authorized for your assigned devices/locations.
         </div>
 
       {:else if activeViewMode === "analytics"}
@@ -941,18 +985,22 @@
             {@const surveyQs = (survey.questions || []).filter(q => isAnalyticsEligible(q.type))}
             {@const surveyResponses = filteredResponses.filter(r => cleanString(r.surveyTitle) === cleanString(survey.title))}
 
-            {#if surveyQs.length > 0 && surveyResponses.length > 0}
-              <div class="space-y-3">
-                <div class="bg-slate-950 border-l-4 border-cyan-500 px-3 py-2 rounded-r-xl flex items-center justify-between shadow-xs">
-                  <div class="flex items-center space-x-2">
-                    <span class="text-xs font-black text-cyan-400 uppercase tracking-wider">{survey.title}</span>
-                    <span class="text-[10px] text-slate-500 font-mono font-bold">({surveyQs.length} Analytics Fields)</span>
-                  </div>
-                  <span class="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded font-bold">
-                    {surveyResponses.length} Submissions
-                  </span>
+            <div class="space-y-3">
+              <div class="bg-slate-950 border-l-4 border-cyan-500 px-3 py-2 rounded-r-xl flex items-center justify-between shadow-xs">
+                <div class="flex items-center space-x-2">
+                  <span class="text-xs font-black text-cyan-400 uppercase tracking-wider">{survey.title}</span>
+                  <span class="text-[10px] text-slate-500 font-mono font-bold">({surveyQs.length} Analytics Fields)</span>
                 </div>
+                <span class="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded font-bold">
+                  {surveyResponses.length} Submissions
+                </span>
+              </div>
 
+              {#if surveyResponses.length === 0}
+                <div class="bg-slate-950/40 border border-slate-800/60 rounded-xl p-4 text-center text-slate-500 text-xs font-mono">
+                  No responses logged yet for this form under your assigned devices.
+                </div>
+              {:else}
                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4">
                   {#each surveyQs as question, qIdx}
                     {@const stats = getQuestionAnalytics(question, surveyResponses)}
@@ -1055,8 +1103,8 @@
                     </div>
                   {/each}
                 </div>
-              </div>
-            {/if}
+              {/if}
+            </div>
           {/each}
         </div>
 
