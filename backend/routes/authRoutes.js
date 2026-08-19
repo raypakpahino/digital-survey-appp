@@ -17,9 +17,9 @@ const ensureDefaultAccounts = async () => {
         role: 'admin',
         assignedSite: '',
         assignedSites: [],
-        assignedDevices: []
+        assignedDevices: [],
+        allowedDevices: []
       });
-      console.log("✅ Primed default admin account (username: admin, pass: 12345678)");
     }
 
     await User.deleteMany({ username: { $in: ['admin@ds.com', 'user@ds.com', 'user'] } });
@@ -61,8 +61,13 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid username or password.' });
     }
 
-    const userSites = Array.isArray(user.assignedSites) ? user.assignedSites : (user.assignedSite ? [user.assignedSite] : []);
-    const userDevices = Array.isArray(user.assignedDevices) ? user.assignedDevices : [];
+    const userSites = Array.isArray(user.assignedSites) && user.assignedSites.length > 0 
+      ? user.assignedSites 
+      : (user.assignedSite ? user.assignedSite.split(',').map(s => s.trim()) : []);
+
+    const userDevices = Array.isArray(user.assignedDevices) && user.assignedDevices.length > 0 
+      ? user.assignedDevices 
+      : (Array.isArray(user.allowedDevices) ? user.allowedDevices : []);
 
     const token = jwt.sign(
       { 
@@ -71,7 +76,8 @@ router.post('/login', async (req, res) => {
         role: user.role, 
         assignedSite: user.assignedSite || '',
         assignedSites: userSites,
-        assignedDevices: userDevices
+        assignedDevices: userDevices,
+        allowedDevices: userDevices
       },
       JWT_SECRET,
       { expiresIn: '7d' }
@@ -86,7 +92,8 @@ router.post('/login', async (req, res) => {
         role: user.role, 
         assignedSite: user.assignedSite || '',
         assignedSites: userSites,
-        assignedDevices: userDevices
+        assignedDevices: userDevices,
+        allowedDevices: userDevices
       }
     });
   } catch (error) {
@@ -110,8 +117,13 @@ router.get('/me', async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
 
-    const userSites = Array.isArray(user.assignedSites) ? user.assignedSites : (user.assignedSite ? [user.assignedSite] : []);
-    const userDevices = Array.isArray(user.assignedDevices) ? user.assignedDevices : [];
+    const userSites = Array.isArray(user.assignedSites) && user.assignedSites.length > 0 
+      ? user.assignedSites 
+      : (user.assignedSite ? user.assignedSite.split(',').map(s => s.trim()) : []);
+
+    const userDevices = Array.isArray(user.assignedDevices) && user.assignedDevices.length > 0 
+      ? user.assignedDevices 
+      : (Array.isArray(user.allowedDevices) ? user.allowedDevices : []);
 
     res.json({ 
       success: true, 
@@ -121,7 +133,8 @@ router.get('/me', async (req, res) => {
         role: user.role, 
         assignedSite: user.assignedSite || '',
         assignedSites: userSites,
-        assignedDevices: userDevices
+        assignedDevices: userDevices,
+        allowedDevices: userDevices
       } 
     });
   } catch (error) {
@@ -142,7 +155,7 @@ router.get('/users', async (req, res) => {
 // 4. CREATE USER
 router.post('/users', async (req, res) => {
   try {
-    const { username, password, role, assignedSites, assignedDevices, assignedSite } = req.body;
+    const { username, password, role, assignedSites, assignedDevices, allowedDevices, assignedSite } = req.body;
     if (!username || !password) {
       return res.status(400).json({ success: false, message: 'Username and password are required.' });
     }
@@ -155,15 +168,16 @@ router.post('/users', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const cleanSites = Array.isArray(assignedSites) ? assignedSites : (assignedSite ? [assignedSite] : []);
-    const cleanDevices = Array.isArray(assignedDevices) ? assignedDevices : [];
+    const cleanDevices = Array.isArray(assignedDevices) ? assignedDevices : (Array.isArray(allowedDevices) ? allowedDevices : []);
 
     const newUser = await User.create({
       username: cleanUsername,
       password: hashedPassword,
       role: role || 'kiosk_operator',
-      assignedSite: cleanSites.length > 0 ? cleanSites[0] : (assignedSite || ''),
+      assignedSite: cleanSites.length > 0 ? cleanSites.join(', ') : (assignedSite || ''),
       assignedSites: cleanSites,
-      assignedDevices: cleanDevices
+      assignedDevices: cleanDevices,
+      allowedDevices: cleanDevices
     });
 
     res.status(201).json({ success: true, user: newUser });
@@ -175,20 +189,22 @@ router.post('/users', async (req, res) => {
 // 5. UPDATE USER
 router.put('/users/:id', async (req, res) => {
   try {
-    const { role, password, assignedSites, assignedDevices, assignedSite } = req.body;
+    const { role, password, assignedSites, assignedDevices, allowedDevices, assignedSite } = req.body;
     const updatePayload = {};
 
     if (role) updatePayload.role = role;
     if (assignedSites !== undefined) {
       updatePayload.assignedSites = Array.isArray(assignedSites) ? assignedSites : [];
-      updatePayload.assignedSite = updatePayload.assignedSites.length > 0 ? updatePayload.assignedSites[0] : '';
+      updatePayload.assignedSite = updatePayload.assignedSites.join(', ');
     } else if (assignedSite !== undefined) {
       updatePayload.assignedSite = assignedSite;
-      updatePayload.assignedSites = assignedSite ? [assignedSite] : [];
+      updatePayload.assignedSites = assignedSite ? assignedSite.split(',').map(s => s.trim()) : [];
     }
 
-    if (assignedDevices !== undefined) {
-      updatePayload.assignedDevices = Array.isArray(assignedDevices) ? assignedDevices : [];
+    if (assignedDevices !== undefined || allowedDevices !== undefined) {
+      const devs = Array.isArray(assignedDevices) ? assignedDevices : (Array.isArray(allowedDevices) ? allowedDevices : []);
+      updatePayload.assignedDevices = devs;
+      updatePayload.allowedDevices = devs;
     }
 
     if (password && password.trim()) {
@@ -198,7 +214,7 @@ router.put('/users/:id', async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
       { $set: updatePayload },
-      { new: true }
+      { new: true, runValidators: false }
     ).select('-password');
 
     res.json({ success: true, user: updatedUser });
@@ -214,7 +230,7 @@ router.delete('/users/:id', async (req, res) => {
     res.json({ success: true, message: 'User deleted successfully.' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
-}
+  }
 });
 
 export default router;

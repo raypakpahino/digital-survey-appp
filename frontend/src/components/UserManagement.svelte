@@ -43,7 +43,7 @@
   });
 
   function parseArrayField(val) {
-    if (Array.isArray(val)) return val;
+    if (Array.isArray(val)) return val.filter(Boolean);
     if (typeof val === 'string' && val.trim()) {
       return val.split(',').map(s => s.trim()).filter(Boolean);
     }
@@ -166,6 +166,7 @@
         role: selectedRole,
         assignedSites: isQrMode && selectedRole === 'site_leader' ? selectedSites : [],
         assignedDevices: !isQrMode && selectedRole === 'kiosk_operator' ? selectedDevices : [],
+        allowedDevices: !isQrMode && selectedRole === 'kiosk_operator' ? selectedDevices : [],
         assignedSite: (isQrMode && selectedRole === 'site_leader' && selectedSites.length > 0) ? selectedSites.join(', ') : ''
       };
       if (inputPassword.trim()) payload.password = inputPassword.trim();
@@ -206,11 +207,11 @@
     inputPassword = "";
     selectedRole = u.role === 'user' ? 'kiosk_operator' : u.role;
     
-    selectedSites = (u.assignedSites && u.assignedSites.length > 0)
+    selectedSites = (Array.isArray(u.assignedSites) && u.assignedSites.length > 0)
       ? u.assignedSites
       : parseArrayField(u.assignedSite);
 
-    selectedDevices = (u.assignedDevices && u.assignedDevices.length > 0)
+    selectedDevices = (Array.isArray(u.assignedDevices) && u.assignedDevices.length > 0)
       ? u.assignedDevices
       : parseArrayField(u.allowedDevices);
 
@@ -438,7 +439,6 @@
                   >
                     <span class="truncate font-bold">{site.name}</span>
                     
-                    <!-- HIGH-CONTRAST CHECKBOX BADGE FOR LIGHT & DARK MODE -->
                     <div class="w-5 h-5 rounded-md border flex items-center justify-center transition-all shrink-0 ml-2 {isChecked ? 'bg-cyan-600 border-cyan-600 text-white shadow-xs' : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900'}">
                       {#if isChecked}
                         <svg class="w-3.5 h-3.5 fill-current text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
@@ -482,10 +482,10 @@
                     class="w-full text-left px-3 py-2 rounded-xl text-xs font-mono transition-all flex items-center justify-between border cursor-pointer {isChecked ? 'bg-emerald-50 dark:bg-emerald-950/80 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-black shadow-xs ring-1 ring-emerald-400/40' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300'}"
                   >
                     <span class="truncate flex items-center space-x-1.5 font-bold">
-                      <span>📱 {dev.deviceName}</span>
+                      <svg class="w-3.5 h-3.5 fill-current text-slate-500 dark:text-slate-400 shrink-0" viewBox="0 0 24 24"><path d="M4 6h16v10H4V6zm16 12c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4z"/></svg>
+                      <span>{dev.deviceName}</span>
                     </span>
                     
-                    <!-- HIGH-CONTRAST CHECKBOX BADGE FOR LIGHT & DARK MODE -->
                     <div class="w-5 h-5 rounded-md border flex items-center justify-center transition-all shrink-0 ml-2 {isChecked ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs' : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900'}">
                       {#if isChecked}
                         <svg class="w-3.5 h-3.5 fill-current text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
@@ -526,8 +526,8 @@
         {:else}
           {#each filteredUsers as u}
             {@const displayRole = u.role === 'user' ? 'kiosk_operator' : u.role}
-            {@const userSites = (u.assignedSites && u.assignedSites.length > 0) ? u.assignedSites : parseArrayField(u.assignedSite)}
-            {@const userDevs = (u.assignedDevices && u.assignedDevices.length > 0) ? u.assignedDevices : parseArrayField(u.allowedDevices)}
+            {@const userSites = (Array.isArray(u.assignedSites) && u.assignedSites.length > 0) ? u.assignedSites : parseArrayField(u.assignedSite)}
+            {@const userDevs = (Array.isArray(u.assignedDevices) && u.assignedDevices.length > 0) ? u.assignedDevices : (Array.isArray(u.allowedDevices) ? u.allowedDevices : parseArrayField(u.allowedDevices))}
 
             <div class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2">
               <div class="flex items-center justify-between">
