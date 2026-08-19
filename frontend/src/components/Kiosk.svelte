@@ -138,20 +138,15 @@
     pinError = "";
   }
 
-  function handleCancelPinPrompt() {
-    selectedSurveyForPin = null;
-    enteredFormPin = "";
-    pinError = "";
-  }
-
   async function verifyFormPinAndLaunch() {
     pinError = "";
-    if (!selectedSurveyForPin) return;
+    const target = selectedSurveyForPin || currentSurvey;
+    if (!target) return;
 
     const cleanPin = String(enteredFormPin || "").trim();
 
     try {
-      const res = await fetch(`/api/surveys/${selectedSurveyForPin._id}/verify-pin`, {
+      const res = await fetch(`/api/surveys/${target._id}/verify-pin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pinCode: cleanPin })
@@ -166,7 +161,7 @@
         }
 
         isPinVerifiedForCurrentSurvey = true;
-        onSelectSurvey(selectedSurveyForPin._id);
+        onSelectSurvey(target._id);
         selectedSurveyForPin = null;
         resetTerminal();
       } else {
@@ -358,22 +353,15 @@
 <div class="w-full h-full min-h-screen flex-1 bg-slate-100 text-slate-800 p-3 sm:p-6 lg:p-8 font-sans box-border overflow-y-auto flex flex-col justify-between select-none">
   <main class="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center min-h-0 py-6 sm:py-10 box-border relative my-auto">
     
-    <!-- PIN PROMPT (ENTERPRISE KIOSK PIN GATE) -->
-    {#if !isQrMode && selectedSurveyForPin && !isPinVerifiedForCurrentSurvey}
+    <!-- PIN PROMPT (MANDATORY GATE FOR KIOSK TERMINALS BEFORE ENTERING) -->
+    {#if !isQrMode && !isPinVerifiedForCurrentSurvey && (selectedSurveyForPin || activeSurveyId)}
       <div in:scale={{ duration: 200 }} class="fixed inset-0 z-50 backdrop-blur-xl bg-slate-900/60 flex items-center justify-center p-4">
         <div class="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center space-y-4 shadow-2xl relative">
-          <button 
-            type="button" 
-            on:click={handleCancelPinPrompt} 
-            class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 bg-slate-100 rounded-full h-8 w-8 flex items-center justify-center text-xs font-bold transition-all cursor-pointer"
-          >
-            ✕
-          </button>
-
+          
           <div class="space-y-1">
             <span class="text-[10px] font-mono font-extrabold text-[#e31b23] uppercase tracking-widest block">Protected Survey Terminal</span>
             <h3 class="text-lg font-black text-[#1a2b6c] truncate">
-              {selectedSurveyForPin.title}
+              {selectedSurveyForPin ? selectedSurveyForPin.title : (currentSurvey ? currentSurvey.title : surveyTitle)}
             </h3>
             <p class="text-xs text-slate-500">Enter your Admin-assigned Device Access PIN to unlock this terminal form.</p>
           </div>
@@ -402,8 +390,8 @@
         </div>
       </div>
 
-    <!-- FORM SELECTION LAUNCHER (ONLY WHEN NO SPECIFIC FORM IS LOCKED/ACTIVE) -->
-    {:else if (!activeSurveyId && surveys.length > 0) || (!isQrMode && !selectedSurveyForPin && !isPinVerifiedForCurrentSurvey && !activeSurveyId)}
+    <!-- FORM SELECTION LAUNCHER (ONLY SHOWN IF NO SURVEY IS TARGETED OR AUTHENTICATED) -->
+    {:else if !activeSurveyId && surveys.length > 0}
       <div in:scale={{ duration: 300, start: 0.96 }} class="w-full bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-xl flex flex-col justify-between my-auto">
         
         <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
@@ -488,8 +476,8 @@
         </p>
       </div>
 
-    <!-- ACTIVE QUESTIONNAIRE CANVAS (SAFELY GUARDED) -->
-    {:else if currentQuestion}
+    <!-- ACTIVE QUESTIONNAIRE CANVAS (STRICT PIN & QR SECURITY GUARD) -->
+    {:else if currentQuestion && (isQrMode || isPinVerifiedForCurrentSurvey)}
       <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="w-full bg-white border border-slate-200 rounded-3xl p-5 sm:p-8 lg:p-10 shadow-xl flex flex-col justify-between box-border my-auto">
         
         <!-- TOP PROGRESS HEADER -->
@@ -787,7 +775,6 @@
         </div>
       </div>
 
-    <!-- IN-FLIGHT LOADING STATE -->
     {:else}
       <div class="w-full max-w-sm mx-auto bg-white border border-slate-200 rounded-3xl p-8 shadow-xl flex flex-col items-center justify-center text-center space-y-4 my-auto">
         <div class="w-8 h-8 border-4 border-[#1a2b6c] border-t-transparent rounded-full animate-spin"></div>
