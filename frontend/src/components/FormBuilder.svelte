@@ -93,15 +93,21 @@
 
   function parseOption(opt) {
     if (typeof opt === 'object' && opt !== null) {
-      return { text: opt.text || '', targetSite: opt.targetSite || '' };
+      return { 
+        text: opt.text || '', 
+        jumpToIndex: (opt.jumpToIndex !== undefined && opt.jumpToIndex !== null && opt.jumpToIndex !== "") ? opt.jumpToIndex : "" 
+      };
     }
     try {
       const parsed = JSON.parse(opt);
       if (typeof parsed === 'object' && parsed !== null) {
-        return { text: parsed.text || '', targetSite: parsed.targetSite || '' };
+        return { 
+          text: parsed.text || '', 
+          jumpToIndex: (parsed.jumpToIndex !== undefined && parsed.jumpToIndex !== null && parsed.jumpToIndex !== "") ? parsed.jumpToIndex : "" 
+        };
       }
     } catch (e) {}
-    return { text: String(opt || ''), targetSite: '' };
+    return { text: String(opt || ''), jumpToIndex: "" };
   }
 
   function loadActiveFormState(targetId, currentTitle, currentQuestions) {
@@ -129,16 +135,7 @@
           options: opts.map(parseOption),
           alertTriggerValues: Array.isArray(q.alertTriggerValues) 
             ? q.alertTriggerValues 
-            : getDefaultAlertTriggers(type, opts),
-          skipLogic: q.skipLogic ? {
-            enabled: Boolean(q.skipLogic.enabled),
-            dependsOnIndex: q.skipLogic.dependsOnIndex ?? 0,
-            requiredValue: q.skipLogic.requiredValue || ""
-          } : {
-            enabled: false,
-            dependsOnIndex: 0,
-            requiredValue: ""
-          }
+            : getDefaultAlertTriggers(type, opts)
         };
       });
     }
@@ -200,17 +197,17 @@
     if (type === "multiple-choice") {
       defaultText = "Would you recommend us to a friend?";
       defaultOptions = [
-        { text: "Definitely Yes", targetSite: "" },
-        { text: "Maybe", targetSite: "" },
-        { text: "No", targetSite: "" }
+        { text: "Definitely Yes", jumpToIndex: "" },
+        { text: "Maybe", jumpToIndex: "" },
+        { text: "No", jumpToIndex: "" }
       ];
     }
     if (type === "dropdown") {
       defaultText = "Please select your option from the list:";
       defaultOptions = [
-        { text: "Option 1", targetSite: "" },
-        { text: "Option 2", targetSite: "" },
-        { text: "Option 3", targetSite: "" }
+        { text: "Option 1", jumpToIndex: "" },
+        { text: "Option 2", jumpToIndex: "" },
+        { text: "Option 3", jumpToIndex: "" }
       ];
     }
     if (type === "number") defaultText = "Please enter a numeric value:";
@@ -231,12 +228,7 @@
         enableOtherOption: false,
         options: defaultOptions,
         optionImages: {},
-        alertTriggerValues: defaultAlerts,
-        skipLogic: {
-          enabled: false,
-          dependsOnIndex: 0,
-          requiredValue: ""
-        }
+        alertTriggerValues: defaultAlerts
       }
     ];
   }
@@ -249,26 +241,13 @@
     const [movedItem] = updated.splice(index, 1);
     updated.splice(targetIndex, 0, movedItem);
 
-    updated.forEach((q, idx) => {
-      if (q.skipLogic && q.skipLogic.enabled) {
-        if (q.skipLogic.dependsOnIndex === index) {
-          q.skipLogic.dependsOnIndex = targetIndex;
-        } else if (q.skipLogic.dependsOnIndex === targetIndex) {
-          q.skipLogic.dependsOnIndex = index;
-        }
-        if (idx === 0) {
-          q.skipLogic.enabled = false;
-        }
-      }
-    });
-
     localQuestions = updated;
   }
 
   function addOption(qIndex) {
     localQuestions[qIndex].options = [
       ...localQuestions[qIndex].options,
-      { text: `Option ${localQuestions[qIndex].options.length + 1}`, targetSite: "" }
+      { text: `Option ${localQuestions[qIndex].options.length + 1}`, jumpToIndex: "" }
     ];
   }
 
@@ -395,19 +374,6 @@
   function getNormalizedType(qType) {
     if (!qType) return "";
     return String(qType).toLowerCase().replace(/_/g, "-");
-  }
-
-  function getDependedOptions(dependedIndex) {
-    if (dependedIndex === null || dependedIndex === undefined || !localQuestions[dependedIndex]) return [];
-    const targetQ = localQuestions[dependedIndex];
-    const type = getNormalizedType(targetQ.type);
-
-    if (type === 'smiley') return ["ANGRY", "SAD", "NEUTRAL", "HAPPY", "DELIGHTED"];
-    if (type === 'stars') return ["1 Stars", "2 Stars", "3 Stars", "4 Stars", "5 Stars"];
-    if (type === 'multiple-choice' || type === 'dropdown') {
-      return (targetQ.options || []).map(opt => typeof opt === 'object' ? opt.text : opt);
-    }
-    return [];
   }
 </script>
 
@@ -604,9 +570,6 @@
                     {#if question.isRequired}
                       <span class="text-[9px] uppercase font-bold px-2 py-1 rounded-md bg-rose-50 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60 tracking-wider font-mono">REQUIRED</span>
                     {/if}
-                    {#if question.skipLogic?.enabled}
-                      <span class="text-[9px] uppercase font-bold px-2 py-1 rounded-md bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 tracking-wider font-mono">CONDITIONAL SKIP</span>
-                    {/if}
                   </div>
 
                   <input
@@ -656,7 +619,7 @@
               {#if normType === "multiple-choice" || normType === "dropdown"}
                 <div class="pl-0 sm:pl-2 pt-4 border-t border-slate-200 dark:border-slate-900/80 mt-2 space-y-3">
                   <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                    {normType === 'dropdown' ? 'Configure Dropdown Options:' : 'Configure Choice Options:'}
+                    {normType === 'dropdown' ? 'Configure Dropdown Options & Skip Branching:' : 'Configure Choice Options & Skip Branching:'}
                   </span>
                   <div class="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto custom-scrollbar pr-1">
                     {#each question.options as option, optIndex}
@@ -669,15 +632,24 @@
                             placeholder={`Option ${optIndex + 1} text...`}
                             class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-[#1a2b6c] dark:text-slate-200 px-3 py-2 flex-1 font-medium"
                           />
+                          
+                          <!-- REFINED OPTION-LEVEL JUMP LOGIC SELECTOR -->
                           <div class="flex items-center space-x-1.5">
-                            <span class="text-[9px] font-mono font-bold text-cyan-400 uppercase">Site Tag:</span>
-                            <input
-                              type="text"
-                              bind:value={question.options[optIndex].targetSite}
-                              placeholder="e.g. SiteA (Blank = All)"
-                              class="bg-cyan-950/40 border border-cyan-800/80 rounded-lg text-xs text-cyan-200 font-mono px-2.5 py-2 w-36 focus:outline-none focus:border-cyan-400"
-                            />
+                            <span class="text-[9px] font-mono font-bold text-cyan-400 uppercase">Skip Logic:</span>
+                            <select
+                              bind:value={question.options[optIndex].jumpToIndex}
+                              class="bg-cyan-950/60 border border-cyan-800/80 rounded-lg text-xs text-cyan-200 font-mono px-2 py-2 w-48 focus:outline-none focus:border-cyan-400 cursor-pointer"
+                            >
+                              <option value="">Default (Next Question)</option>
+                              {#each localQuestions as targetQ, tIdx}
+                                {#if tIdx > index}
+                                  <option value={tIdx}>➔ Jump to Q{tIdx + 1}: {targetQ.questionText.slice(0, 18)}...</option>
+                                {/if}
+                              {/each}
+                              <option value="END">🏁 Submit & End Form</option>
+                            </select>
                           </div>
+
                           <button
                             on:click={() => removeOption(index, optIndex)}
                             class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 text-sm px-2 font-bold transition-all cursor-pointer"
@@ -803,67 +775,6 @@
                     <div class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out {question.isRequired ? 'translate-x-6' : 'translate-x-0'}"></div>
                   </button>
                 </div>
-
-                {#if index > 0}
-                  <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60 space-y-3">
-                    <div class="flex items-center justify-between">
-                      <div class="flex items-center">
-                        <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Enable Skip Logic Rule</span>
-                      </div>
-                      <button
-                        type="button"
-                        on:click={() => {
-                          if (!question.skipLogic) {
-                            question.skipLogic = { enabled: true, dependsOnIndex: 0, requiredValue: "" };
-                          } else {
-                            question.skipLogic.enabled = !question.skipLogic.enabled;
-                            if (question.skipLogic.enabled && (question.skipLogic.dependsOnIndex === null || question.skipLogic.dependsOnIndex === undefined)) {
-                              question.skipLogic.dependsOnIndex = 0;
-                            }
-                          }
-                          localQuestions = [...localQuestions];
-                        }}
-                        class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.skipLogic?.enabled ? 'bg-[#1a2b6c] border-[#1a2b6c]' : 'bg-slate-200 dark:bg-slate-800'} cursor-pointer"
-                      >
-                        <div class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out {question.skipLogic?.enabled ? 'translate-x-6' : 'translate-x-0'}"></div>
-                      </button>
-                    </div>
-
-                    {#if question.skipLogic?.enabled}
-                      <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-2.5">
-                        <span class="text-[10px] font-mono font-bold text-[#1a2b6c] dark:text-cyan-400 uppercase tracking-wide block">Show Question #{index + 1} ONLY IF:</span>
-                        
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          <div>
-                            <label class="text-[9px] font-bold text-slate-400 block mb-1">Previous Question</label>
-                            <select
-                              bind:value={question.skipLogic.dependsOnIndex}
-                              on:change={() => { question.skipLogic.requiredValue = ""; localQuestions = [...localQuestions]; }}
-                              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-[#1a2b6c] dark:text-slate-200 rounded-lg p-2 focus:outline-none focus:border-[#e31b23] cursor-pointer"
-                            >
-                              {#each localQuestions.slice(0, index) as prevQ, pIdx}
-                                <option value={pIdx}>Question {pIdx + 1}: {prevQ.questionText.slice(0, 24)}...</option>
-                              {/each}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label class="text-[9px] font-bold text-slate-400 block mb-1">Answer Equals</label>
-                            <select
-                              bind:value={question.skipLogic.requiredValue}
-                              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-[#1a2b6c] dark:text-slate-200 rounded-lg p-2 focus:outline-none focus:border-[#e31b23] cursor-pointer"
-                            >
-                              <option value="">Select Trigger Value...</option>
-                              {#each getDependedOptions(question.skipLogic.dependsOnIndex) as optionValue}
-                                <option value={optionValue}>{optionValue}</option>
-                              {/each}
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-                    {/if}
-                  </div>
-                {/if}
 
               </div>
 

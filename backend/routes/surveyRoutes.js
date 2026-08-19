@@ -22,7 +22,7 @@ const generateUniquePin = (existingPins = new Set()) => {
   return pin;
 };
 
-// SANITIZER: Explicitly preserves enableOtherOption and other properties
+// SANITIZER: Preserves option-level branching skip logic (jumpToIndex)
 const sanitizeQuestions = (questions) => {
   if (!Array.isArray(questions)) return [];
   return questions.map((q) => ({
@@ -35,19 +35,27 @@ const sanitizeQuestions = (questions) => {
     enableOptionImages: Boolean(q.enableOptionImages),
     enableOtherOption: Boolean(q.enableOtherOption),
     options: Array.isArray(q.options) 
-      ? q.options.map(opt => typeof opt === 'object' ? JSON.stringify(opt) : String(opt)) 
+      ? q.options.map(opt => {
+          if (typeof opt === 'object' && opt !== null) {
+            return JSON.stringify({
+              text: opt.text || '',
+              jumpToIndex: (opt.jumpToIndex !== undefined && opt.jumpToIndex !== null) ? opt.jumpToIndex : ''
+            });
+          }
+          try {
+            const parsed = JSON.parse(opt);
+            if (typeof parsed === 'object' && parsed !== null) {
+              return JSON.stringify({
+                text: parsed.text || '',
+                jumpToIndex: (parsed.jumpToIndex !== undefined && parsed.jumpToIndex !== null) ? parsed.jumpToIndex : ''
+              });
+            }
+          } catch (e) {}
+          return JSON.stringify({ text: String(opt || ''), jumpToIndex: '' });
+        }) 
       : [],
     optionImages: q.optionImages && typeof q.optionImages === 'object' ? q.optionImages : {},
-    alertTriggerValues: Array.isArray(q.alertTriggerValues) ? q.alertTriggerValues : [],
-    skipLogic: q.skipLogic ? {
-      enabled: Boolean(q.skipLogic.enabled),
-      dependsOnIndex: Number(q.skipLogic.dependsOnIndex) || 0,
-      requiredValue: String(q.skipLogic.requiredValue || '')
-    } : {
-      enabled: false,
-      dependsOnIndex: 0,
-      requiredValue: ''
-    }
+    alertTriggerValues: Array.isArray(q.alertTriggerValues) ? q.alertTriggerValues : []
   }));
 };
 
@@ -268,7 +276,6 @@ router.delete('/surveys/:id', async (req, res) => {
 
 router.get('/devices', async (req, res) => {
   try {
-    // Clean sweep active survey forms for registered devices
     try {
       const allSurveys = await Survey.find({});
       const activeTitlesSet = new Set(allSurveys.map(s => s.title));
@@ -406,7 +413,6 @@ router.put('/devices/:id', async (req, res) => {
   }
 });
 
-// REMOVE DEVICE & REASSIGN ITS RESPONSE LOGS TO 'Tablet-Unassigned'
 router.delete('/devices/:id', async (req, res) => {
   try {
     const deviceToDelete = await Device.findById(req.params.id);
@@ -452,7 +458,6 @@ router.get('/responses', async (req, res) => {
     const targetTz = req.query.tz || 'Asia/Jakarta';
     const mode = req.query.mode || 'kiosk';
 
-    // RECONNECT TARGETED LEGACY TITLES
     try {
       await Response.updateMany(
         { surveyTitle: { $regex: /^sodexo$/i } },
@@ -483,7 +488,6 @@ router.get('/responses', async (req, res) => {
   }
 });
 
-// DELETE A SINGLE RESPONSE LOG
 router.delete('/responses/:id', async (req, res) => {
   try {
     const deletedResponse = await Response.findByIdAndDelete(req.params.id);
@@ -496,7 +500,6 @@ router.delete('/responses/:id', async (req, res) => {
   }
 });
 
-// CLEAR ALL RESPONSES FOR A SPECIFIC FORM TITLE
 router.post('/responses/clear-by-title', async (req, res) => {
   try {
     const { title } = req.body;

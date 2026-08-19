@@ -12,6 +12,7 @@
 
   let currentQuestionIndex = 0;
   let answersAccumulator = [];
+  let navigationHistory = []; // Tracks historical question indexes for accurate back-step navigation
   let selectedValue = "";
   let otherCustomText = "";
   let selectedMultipleValues = [];
@@ -38,29 +39,33 @@
   $: currentQuestion = questions[currentQuestionIndex] || null;
   $: currentSurvey = surveys.find(s => s._id === activeSurveyId) || null;
 
-  // Mode check: A survey requires PIN if app is in Kiosk mode OR the survey is an Enterprise Kiosk survey
   $: isKioskSurvey = currentSurvey ? (currentSurvey.appMode === 'kiosk') : !isQrMode;
 
-  function parseOptionText(opt) {
-    if (typeof opt === 'string') {
-      try {
-        const parsed = JSON.parse(opt);
-        if (typeof parsed === 'object' && parsed !== null) return parsed;
-      } catch (e) {}
-      return { text: opt, targetSite: '' };
+  function parseOption(opt) {
+    if (typeof opt === 'object' && opt !== null) {
+      return { 
+        text: opt.text || '', 
+        jumpToIndex: (opt.jumpToIndex !== undefined && opt.jumpToIndex !== null) ? opt.jumpToIndex : "" 
+      };
     }
-    if (typeof opt === 'object' && opt !== null) return opt;
-    return { text: String(opt || ''), targetSite: '' };
+    try {
+      const parsed = JSON.parse(opt);
+      if (typeof parsed === 'object' && parsed !== null) {
+        return { 
+          text: parsed.text || '', 
+          jumpToIndex: (parsed.jumpToIndex !== undefined && parsed.jumpToIndex !== null) ? parsed.jumpToIndex : "" 
+        };
+      }
+    } catch (e) {}
+    return { text: String(opt || ''), jumpToIndex: "" };
   }
 
-  $: rawParsedOptions = (currentQuestion?.options || []).map(parseOptionText).filter(opt => {
-    if (!opt.targetSite || opt.targetSite.trim() === "") return true;
-    return String(opt.targetSite).toLowerCase().trim() === String(deviceId).toLowerCase().trim();
-  }).map(opt => opt.text);
+  $: rawParsedOptionObjects = (currentQuestion?.options || []).map(parseOption);
+  $: rawOptionTexts = rawParsedOptionObjects.map(opt => opt.text);
 
-  $: availableOptions = (currentQuestion && (currentQuestion.enableOtherOption || currentQuestion.enableOtherOption === "true") && !rawParsedOptions.includes("Other")) 
-    ? [...rawParsedOptions, "Other"] 
-    : rawParsedOptions;
+  $: availableOptions = (currentQuestion && (currentQuestion.enableOtherOption || currentQuestion.enableOtherOption === "true") && !rawOptionTexts.includes("Other")) 
+    ? [...rawOptionTexts, "Other"] 
+    : rawOptionTexts;
 
   $: filteredDropdownOptions = availableOptions.filter(optText => 
     String(optText).toLowerCase().includes(dropdownSearchQuery.trim().toLowerCase())
@@ -194,34 +199,6 @@
     }
   }
 
-  function shouldShowQuestion(qIndex) {
-    if (qIndex === 0) return true;
-    const q = questions[qIndex];
-    if (!q || !q.skipLogic || !q.skipLogic.enabled) return true;
-
-    const { dependsOnIndex, requiredValue } = q.skipLogic;
-    if (dependsOnIndex === null || dependsOnIndex === undefined || !requiredValue) return true;
-
-    const dependedQuestion = questions[dependsOnIndex];
-    if (!dependedQuestion) return true;
-
-    const recordedAnswer = answersAccumulator.find(a => a.questionText === dependedQuestion.questionText);
-    if (!recordedAnswer) return false;
-
-    const cleanAnswer = String(recordedAnswer.value).toUpperCase().replace(/[^\w\s]/gi, '').trim();
-    const cleanTarget = String(requiredValue).toUpperCase().replace(/[^\w\s]/gi, '').trim();
-
-    return cleanAnswer.includes(cleanTarget) || cleanTarget.includes(cleanAnswer);
-  }
-
-  function findNextValidQuestionIndex(startIndex) {
-    let nextIdx = startIndex;
-    while (nextIdx < questions.length && !shouldShowQuestion(nextIdx)) {
-      nextIdx += 1;
-    }
-    return nextIdx;
-  }
-
   function advanceStep() {
     if (!currentQuestion) return;
 
@@ -249,10 +226,21 @@
       return;
     }
 
+    // CHECK FOR OPTION-LEVEL BRANCHING SKIP LOGIC
+    let jumpTarget = null;
+    if ((normType === 'multiple-choice' || normType === 'dropdown') && !isBlank) {
+      const matchedOptObj = rawParsedOptionObjects.find(opt => opt.text === finalValue);
+      if (matchedOptObj && matchedOptObj.jumpToIndex !== undefined && matchedOptObj.jumpToIndex !== null && matchedOptObj.jumpToIndex !== "") {
+        jumpTarget = matchedOptObj.jumpToIndex;
+      }
+    }
+
     answersAccumulator = [
       ...answersAccumulator,
       { questionText: currentQuestion.questionText, value: isBlank ? "Skipped" : String(finalValue) }
     ];
+
+    navigationHistory = [...navigationHistory, currentQuestionIndex];
 
     selectedValue = "";
     otherCustomText = "";
@@ -262,7 +250,21 @@
     isDropdownOpen = false;
     dropdownSearchQuery = "";
 
-    const nextIndex = findNextValidQuestionIndex(currentQuestionIndex + 1);
+    // EXECUTE JUMP LOGIC OR NATURAL SUCCESSION
+    if (jumpTarget === "END") {
+      isSubmitted = true;
+      onSubmitResponse(answersAccumulator, deviceId);
+      startAutoResetLoop();
+      return;
+    }
+
+    let nextIndex = currentQuestionIndex + 1;
+    if (jumpTarget !== null && !isNaN(Number(jumpTarget))) {
+      const parsedTarget = Number(jumpTarget);
+      if (parsedTarget >= 0 && parsedTarget < questions.length) {
+        nextIndex = parsedTarget;
+      }
+    }
 
     if (nextIndex < questions.length) {
       currentQuestionIndex = nextIndex;
@@ -274,23 +276,18 @@
   }
 
   function goBackStep() {
-    if (answersAccumulator.length === 0) return;
+    if (navigationHistory.length === 0) return;
+
+    const prevQuestionIdx = navigationHistory.pop();
+    navigationHistory = [...navigationHistory];
 
     const lastRecorded = answersAccumulator.pop();
     answersAccumulator = [...answersAccumulator];
 
-    let prevIndex = currentQuestionIndex - 1;
-    while (prevIndex >= 0) {
-      if (questions[prevIndex].questionText === lastRecorded.questionText) {
-        break;
-      }
-      prevIndex--;
-    }
-
-    currentQuestionIndex = Math.max(0, prevIndex);
+    currentQuestionIndex = prevQuestionIdx;
 
     const normType = getNormalizedType(questions[currentQuestionIndex]?.type);
-    const prevVal = lastRecorded.value === "Skipped" ? "" : lastRecorded.value;
+    const prevVal = lastRecorded ? (lastRecorded.value === "Skipped" ? "" : lastRecorded.value) : "";
 
     if (normType === 'dropdown' && prevVal.startsWith('Other: ')) {
       selectedValue = 'Other';
@@ -325,6 +322,7 @@
     clearInterval(autoResetTimer);
     currentQuestionIndex = 0;
     answersAccumulator = [];
+    navigationHistory = [];
     selectedValue = "";
     otherCustomText = "";
     selectedMultipleValues = [];
