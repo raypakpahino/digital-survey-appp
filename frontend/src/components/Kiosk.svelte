@@ -39,6 +39,8 @@
   $: currentQuestion = questions[currentQuestionIndex] || null;
   $: currentSurvey = surveys.find(s => s._id === activeSurveyId) || null;
 
+  $: isDirectLinkOrScan = Boolean(new URLSearchParams(window.location.hash.includes("?") ? window.location.hash.split("?")[1] : window.location.search).get("id"));
+
   function parseOption(opt) {
     if (typeof opt === 'object' && opt !== null) {
       return { 
@@ -92,7 +94,7 @@
       deviceId = savedDeviceId;
     }
 
-    // If directly targeted via URL query
+    // Direct QR Code scan or Direct Web link with ?id=
     if (urlSurveyId) {
       const targetSurvey = surveys.find(s => s._id === urlSurveyId);
       if (targetSurvey) {
@@ -104,10 +106,24 @@
         } else {
           isPinVerifiedForCurrentSurvey = false;
           selectedSurveyForPin = targetSurvey;
+          onSelectSurvey(targetSurvey._id);
         }
       }
     }
   });
+
+  $: if (activeSurveyId && isDirectLinkOrScan && surveys.length > 0 && !isPinVerifiedForCurrentSurvey && !selectedSurveyForPin) {
+    const matched = surveys.find(s => s._id === activeSurveyId);
+    if (matched) {
+      const requiresPin = matched.appMode === 'kiosk' || (!isQrMode && matched.appMode !== 'qr');
+      if (!requiresPin) {
+        isPinVerifiedForCurrentSurvey = true;
+      } else {
+        isPinVerifiedForCurrentSurvey = false;
+        selectedSurveyForPin = matched;
+      }
+    }
+  }
 
   function handlePromptSurveyPin(survey) {
     const requiresPin = survey.appMode === 'kiosk' || (!isQrMode && survey.appMode !== 'qr');
@@ -345,7 +361,7 @@
 <div class="w-full h-full min-h-screen flex-1 bg-slate-100 text-slate-800 p-3 sm:p-6 lg:p-8 font-sans box-border overflow-y-auto flex flex-col justify-between select-none">
   <main class="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center min-h-0 py-6 sm:py-10 box-border relative my-auto">
     
-    <!-- PIN PROMPT (ONLY ACTIVE WHEN A SPECIFIC FORM IS SELECTED TO UNLOCK) -->
+    <!-- PIN PROMPT (TRIGGERED UPON SELECTING A KIOSK FORM OR SCANNING A KIOSK QR LINK) -->
     {#if !isQrMode && selectedSurveyForPin && !isPinVerifiedForCurrentSurvey}
       <div in:scale={{ duration: 200 }} class="fixed inset-0 z-50 backdrop-blur-xl bg-slate-900/60 flex items-center justify-center p-4">
         <div class="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center space-y-4 shadow-2xl relative">
@@ -390,8 +406,8 @@
       </div>
     {/if}
 
-    <!-- FORM SELECTION LAUNCHER MENU -->
-    {#if !activeSurveyId || (!isQrMode && !isPinVerifiedForCurrentSurvey) || questions.length === 0}
+    <!-- FORM SELECTION LAUNCHER MENU: SHOWN WHEN NAVIGATING VIA SIDEBAR OR WHEN NO FORM IS ACTIVE/VERIFIED -->
+    {#if (!isDirectLinkOrScan && (!isPinVerifiedForCurrentSurvey || !activeSurveyId)) || (!activeSurveyId && questions.length === 0)}
       <div in:scale={{ duration: 300, start: 0.96 }} class="w-full bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-xl flex flex-col justify-between my-auto">
         
         <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
