@@ -12,7 +12,7 @@
 
   let currentQuestionIndex = 0;
   let answersAccumulator = [];
-  let navigationHistory = []; // Tracks historical question indexes for accurate back-step navigation
+  let navigationHistory = [];
   let selectedValue = "";
   let otherCustomText = "";
   let selectedMultipleValues = [];
@@ -38,8 +38,6 @@
 
   $: currentQuestion = questions[currentQuestionIndex] || null;
   $: currentSurvey = surveys.find(s => s._id === activeSurveyId) || null;
-
-  $: isKioskSurvey = currentSurvey ? (currentSurvey.appMode === 'kiosk') : !isQrMode;
 
   function parseOption(opt) {
     if (typeof opt === 'object' && opt !== null) {
@@ -94,9 +92,9 @@
       deviceId = savedDeviceId;
     }
 
-    const targetId = urlSurveyId || activeSurveyId;
-    if (targetId) {
-      const targetSurvey = surveys.find(s => s._id === targetId);
+    // If directly targeted via URL query
+    if (urlSurveyId) {
+      const targetSurvey = surveys.find(s => s._id === urlSurveyId);
       if (targetSurvey) {
         const requiresPin = targetSurvey.appMode === 'kiosk' || modeParam === 'kiosk' || (!isQrMode && targetSurvey.appMode !== 'qr');
         if (!requiresPin) {
@@ -106,24 +104,10 @@
         } else {
           isPinVerifiedForCurrentSurvey = false;
           selectedSurveyForPin = targetSurvey;
-          onSelectSurvey(targetSurvey._id);
         }
       }
     }
   });
-
-  $: if (activeSurveyId && surveys.length > 0 && !isPinVerifiedForCurrentSurvey && !selectedSurveyForPin) {
-    const matched = surveys.find(s => s._id === activeSurveyId);
-    if (matched) {
-      const requiresPin = matched.appMode === 'kiosk' || (!isQrMode && matched.appMode !== 'qr');
-      if (!requiresPin) {
-        isPinVerifiedForCurrentSurvey = true;
-      } else {
-        isPinVerifiedForCurrentSurvey = false;
-        selectedSurveyForPin = matched;
-      }
-    }
-  }
 
   function handlePromptSurveyPin(survey) {
     const requiresPin = survey.appMode === 'kiosk' || (!isQrMode && survey.appMode !== 'qr');
@@ -137,6 +121,12 @@
 
     isPinVerifiedForCurrentSurvey = false;
     selectedSurveyForPin = survey;
+    enteredFormPin = "";
+    pinError = "";
+  }
+
+  function handleCancelPinPrompt() {
+    selectedSurveyForPin = null;
     enteredFormPin = "";
     pinError = "";
   }
@@ -226,7 +216,6 @@
       return;
     }
 
-    // CHECK FOR OPTION-LEVEL BRANCHING SKIP LOGIC
     let jumpTarget = null;
     if ((normType === 'multiple-choice' || normType === 'dropdown') && !isBlank) {
       const matchedOptObj = rawParsedOptionObjects.find(opt => opt.text === finalValue);
@@ -250,7 +239,6 @@
     isDropdownOpen = false;
     dropdownSearchQuery = "";
 
-    // EXECUTE JUMP LOGIC OR NATURAL SUCCESSION
     if (jumpTarget === "END") {
       isSubmitted = true;
       onSubmitResponse(answersAccumulator, deviceId);
@@ -357,14 +345,22 @@
 <div class="w-full h-full min-h-screen flex-1 bg-slate-100 text-slate-800 p-3 sm:p-6 lg:p-8 font-sans box-border overflow-y-auto flex flex-col justify-between select-none">
   <main class="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center min-h-0 py-6 sm:py-10 box-border relative my-auto">
     
-    <!-- PIN PROMPT (MANDATORY FOR KIOSK SURVEYS UNTIL VERIFIED) -->
-    {#if isKioskSurvey && !isPinVerifiedForCurrentSurvey}
+    <!-- PIN PROMPT (ONLY ACTIVE WHEN A SPECIFIC FORM IS SELECTED TO UNLOCK) -->
+    {#if !isQrMode && selectedSurveyForPin && !isPinVerifiedForCurrentSurvey}
       <div in:scale={{ duration: 200 }} class="fixed inset-0 z-50 backdrop-blur-xl bg-slate-900/60 flex items-center justify-center p-4">
         <div class="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center space-y-4 shadow-2xl relative">
+          <button 
+            type="button" 
+            on:click={handleCancelPinPrompt} 
+            class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 bg-slate-100 rounded-full h-8 w-8 flex items-center justify-center text-xs font-bold transition-all cursor-pointer"
+          >
+            ✕
+          </button>
+
           <div class="space-y-1">
             <span class="text-[10px] font-mono font-extrabold text-[#e31b23] uppercase tracking-widest block">Protected Survey Terminal</span>
             <h3 class="text-lg font-black text-[#1a2b6c] truncate">
-              {selectedSurveyForPin ? selectedSurveyForPin.title : (surveyTitle || "Enterprise Form")}
+              {selectedSurveyForPin.title}
             </h3>
             <p class="text-xs text-slate-500">Enter your Admin-assigned Device Access PIN to unlock this terminal form.</p>
           </div>
@@ -394,8 +390,8 @@
       </div>
     {/if}
 
-    <!-- FORM SELECTION LAUNCHER (ONLY SHOWN IF NO SURVEY IS TARGETED) -->
-    {#if !activeSurveyId || !surveyTitle || questions.length === 0}
+    <!-- FORM SELECTION LAUNCHER MENU -->
+    {#if !activeSurveyId || (!isQrMode && !isPinVerifiedForCurrentSurvey) || questions.length === 0}
       <div in:scale={{ duration: 300, start: 0.96 }} class="w-full bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-xl flex flex-col justify-between my-auto">
         
         <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
@@ -426,7 +422,7 @@
 
         {#if surveys.length === 0}
           <div class="border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center text-xs text-slate-400 my-auto">
-            No active forms available in storage. Please create a form first in the QR Form Designer.
+            No active forms available in storage. Please create a form first in the Form Designer.
           </div>
         {:else}
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[26rem] overflow-y-auto custom-scrollbar my-2 pr-1">
@@ -452,11 +448,11 @@
 
                 <div class="flex items-center justify-between pt-3 border-t border-slate-200">
                   <span class="text-[11px] text-slate-600 font-semibold group-hover:text-slate-900 transition-colors">
-                    {survey.appMode === 'qr' ? "Public Web Access" : "PIN Protected"}
+                    {isQrMode || survey.appMode === 'qr' ? "Public Web Access" : "PIN Protected"}
                   </span>
                   <span class="text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition-all flex items-center space-x-1.5 group-hover:scale-105 bg-[#1a2b6c] group-hover:bg-[#e31b23] text-white" style="color: #ffffff !important; background-color: #1a2b6c !important;">
                     <span style="color: #ffffff !important; font-weight: 800 !important;">
-                      {survey.appMode === 'qr' ? "Launch Web Form ➔" : "Enter PIN & Launch ➔"}
+                      {isQrMode || survey.appMode === 'qr' ? "Launch Web Form ➔" : "Enter PIN & Launch ➔"}
                     </span>
                   </span>
                 </div>
@@ -472,7 +468,7 @@
       </div>
 
     {:else if isSubmitted}
-      <!-- DYNAMIC SUBMISSION CONFIRMATION -->
+      <!-- SUBMISSION CONFIRMATION -->
       <div in:scale={{ duration: 400, start: 0.95 }} class="w-full max-w-xl mx-auto bg-white border border-slate-200 rounded-3xl p-8 sm:p-12 shadow-xl flex flex-col items-center justify-center text-center space-y-5 my-auto">
         <div class="h-20 w-20 bg-emerald-100 border border-emerald-300 rounded-full flex items-center justify-center text-emerald-600 shadow-sm shrink-0">
           <svg class="w-10 h-10 fill-current" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
@@ -486,8 +482,8 @@
         </p>
       </div>
 
-    {:else if (!isKioskSurvey) || isPinVerifiedForCurrentSurvey}
-      <!-- ACTIVE FORM CANVAS -->
+    {:else}
+      <!-- ACTIVE FORM QUESTIONNAIRE CANVAS -->
       <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="w-full bg-white border border-slate-200 rounded-3xl p-5 sm:p-8 lg:p-10 shadow-xl flex flex-col justify-between box-border my-auto">
         
         <!-- TOP PROGRESS HEADER -->
