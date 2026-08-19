@@ -42,7 +42,7 @@
     }
   });
 
-  function parseArrayField(val) {
+  function extractArray(val) {
     if (Array.isArray(val)) return val.filter(Boolean);
     if (typeof val === 'string' && val.trim()) {
       return val.split(',').map(s => s.trim()).filter(Boolean);
@@ -78,7 +78,6 @@
     } else {
       selectedSites = [...selectedSites, siteName];
     }
-    selectedSites = [...selectedSites];
   }
 
   function toggleDeviceSelection(devName) {
@@ -87,7 +86,6 @@
     } else {
       selectedDevices = [...selectedDevices, devName];
     }
-    selectedDevices = [...selectedDevices];
   }
 
   async function handleAddSite() {
@@ -111,7 +109,7 @@
         siteMessageType = "success";
         inputSiteName = "";
         inputSiteDesc = "";
-        loadData();
+        await loadData();
       } else {
         siteMessage = data.message || "Failed to create site.";
         siteMessageType = "error";
@@ -126,10 +124,10 @@
     sites = sites.filter(s => s._id !== siteId);
     try {
       await fetch(`${API_BASE}/sites/${siteId}`, { method: "DELETE" });
-      loadData();
+      await loadData();
     } catch (err) {
       console.error(err);
-      loadData();
+      await loadData();
     }
   }
 
@@ -161,13 +159,16 @@
 
     try {
       let res, data;
+      const cleanDevs = Array.from(new Set(selectedDevices.map(d => String(d).trim()))).filter(Boolean);
+      const cleanSites = Array.from(new Set(selectedSites.map(s => String(s).trim()))).filter(Boolean);
+
       const payload = {
         username: inputUsername.trim().toLowerCase(),
         role: selectedRole,
-        assignedSites: isQrMode && selectedRole === 'site_leader' ? selectedSites : [],
-        assignedDevices: !isQrMode && selectedRole === 'kiosk_operator' ? selectedDevices : [],
-        allowedDevices: !isQrMode && selectedRole === 'kiosk_operator' ? selectedDevices : [],
-        assignedSite: (isQrMode && selectedRole === 'site_leader' && selectedSites.length > 0) ? selectedSites.join(', ') : ''
+        assignedSites: cleanSites,
+        assignedDevices: cleanDevs,
+        allowedDevices: cleanDevs,
+        assignedSite: cleanSites.join(', ')
       };
       if (inputPassword.trim()) payload.password = inputPassword.trim();
 
@@ -190,7 +191,7 @@
         userMessage = editingUserId ? "User profile updated!" : "New account created successfully!";
         userMessageType = "success";
         resetUserForm();
-        loadData();
+        await loadData();
       } else {
         userMessage = data.message || "Operation failed.";
         userMessageType = "error";
@@ -207,15 +208,15 @@
     inputPassword = "";
     selectedRole = u.role === 'user' ? 'kiosk_operator' : u.role;
     
-    selectedSites = (Array.isArray(u.assignedSites) && u.assignedSites.length > 0)
-      ? u.assignedSites
-      : parseArrayField(u.assignedSite);
+    selectedSites = extractArray(u.assignedSites).length > 0
+      ? extractArray(u.assignedSites)
+      : extractArray(u.assignedSite);
 
-    selectedDevices = (Array.isArray(u.assignedDevices) && u.assignedDevices.length > 0)
-      ? u.assignedDevices
-      : parseArrayField(u.allowedDevices);
+    selectedDevices = extractArray(u.assignedDevices).length > 0
+      ? extractArray(u.assignedDevices)
+      : extractArray(u.allowedDevices);
 
-    userMessage = `Editing user '${u.username}'. Update permissions or site/device assignments below.`;
+    userMessage = `Editing '${u.username}'. Select desired devices/sites then click 'Save Account Changes'.`;
     userMessageType = "info";
   }
 
@@ -237,11 +238,11 @@
       const data = await res.json();
       if (!data.success) {
         console.warn("Failed to delete user on server:", data.message);
-        loadData();
+        await loadData();
       }
     } catch (err) {
       console.error(err);
-      loadData();
+      await loadData();
     }
   }
 
@@ -351,7 +352,7 @@
             {isQrMode ? 'Site Leader Provisioning' : 'Kiosk Operator Provisioning'}
           </span>
           <h3 class="text-base font-black text-[#1a2b6c] dark:text-white">
-            {editingUserId ? 'Update User Account' : (isQrMode ? 'Create Site Leader Account' : 'Create Kiosk Operator Account')}
+            {editingUserId ? `Update '${inputUsername}'` : (isQrMode ? 'Create Site Leader Account' : 'Create Kiosk Operator Account')}
           </h3>
         </div>
         {#if editingUserId}
@@ -526,8 +527,8 @@
         {:else}
           {#each filteredUsers as u}
             {@const displayRole = u.role === 'user' ? 'kiosk_operator' : u.role}
-            {@const userSites = (Array.isArray(u.assignedSites) && u.assignedSites.length > 0) ? u.assignedSites : parseArrayField(u.assignedSite)}
-            {@const userDevs = (Array.isArray(u.assignedDevices) && u.assignedDevices.length > 0) ? u.assignedDevices : (Array.isArray(u.allowedDevices) ? u.allowedDevices : parseArrayField(u.allowedDevices))}
+            {@const userSites = extractArray(u.assignedSites).length > 0 ? extractArray(u.assignedSites) : extractArray(u.assignedSite)}
+            {@const userDevs = extractArray(u.assignedDevices).length > 0 ? extractArray(u.assignedDevices) : extractArray(u.allowedDevices)}
 
             <div class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2">
               <div class="flex items-center justify-between">

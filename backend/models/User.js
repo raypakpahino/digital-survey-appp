@@ -28,9 +28,14 @@ const UserSchema = new mongoose.Schema({
   assignedDevices: {
     type: [String],
     default: []
+  },
+  allowedDevices: {
+    type: [String],
+    default: []
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  strict: false
 });
 
 export default mongoose.models.User || mongoose.model('User', UserSchema);
