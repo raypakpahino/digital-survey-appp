@@ -90,12 +90,14 @@
         .filter(s => userAssignedSites.includes(cleanString(s.assignedSite)))
         .map(s => s._id);
     } else if (!isQrMode && currentUser && (currentUser.role === "kiosk_operator" || currentUser.role === "user")) {
+      // Automatically select all surveys authorized for this operator's assigned devices
       selectedSurveyIds = surveys
         .filter(s => {
           const sTitle = cleanString(s.title);
-          const isAuthorizedByDeviceRule = operatorAuthorizedForms.length === 0 || operatorAuthorizedForms.includes(sTitle) || operatorAuthorizedForms.includes('all') || operatorAuthorizedForms.includes('all forms');
-          const hasResponsesFromDevice = responses.some(r => cleanString(r.surveyTitle) === sTitle && userAssignedDevices.includes(cleanString(r.deviceId)));
-          return isAuthorizedByDeviceRule || hasResponsesFromDevice;
+          return operatorAuthorizedForms.length === 0 || 
+                 operatorAuthorizedForms.includes(sTitle) || 
+                 operatorAuthorizedForms.includes('all') || 
+                 operatorAuthorizedForms.includes('all forms');
         })
         .map(s => s._id);
     } else if (isQrMode && selectedSurveyIds.length === 0) {
@@ -181,7 +183,7 @@
     '#06b6d4', '#f59e0b', '#10b981', '#3b82f6', '#f43f5e', '#8b5cf6', '#ec4899'
   ];
 
-  // Active Selected Survey Objects
+  // Active Selected Survey Objects (Includes all authorized forms for Kiosk Operators)
   $: selectedSurveys = (isQrMode && currentUser && currentUser.role === "site_leader")
     ? surveys.filter(s => userAssignedSites.includes(cleanString(s.assignedSite)))
     : (!isQrMode && currentUser && (currentUser.role === "kiosk_operator" || currentUser.role === "user"))
@@ -216,8 +218,8 @@
     return acc;
   }, []);
 
+  // Filter responses strictly to assigned devices and authorized forms
   $: filteredResponses = responses.filter((r) => {
-    // 1. STRICT MULTI-SITE SCOPING FOR SITE LEADERS (WEB QR MODE)
     if (isQrMode && currentUser && currentUser.role === "site_leader") {
       if (userAssignedSites.length === 0) return false;
 
@@ -230,21 +232,16 @@
       const matchesAssigned = userAssignedSites.includes(surveyAssignedSite) || userAssignedSites.includes(respSite);
       if (!matchesAssigned) return false;
     }
-
-    // 2. STRICT MULTI-DEVICE SCOPING FOR KIOSK OPERATORS (ENTERPRISE KIOSK MODE)
     else if (!isQrMode && currentUser && (currentUser.role === 'kiosk_operator' || currentUser.role === 'user')) {
       if (userAssignedDevices.length === 0) return false;
       const respDevice = cleanString(r.deviceId || "Tablet-A");
       const respSurvey = cleanString(r.surveyTitle);
 
       const matchesDevice = userAssignedDevices.includes(respDevice);
-      const matchesAuthorizedForm = operatorAuthorizedForms.includes(respSurvey);
+      const matchesAuthorizedForm = operatorAuthorizedForms.length === 0 || operatorAuthorizedForms.includes(respSurvey) || operatorAuthorizedForms.includes('all');
 
-      // Must belong to their assigned devices or their devices' authorized form rules
-      if (!matchesDevice && !matchesAuthorizedForm) return false;
+      if (!matchesDevice || !matchesAuthorizedForm) return false;
     }
-
-    // 3. ADMIN FORM & DEVICE SELECTION FILTERS
     else {
       if (selectedSurveys.length > 0) {
         if (!selectedSurveyTitles.includes(cleanString(r.surveyTitle))) return false;
@@ -255,7 +252,6 @@
       }
     }
 
-    // 4. DATE RANGE FILTERS
     if (startDate || endDate) {
       const responseTime = new Date(r.timestamp).getTime();
       
@@ -659,7 +655,6 @@
     
     <!-- SECTION 1: ROLE-BASED SCOPE BANNERS & FORM SELECTOR -->
     {#if isQrMode && currentUser?.role === 'site_leader'}
-      <!-- SITE LEADER SCOPED BANNER (WEB QR MODE) -->
       <div class="p-3 bg-cyan-950/50 border border-cyan-800/60 rounded-xl space-y-1">
         <div class="flex items-center space-x-2">
           <span class="h-2 w-2 rounded-full bg-cyan-400 animate-ping"></span>
@@ -670,7 +665,6 @@
         </p>
       </div>
     {:else if !isQrMode && (currentUser?.role === 'kiosk_operator' || currentUser?.role === 'user')}
-      <!-- KIOSK OPERATOR SCOPED BANNER (ENTERPRISE KIOSK MODE) -->
       <div class="p-3 bg-emerald-950/50 border border-emerald-800/60 rounded-xl space-y-1">
         <div class="flex items-center space-x-2">
           <span class="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
@@ -681,7 +675,6 @@
         </p>
       </div>
     {:else}
-      <!-- ADMIN FORM SELECTOR FILTER -->
       <div class="flex-1 space-y-2">
         <div class="flex items-center justify-between">
           <div>
@@ -756,7 +749,7 @@
       </div>
     {/if}
 
-    <!-- SECTION 2: HARDWARE TABLET SITES FILTER (ADMIN ONLY IN ENTERPRISE KIOSK MODE) -->
+    <!-- SECTION 2: TABLET SITES FILTER -->
     {#if !isQrMode && currentUser?.role === 'admin'}
       <div class="flex-1 pt-2 sm:pt-0 lg:pt-2 border-t sm:border-t-0 lg:border-t border-slate-800/80 space-y-2 shrink-0">
         <div class="flex items-center justify-between">
@@ -783,7 +776,7 @@
               class="w-full bg-slate-950 border border-slate-800 text-[10px] text-slate-200 pl-7 pr-2 py-1.5 rounded-lg focus:outline-none focus:border-emerald-500 transition-all placeholder:text-slate-600"
             />
             <svg class="w-3.5 h-3.5 fill-current text-slate-500 absolute left-2 top-2" viewBox="0 0 24 24">
-              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 14z"/>
+              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
             </svg>
           </div>
         {/if}
@@ -809,7 +802,7 @@
                     class="accent-emerald-500 w-3 h-3 rounded shrink-0 pointer-events-none"
                   />
                   <span class="truncate flex items-center space-x-1">
-                    <svg class="w-3.5 h-3.5 fill-current inline-block shrink-0 opacity-70 group-hover:opacity-100" viewBox="0 0 24 24"><path d="M4 6h16v10H4V6zm16 12c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4z"/></svg>
+                    <svg class="w-3.5 h-3.5 fill-current text-slate-400 shrink-0" viewBox="0 0 24 24"><path d="M4 6h16v10H4V6zm16 12c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4z"/></svg>
                     <span class="truncate">{devId}</span>
                   </span>
                 </div>
@@ -1015,7 +1008,7 @@
                           <span class="text-[9px] font-bold text-cyan-400 uppercase font-mono tracking-wider flex items-center space-x-1">
                             <span>Field #{qIdx + 1} • {question.type}</span>
                             <span class="text-slate-500 text-[9px] hidden sm:inline-flex items-center space-x-0.5 group-hover:text-cyan-300 transition-colors">
-                              <svg class="w-3.5 h-3.5 fill-current inline-block ml-1" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 14z"/></svg>
+                              <svg class="w-3.5 h-3.5 fill-current inline-block ml-1" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
                               <span>Click to enlarge</span>
                             </span>
                           </span>
