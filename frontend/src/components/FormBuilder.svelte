@@ -131,8 +131,10 @@
         const opts = q.options || [];
         return {
           ...q,
+          enableOptionImages: Boolean(q.enableOptionImages),
           enableOtherOption: Boolean(q.enableOtherOption),
           options: opts.map(parseOption),
+          optionImages: (q.optionImages && typeof q.optionImages === 'object') ? q.optionImages : {},
           alertTriggerValues: Array.isArray(q.alertTriggerValues) 
             ? q.alertTriggerValues 
             : getDefaultAlertTriggers(type, opts)
@@ -315,7 +317,7 @@
     const compressedBase64 = await compressImage(file, 400, 0.7);
     if (!question.optionImages) question.optionImages = {};
     question.optionImages[optionKey] = compressedBase64;
-    localQuestions = localQuestions;
+    localQuestions = [...localQuestions];
   }
 
   function removeQuestionImage(question) {
@@ -326,7 +328,7 @@
   function removeOptionImage(question, optionKey) {
     if (question.optionImages && question.optionImages[optionKey]) {
       delete question.optionImages[optionKey];
-      localQuestions = localQuestions;
+      localQuestions = [...localQuestions];
     }
   }
 
@@ -621,9 +623,12 @@
                   <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                     {normType === 'dropdown' ? 'Configure Dropdown Options & Skip Branching:' : 'Configure Choice Options & Skip Branching:'}
                   </span>
-                  <div class="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+                  <div class="grid grid-cols-1 gap-3 max-h-72 overflow-y-auto custom-scrollbar pr-1">
                     {#each question.options as option, optIndex}
-                      <div class="bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
+                      {@const optText = typeof option === 'object' ? option.text : option}
+                      {@const optImage = question.optionImages && question.optionImages[optText]}
+
+                      <div class="bg-white dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2.5">
                         <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                           <span class="text-[10px] font-mono text-slate-400 font-bold w-6">{optIndex + 1}.</span>
                           <input
@@ -655,6 +660,36 @@
                             class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 text-sm px-2 font-bold transition-all cursor-pointer"
                           >✕</button>
                         </div>
+
+                        <!-- OPTION IMAGE UPLOADER SECTION (SHOWN WHEN TOGGLED ON) -->
+                        {#if question.enableOptionImages}
+                          <div class="pl-8 pt-1 flex items-center space-x-3">
+                            {#if optImage}
+                              <div class="flex items-center space-x-2.5 bg-slate-50 dark:bg-slate-950 p-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                                <img src={optImage} alt="Option thumbnail" class="w-8 h-8 rounded object-cover border border-slate-300 dark:border-slate-700" />
+                                <span class="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">Image Set</span>
+                                <button
+                                  type="button"
+                                  on:click={() => removeOptionImage(question, optText)}
+                                  class="text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer ml-1"
+                                >
+                                  ✕ Remove
+                                </button>
+                              </div>
+                            {:else}
+                              <label class="cursor-pointer bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-[#1a2b6c] dark:hover:text-slate-200 px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold flex items-center space-x-1.5 transition-all w-fit shadow-xs active:scale-95">
+                                <svg class="w-3.5 h-3.5 fill-current text-slate-400" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                                <span>Upload Picture</span>
+                                <input 
+                                  type="file" 
+                                  accept="image/*" 
+                                  on:change={(e) => handleOptionImageUpload(e, question, optText)} 
+                                  class="hidden" 
+                                />
+                              </label>
+                            {/if}
+                          </div>
+                        {/if}
                       </div>
                     {/each}
 
@@ -733,6 +768,7 @@
                       on:click={() => {
                         question.enableOptionImages = !question.enableOptionImages;
                         if (!question.optionImages) question.optionImages = {};
+                        localQuestions = [...localQuestions];
                       }}
                       class="w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none border border-slate-300 dark:border-slate-700/80 {question.enableOptionImages ? 'bg-[#1a2b6c] border-[#1a2b6c]' : 'bg-slate-200 dark:bg-slate-800'} cursor-pointer"
                     >
