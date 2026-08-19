@@ -22,14 +22,26 @@
     let deviceScopes = [];
 
     if (user) {
-      if (Array.isArray(user.assignedSites)) siteScopes = user.assignedSites.map(cleanString);
-      else if (user.assignedSite) siteScopes = [cleanString(user.assignedSite)];
+      // 1. Check assignedSites array
+      if (Array.isArray(user.assignedSites) && user.assignedSites.length > 0) {
+        siteScopes = user.assignedSites.map(cleanString);
+      } else if (user.assignedSite) {
+        // 2. Fallback: string format (comma-separated or single)
+        siteScopes = String(user.assignedSite).split(',').map(cleanString);
+      }
 
-      if (Array.isArray(user.assignedDevices)) deviceScopes = user.assignedDevices.map(cleanString);
-      else if (user.allowedDevices) deviceScopes = [cleanString(user.allowedDevices)];
+      // Devices
+      if (Array.isArray(user.assignedDevices) && user.assignedDevices.length > 0) {
+        deviceScopes = user.assignedDevices.map(cleanString);
+      } else if (user.allowedDevices) {
+        deviceScopes = String(user.allowedDevices).split(',').map(cleanString);
+      }
     }
 
-    return { siteScopes: siteScopes.filter(Boolean), deviceScopes: deviceScopes.filter(Boolean) };
+    return { 
+      siteScopes: Array.from(new Set(siteScopes.filter(Boolean))), 
+      deviceScopes: Array.from(new Set(deviceScopes.filter(Boolean))) 
+    };
   }
 
   $: ({ siteScopes: userAssignedSites, deviceScopes: userAssignedDevices } = parseUserScopes(currentUser));
@@ -38,7 +50,7 @@
   let selectedSurveyIds = [];
 
   $: if (surveys.length > 0) {
-    if (isQrMode && currentUser && currentUser.role === "site_leader" && userAssignedSites.length > 0) {
+    if (isQrMode && currentUser && currentUser.role === "site_leader") {
       selectedSurveyIds = surveys
         .filter(s => userAssignedSites.includes(cleanString(s.assignedSite)))
         .map(s => s._id);
@@ -125,8 +137,8 @@
     '#06b6d4', '#f59e0b', '#10b981', '#3b82f6', '#f43f5e', '#8b5cf6', '#ec4899'
   ];
 
-  // Active Selected Survey Objects (Multi-site scoped for Site Leaders)
-  $: selectedSurveys = (isQrMode && currentUser && currentUser.role === "site_leader" && userAssignedSites.length > 0)
+  // Active Selected Survey Objects (Strictly scoped to userAssignedSites for Site Leaders)
+  $: selectedSurveys = (isQrMode && currentUser && currentUser.role === "site_leader")
     ? surveys.filter(s => userAssignedSites.includes(cleanString(s.assignedSite)))
     : surveys.filter(s => selectedSurveyIds.includes(s._id));
 
@@ -159,13 +171,17 @@
   }, []);
 
   $: filteredResponses = responses.filter((r) => {
-    // 1. FORM SELECTION FILTER
+    // 1. STRICT FORM SELECTION FILTER
     if (selectedSurveys.length > 0) {
       if (!selectedSurveyTitles.includes(cleanString(r.surveyTitle))) return false;
+    } else if (currentUser && currentUser.role === "site_leader") {
+      return false; // If Site Leader has 0 matching surveys selected, show 0 responses
     }
 
-    // 2. MULTI-SITE SCOPING FOR SITE LEADERS (WEB QR MODE)
-    if (isQrMode && currentUser && currentUser.role === "site_leader" && userAssignedSites.length > 0) {
+    // 2. STRICT MULTI-SITE SCOPING FOR SITE LEADERS (WEB QR MODE)
+    if (isQrMode && currentUser && currentUser.role === "site_leader") {
+      if (userAssignedSites.length === 0) return false;
+
       const parentSurvey = surveys.find(s => cleanString(s.title) === cleanString(r.surveyTitle));
       if (!parentSurvey) return false;
 
@@ -176,10 +192,12 @@
       if (!matchesAssigned) return false;
     }
 
-    // 3. MULTI-DEVICE SCOPING FOR KIOSK OPERATORS (ENTERPRISE KIOSK MODE)
-    if (!isQrMode && currentUser && (currentUser.role === 'kiosk_operator' || currentUser.role === 'user') && userAssignedDevices.length > 0) {
-      const respDevice = cleanString(r.deviceId || "Tablet-A");
-      if (!userAssignedDevices.includes(respDevice)) return false;
+    // 3. STRICT MULTI-DEVICE SCOPING FOR KIOSK OPERATORS (ENTERPRISE KIOSK MODE)
+    if (!isQrMode && currentUser && (currentUser.role === 'kiosk_operator' || currentUser.role === 'user')) {
+      if (userAssignedDevices.length > 0) {
+        const respDevice = cleanString(r.deviceId || "Tablet-A");
+        if (!userAssignedDevices.includes(respDevice)) return false;
+      }
     }
 
     // 4. TABLET DEVICE SELECTION FILTER (FOR ADMINS IN ENTERPRISE KIOSK MODE)
@@ -672,7 +690,7 @@
           <span class="text-xs font-bold text-cyan-300 uppercase tracking-wider font-mono">Scoped Site Database</span>
         </div>
         <p class="text-[10px] text-slate-400 leading-tight">
-          Submissions are automatically filtered to: <strong class="text-emerald-400 font-mono">{userAssignedSites.join(', ') || 'Assigned Sites'}</strong>.
+          Submissions are automatically filtered to: <strong class="text-emerald-400 font-mono">{userAssignedSites.length > 0 ? userAssignedSites.join(', ') : 'Assigned Sites'}</strong>.
         </p>
       </div>
     {/if}
@@ -811,7 +829,7 @@
       <div>
         <h2 class="text-sm sm:text-base font-bold text-white tracking-tight border-l-2 border-cyan-500 pl-2.5">
           {#if currentUser?.role === "site_leader"}
-            Web QR Consolidated Response Hub <span class="text-cyan-400 font-mono text-xs">({userAssignedSites.join(', ') || 'All Assigned Sites'})</span>
+            Web QR Consolidated Response Hub <span class="text-cyan-400 font-mono text-xs">({userAssignedSites.length > 0 ? userAssignedSites.join(', ') : 'Assigned Sites'})</span>
           {:else if selectedSurveys.length === 1}
             {selectedSurveys[0].title}
           {:else if selectedSurveys.length > 1}
@@ -823,7 +841,7 @@
         <p class="text-[11px] text-slate-400 mt-0.5">
           Showing <span class="text-cyan-400 font-bold">{filteredResponses.length}</span> matching submission records 
           {#if currentUser?.role === "site_leader"}
-            (Scoped to: <span class="text-emerald-400 font-mono font-bold">{userAssignedSites.join(', ') || 'Assigned Sites'}</span>)
+            (Scoped to: <span class="text-emerald-400 font-mono font-bold">{userAssignedSites.length > 0 ? userAssignedSites.join(', ') : 'Assigned Sites'}</span>)
           {:else if selectedDevices.length > 0}
             (Filtered by: <span class="text-emerald-400 font-mono font-bold">{selectedDevices.join(', ')}</span>)
           {:else if selectedSurveys.length > 0}
