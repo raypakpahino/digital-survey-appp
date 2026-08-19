@@ -74,7 +74,7 @@
 
   $: ({ siteScopes: userAssignedSites, deviceScopes: userAssignedDevices } = parseUserScopes(currentUser));
 
-  // Operator authorized form names from Device Registry
+  // Compute all authorized form titles across the operator's assigned devices
   $: operatorAuthorizedForms = Array.from(new Set(
     registeredDevicesList
       .filter(d => userAssignedDevices.includes(cleanString(d.deviceName)))
@@ -208,7 +208,7 @@
     return acc;
   }, []);
 
-  // Strict Device Scoping Filter for Responses (Case-insensitive matching)
+  // Updated Response Filter: Allows operators to see responses for any form authorized to their device
   $: filteredResponses = responses.filter((r) => {
     if (isQrMode && currentUser && currentUser.role === "site_leader") {
       if (userAssignedSites.length === 0) return false;
@@ -225,10 +225,13 @@
     else if (!isQrMode && currentUser && (currentUser.role === 'kiosk_operator' || currentUser.role === 'user')) {
       if (userAssignedDevices.length === 0) return false;
       const respDevice = cleanString(r.deviceId || "Tablet-A");
-      
-      // Check if response device matches operator's assigned devices case-insensitively
+      const respSurvey = cleanString(r.surveyTitle);
+
       const isAssignedDeviceMatch = userAssignedDevices.some(dev => cleanString(dev) === respDevice);
-      if (!isAssignedDeviceMatch) return false;
+      const isAuthorizedFormMatch = operatorAuthorizedForms.length === 0 || operatorAuthorizedForms.includes(respSurvey) || operatorAuthorizedForms.includes('all');
+
+      // Allow if it came from their device OR matches an authorized form rule
+      if (!isAssignedDeviceMatch && !isAuthorizedFormMatch) return false;
     }
     else {
       if (selectedSurveys.length > 0) {
@@ -1134,7 +1137,7 @@
                       <svg class="w-3.5 h-3.5 fill-current inline-block shrink-0" viewBox="0 0 24 24"><path d="M4 6h16v10H4V6zm16 12c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4z"/></svg>
                       <span>{response.deviceId || 'Site-A'}</span>
                     </span>
-                  </td>
+                </td>
                   <td class="p-2.5 text-slate-400 border-r border-slate-800/40 font-mono text-[10px] group-hover:text-slate-200">
                     {new Date(response.timestamp).toLocaleString()}
                   </td>
@@ -1410,7 +1413,7 @@
         on:click={closeQuestionModal}
         class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700/80 transition-all shadow-md active:scale-95 cursor-pointer"
       >
-        ← Return
+        ← Return:
       </button>
 
       <button
