@@ -56,7 +56,7 @@ router.get('/users', async (req, res) => {
 
 router.post('/users', async (req, res) => {
   try {
-    const { username, password, role, assignedSite } = req.body;
+    const { username, password, role, assignedSites, assignedDevices, allowedDevices, assignedSite } = req.body;
     if (!username || !password) {
       return res.status(400).json({ success: false, message: 'Username and password are required.' });
     }
@@ -73,11 +73,17 @@ router.post('/users', async (req, res) => {
     // Hash password with bcrypt so login comparison succeeds
     const hashedPassword = await bcrypt.hash(password.trim(), 10);
 
+    const cleanSites = Array.isArray(assignedSites) ? assignedSites : (assignedSite ? [assignedSite] : []);
+    const cleanDevices = Array.isArray(assignedDevices) ? assignedDevices : (Array.isArray(allowedDevices) ? allowedDevices : []);
+
     const newUser = await User.create({
       username: cleanUsername,
       password: hashedPassword,
       role: targetRole,
-      assignedSite: targetRole === 'site_leader' ? (assignedSite || '') : ''
+      assignedSite: cleanSites.join(', '),
+      assignedSites: cleanSites,
+      assignedDevices: cleanDevices,
+      allowedDevices: cleanDevices
     });
 
     const userObj = newUser.toObject();
@@ -91,15 +97,26 @@ router.post('/users', async (req, res) => {
 
 router.put('/users/:id', async (req, res) => {
   try {
-    const { role, assignedSite, password } = req.body;
+    const { role, password, assignedSites, assignedDevices, allowedDevices, assignedSite } = req.body;
     const updateData = {};
 
     if (role) {
       updateData.role = role === 'user' ? 'kiosk_operator' : role;
     }
-    
-    if (assignedSite !== undefined) {
-      updateData.assignedSite = updateData.role === 'site_leader' ? assignedSite : '';
+
+    if (assignedSites !== undefined) {
+      const sitesArr = Array.isArray(assignedSites) ? assignedSites : [];
+      updateData.assignedSites = sitesArr;
+      updateData.assignedSite = sitesArr.join(', ');
+    } else if (assignedSite !== undefined) {
+      updateData.assignedSite = assignedSite;
+      updateData.assignedSites = assignedSite ? assignedSite.split(',').map(s => s.trim()).filter(Boolean) : [];
+    }
+
+    if (assignedDevices !== undefined || allowedDevices !== undefined) {
+      const devsArr = Array.isArray(assignedDevices) ? assignedDevices : (Array.isArray(allowedDevices) ? allowedDevices : []);
+      updateData.assignedDevices = devsArr;
+      updateData.allowedDevices = devsArr;
     }
     
     if (password && password.trim()) {
@@ -109,7 +126,7 @@ router.put('/users/:id', async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
       { $set: updateData },
-      { new: true }
+      { new: true, runValidators: false }
     ).select('-password');
 
     res.json({ success: true, user: updatedUser });
@@ -120,7 +137,6 @@ router.put('/users/:id', async (req, res) => {
 
 router.delete('/users/:id', async (req, res) => {
   try {
-    // FIX: Delete from User collection instead of Site collection
     await User.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'User deleted successfully.' });
   } catch (error) {
