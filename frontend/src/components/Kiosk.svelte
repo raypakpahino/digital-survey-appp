@@ -94,6 +94,7 @@
           onSelectSurvey(targetSurvey._id);
           resetTerminal();
         } else {
+          isPinVerifiedForCurrentSurvey = false;
           selectedSurveyForPin = targetSurvey;
         }
       }
@@ -106,6 +107,7 @@
       if (isQrMode) {
         isPinVerifiedForCurrentSurvey = true;
       } else {
+        isPinVerifiedForCurrentSurvey = false;
         selectedSurveyForPin = matched;
       }
     }
@@ -120,6 +122,7 @@
       return;
     }
 
+    isPinVerifiedForCurrentSurvey = false;
     selectedSurveyForPin = survey;
     enteredFormPin = "";
     pinError = "";
@@ -356,16 +359,16 @@
 <div class="w-full h-full min-h-screen flex-1 bg-slate-100 text-slate-800 p-3 sm:p-6 lg:p-8 font-sans box-border overflow-y-auto flex flex-col justify-between select-none">
   <main class="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center min-h-0 py-6 sm:py-10 box-border relative my-auto">
     
-    <!-- PURE BLUR OVERLAY (EXCLUSIVELY FOR KIOSK PIN MODE) -->
-    {#if !isQrMode && (selectedSurveyForPin || (!isPinVerifiedForCurrentSurvey && activeSurveyId))}
-      <div in:scale={{ duration: 200 }} class="fixed inset-0 z-50 backdrop-blur-xl bg-white/15 flex items-center justify-center p-4">
+    <!-- PURE BLUR OVERLAY (STRICTLY REQUIRED FOR ENTERPRISE KIOSK MODE UNTIL VERIFIED) -->
+    {#if !isQrMode && !isPinVerifiedForCurrentSurvey}
+      <div in:scale={{ duration: 200 }} class="fixed inset-0 z-50 backdrop-blur-xl bg-slate-900/60 flex items-center justify-center p-4">
         <div class="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center space-y-4 shadow-2xl relative">
           <div class="space-y-1">
             <span class="text-[10px] font-mono font-extrabold text-[#e31b23] uppercase tracking-widest block">Protected Survey Terminal</span>
             <h3 class="text-lg font-black text-[#1a2b6c] truncate">
-              {selectedSurveyForPin ? selectedSurveyForPin.title : surveyTitle}
+              {selectedSurveyForPin ? selectedSurveyForPin.title : (surveyTitle || "Enterprise Form")}
             </h3>
-            <p class="text-xs text-slate-500">Enter your Admin-assigned Device Access PIN to unlock this form.</p>
+            <p class="text-xs text-slate-500">Enter your Admin-assigned Device Access PIN to unlock this terminal form.</p>
           </div>
 
           <form on:submit|preventDefault={verifyFormPinAndLaunch} class="space-y-3">
@@ -373,7 +376,7 @@
               type="password" 
               maxlength="6" 
               bind:value={enteredFormPin} 
-              placeholder="Enter PIN (e.g. 9999)" 
+              placeholder="Enter 6-char PIN" 
               class="w-full text-center bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-lg font-mono font-bold tracking-widest text-[#1a2b6c] focus:outline-none focus:border-[#e31b23]" 
             />
 
@@ -393,9 +396,8 @@
       </div>
     {/if}
 
-    {#if (!activeSurveyId || !surveyTitle || questions.length === 0) && (!isQrMode || !isPinVerifiedForCurrentSurvey)}
-      
-      <!-- SELECTION LAUNCHER MENU CARD -->
+    <!-- FORM SELECTION LAUNCHER (ONLY SHOWN IF NO SURVEY IS TARGETED) -->
+    {#if !activeSurveyId || !surveyTitle || questions.length === 0}
       <div in:scale={{ duration: 300, start: 0.96 }} class="w-full bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-xl flex flex-col justify-between my-auto">
         
         <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
@@ -486,7 +488,7 @@
         </p>
       </div>
 
-    {:else}
+    {:else if isQrMode || isPinVerifiedForCurrentSurvey}
       <!-- ACTIVE FORM FILLING CANVAS: BALANCED VERTICAL CENTERING & PADDING -->
       <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="w-full bg-white border border-slate-200 rounded-3xl p-5 sm:p-8 lg:p-10 shadow-xl flex flex-col justify-between box-border my-auto">
         
