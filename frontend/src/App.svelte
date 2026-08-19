@@ -153,14 +153,14 @@
       document.documentElement.classList.add('dark');
     }
 
-    const hash = window.location.hash;
-    const urlParams = new URLSearchParams(
-      hash.includes("?") ? hash.split("?")[1] : window.location.search,
-    );
-    
-    const urlSurveyId = urlParams.get("id");
-    const modeParam = urlParams.get("mode");
-    const siteParam = urlParams.get("site");
+    // ROBUST SEARCH PARSER ACROSS BOTH SEARCH QUERY AND HASH QUERY
+    const searchParams = new URLSearchParams(window.location.search);
+    const hashPart = window.location.hash;
+    const hashParams = new URLSearchParams(hashPart.includes("?") ? hashPart.split("?")[1] : "");
+
+    const urlSurveyId = searchParams.get("id") || hashParams.get("id");
+    const modeParam = searchParams.get("mode") || hashParams.get("mode");
+    const siteParam = searchParams.get("site") || hashParams.get("site");
 
     if (siteParam) {
       localStorage.setItem("sdx_device_id", siteParam.trim());
@@ -170,10 +170,8 @@
       activeSurveyId = urlSurveyId;
     }
 
-    const storedToken = localStorage.getItem("sdx_token");
-
-    // UNAUTHENTICATED PUBLIC SCAN OR DIRECT SURVEY ID LINK
-    if (!storedToken && (urlSurveyId || modeParam || window.location.search.includes("mode=") || hash.includes("kiosk"))) {
+    // IF ENTERING DIRECTLY VIA QR CODE / LINK
+    if (urlSurveyId || modeParam || hashPart.includes("kiosk")) {
       if (modeParam === 'qr') {
         isQrMode = true;
         localStorage.setItem("sdx_app_mode", "qr");
@@ -189,6 +187,7 @@
       return;
     }
 
+    const storedToken = localStorage.getItem("sdx_token");
     if (storedToken) {
       try {
         const res = await fetch(`${API_BASE}/auth/me`, {
@@ -210,7 +209,7 @@
           } else {
             const savedAppMode = localStorage.getItem("sdx_app_mode");
             isQrMode = savedAppMode === "qr";
-            const route = hash.replace("#/", "").split("?")[0];
+            const route = hashPart.replace("#/", "").split("?")[0];
             if (["surveys", "builder", "kiosk", "answers", "devices", "users"].includes(route)) {
               activeTab = route;
             } else {
@@ -261,11 +260,10 @@
 
   async function refreshDataLedger() {
     try {
-      const hash = window.location.hash;
-      const urlParams = new URLSearchParams(
-        hash.includes("?") ? hash.split("?")[1] : window.location.search,
-      );
-      const urlSurveyId = urlParams.get("id");
+      const searchParams = new URLSearchParams(window.location.search);
+      const hashPart = window.location.hash;
+      const hashParams = new URLSearchParams(hashPart.includes("?") ? hashPart.split("?")[1] : "");
+      const urlSurveyId = searchParams.get("id") || hashParams.get("id");
 
       const currentModeQuery = isQrMode ? "qr" : "kiosk";
       const surveyRes = await fetch(`${API_BASE}/surveys?mode=${currentModeQuery}`);
@@ -442,8 +440,11 @@
 
   async function registerResponse(formattedAnswers, explicitDeviceId) {
     try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlSiteParam = urlParams.get("site");
+      const searchParams = new URLSearchParams(window.location.search);
+      const hashPart = window.location.hash;
+      const hashParams = new URLSearchParams(hashPart.includes("?") ? hashPart.split("?")[1] : "");
+      
+      const urlSiteParam = searchParams.get("site") || hashParams.get("site");
       const savedSite = localStorage.getItem("sdx_device_id");
 
       const resolvedSiteId = explicitDeviceId || urlSiteParam || savedSite || (isQrMode ? "Web-QR-Scan" : "Tablet-A");
@@ -529,7 +530,7 @@
   <div class="h-screen w-screen theme-bg-main flex items-center justify-center text-cyan-500 font-mono text-sm overflow-hidden">
     <div class="flex items-center space-x-3">
       <div class="h-3 w-3 rounded-full bg-cyan-500 animate-ping"></div>
-      <span class="theme-text-primary">Verifying User Credentials...</span>
+      <span class="theme-text-primary">Loading Feedback Terminal...</span>
     </div>
   </div>
 
