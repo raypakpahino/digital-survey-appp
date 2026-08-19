@@ -78,6 +78,7 @@
     } else {
       selectedSites = [...selectedSites, siteName];
     }
+    selectedSites = [...selectedSites];
   }
 
   function toggleDeviceSelection(devName) {
@@ -86,6 +87,7 @@
     } else {
       selectedDevices = [...selectedDevices, devName];
     }
+    selectedDevices = [...selectedDevices];
   }
 
   async function handleAddSite() {
@@ -164,7 +166,7 @@
         role: selectedRole,
         assignedSites: isQrMode && selectedRole === 'site_leader' ? selectedSites : [],
         assignedDevices: !isQrMode && selectedRole === 'kiosk_operator' ? selectedDevices : [],
-        assignedSite: (isQrMode && selectedRole === 'site_leader' && selectedSites.length > 0) ? selectedSites[0] : ''
+        assignedSite: (isQrMode && selectedRole === 'site_leader' && selectedSites.length > 0) ? selectedSites.join(', ') : ''
       };
       if (inputPassword.trim()) payload.password = inputPassword.trim();
 
@@ -204,11 +206,11 @@
     inputPassword = "";
     selectedRole = u.role === 'user' ? 'kiosk_operator' : u.role;
     
-    selectedSites = u.assignedSites && u.assignedSites.length > 0
+    selectedSites = (u.assignedSites && u.assignedSites.length > 0)
       ? u.assignedSites
       : parseArrayField(u.assignedSite);
 
-    selectedDevices = u.assignedDevices && u.assignedDevices.length > 0
+    selectedDevices = (u.assignedDevices && u.assignedDevices.length > 0)
       ? u.assignedDevices
       : parseArrayField(u.allowedDevices);
 
@@ -260,12 +262,13 @@
     </div>
     
     <button 
+      type="button"
       on:click={loadData} 
       class="bg-[#1a2b6c] hover:bg-[#e31b23] text-white px-5 py-2.5 rounded-xl font-extrabold text-xs shadow-md transition-all flex items-center space-x-2 shrink-0 border border-transparent cursor-pointer active:scale-95"
       style="color: #ffffff !important; background-color: #1a2b6c !important;"
     >
-      <svg class="w-4 h-4 fill-current text-white shrink-0" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-      <span class="font-extrabold" style="color: #ffffff !important;">Refresh Directory</span>
+      <svg class="w-4 h-4 text-white shrink-0" viewBox="0 0 24 24" fill="#ffffff" style="fill: #ffffff !important;"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+      <span class="font-extrabold" style="color: #ffffff !important; font-weight: 800 !important;">Refresh Directory</span>
     </button>
   </div>
 
@@ -415,14 +418,14 @@
                 <button 
                   type="button" 
                   on:click={() => selectedSites = selectedSites.length === sites.length ? [] : sites.map(s => s.name)}
-                  class="text-[9px] font-mono font-bold text-cyan-400 hover:underline cursor-pointer"
+                  class="text-[10px] font-mono font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
                 >
                   {selectedSites.length === sites.length ? 'Deselect All' : 'Select All'}
                 </button>
               {/if}
             </div>
 
-            <div class="max-h-36 overflow-y-auto space-y-1.5 custom-scrollbar p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
+            <div class="max-h-40 overflow-y-auto space-y-1.5 custom-scrollbar p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
               {#if sites.length === 0}
                 <span class="text-xs text-slate-400 italic">No sites created yet. Create a site first in the left panel.</span>
               {:else}
@@ -431,10 +434,16 @@
                   <button
                     type="button"
                     on:click={() => toggleSiteSelection(site.name)}
-                    class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-mono transition-all flex items-center justify-between border cursor-pointer {isChecked ? 'bg-cyan-950/80 border-cyan-500 text-cyan-200 font-bold' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400'}"
+                    class="w-full text-left px-3 py-2 rounded-xl text-xs font-mono transition-all flex items-center justify-between border cursor-pointer {isChecked ? 'bg-cyan-50 dark:bg-cyan-950/80 border-cyan-500 text-cyan-900 dark:text-cyan-200 font-black shadow-xs ring-1 ring-cyan-400/40' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300'}"
                   >
-                    <span class="truncate">{site.name}</span>
-                    <input type="checkbox" checked={isChecked} class="accent-cyan-500 pointer-events-none" />
+                    <span class="truncate font-bold">{site.name}</span>
+                    
+                    <!-- HIGH-CONTRAST CHECKBOX BADGE FOR LIGHT & DARK MODE -->
+                    <div class="w-5 h-5 rounded-md border flex items-center justify-center transition-all shrink-0 ml-2 {isChecked ? 'bg-cyan-600 border-cyan-600 text-white shadow-xs' : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900'}">
+                      {#if isChecked}
+                        <svg class="w-3.5 h-3.5 fill-current text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+                      {/if}
+                    </div>
                   </button>
                 {/each}
               {/if}
@@ -454,14 +463,14 @@
                 <button 
                   type="button" 
                   on:click={() => selectedDevices = selectedDevices.length === devices.length ? [] : devices.map(d => d.deviceName)}
-                  class="text-[9px] font-mono font-bold text-cyan-400 hover:underline cursor-pointer"
+                  class="text-[10px] font-mono font-bold text-cyan-600 dark:text-cyan-400 hover:underline cursor-pointer"
                 >
                   {selectedDevices.length === devices.length ? 'Deselect All' : 'Select All'}
                 </button>
               {/if}
             </div>
 
-            <div class="max-h-36 overflow-y-auto space-y-1.5 custom-scrollbar p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
+            <div class="max-h-40 overflow-y-auto space-y-1.5 custom-scrollbar p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
               {#if devices.length === 0}
                 <span class="text-xs text-slate-400 italic">No tablet devices registered yet.</span>
               {:else}
@@ -470,12 +479,18 @@
                   <button
                     type="button"
                     on:click={() => toggleDeviceSelection(dev.deviceName)}
-                    class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-mono transition-all flex items-center justify-between border cursor-pointer {isChecked ? 'bg-emerald-950/80 border-emerald-500 text-emerald-200 font-bold' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400'}"
+                    class="w-full text-left px-3 py-2 rounded-xl text-xs font-mono transition-all flex items-center justify-between border cursor-pointer {isChecked ? 'bg-emerald-50 dark:bg-emerald-950/80 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-black shadow-xs ring-1 ring-emerald-400/40' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300'}"
                   >
-                    <span class="truncate flex items-center space-x-1">
+                    <span class="truncate flex items-center space-x-1.5 font-bold">
                       <span>📱 {dev.deviceName}</span>
                     </span>
-                    <input type="checkbox" checked={isChecked} class="accent-emerald-500 pointer-events-none" />
+                    
+                    <!-- HIGH-CONTRAST CHECKBOX BADGE FOR LIGHT & DARK MODE -->
+                    <div class="w-5 h-5 rounded-md border flex items-center justify-center transition-all shrink-0 ml-2 {isChecked ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs' : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900'}">
+                      {#if isChecked}
+                        <svg class="w-3.5 h-3.5 fill-current text-white" viewBox="0 0 24 24" style="fill: #ffffff !important;"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+                      {/if}
+                    </div>
                   </button>
                 {/each}
               {/if}
@@ -511,8 +526,8 @@
         {:else}
           {#each filteredUsers as u}
             {@const displayRole = u.role === 'user' ? 'kiosk_operator' : u.role}
-            {@const userSites = u.assignedSites && u.assignedSites.length > 0 ? u.assignedSites : parseArrayField(u.assignedSite)}
-            {@const userDevs = u.assignedDevices && u.assignedDevices.length > 0 ? u.assignedDevices : parseArrayField(u.allowedDevices)}
+            {@const userSites = (u.assignedSites && u.assignedSites.length > 0) ? u.assignedSites : parseArrayField(u.assignedSite)}
+            {@const userDevs = (u.assignedDevices && u.assignedDevices.length > 0) ? u.assignedDevices : parseArrayField(u.allowedDevices)}
 
             <div class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2">
               <div class="flex items-center justify-between">
