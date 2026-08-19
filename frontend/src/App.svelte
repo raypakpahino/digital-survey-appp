@@ -46,11 +46,14 @@
   function handleKeyDown(event) {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'm') {
       event.preventDefault();
-      toggleAppMode();
+      if (currentUser?.role === 'admin') {
+        toggleAppMode();
+      }
     }
   }
 
   async function toggleAppMode() {
+    if (currentUser && currentUser.role !== 'admin') return;
     isQrMode = !isQrMode;
     localStorage.setItem("sdx_app_mode", isQrMode ? "qr" : "kiosk");
     await refreshDataLedger();
@@ -61,18 +64,13 @@
     const isOperator = currentUser && (currentUser.role === "kiosk_operator" || currentUser.role === "user");
     const isSiteLeader = currentUser && currentUser.role === "site_leader";
 
-    if (isOperator) {
+    if (isOperator || isSiteLeader) {
       activeTab = "answers";
       return;
     }
 
-    if (isSiteLeader && (tab === "surveys" || tab === "builder" || tab === "devices" || tab === "users" || tab === "kiosk")) {
+    if (currentUser && currentUser.role !== "admin" && (tab === "surveys" || tab === "builder" || tab === "devices" || tab === "users" || tab === "kiosk")) {
       activeTab = "answers";
-      return;
-    }
-
-    if (currentUser && currentUser.role !== "admin" && (tab === "surveys" || tab === "builder" || tab === "devices" || tab === "users")) {
-      activeTab = "kiosk";
       return;
     }
     
@@ -206,10 +204,16 @@
         const data = await res.json();
         if (data.success && data.user) {
           currentUser = data.user;
-          if (currentUser.role === "site_leader" || currentUser.role === "kiosk_operator" || currentUser.role === "user") {
+          if (currentUser.role === "site_leader") {
+            isQrMode = true;
+            localStorage.setItem("sdx_app_mode", "qr");
+            activeTab = "answers";
+          } else if (currentUser.role === "kiosk_operator" || currentUser.role === "user") {
+            isQrMode = false;
+            localStorage.setItem("sdx_app_mode", "kiosk");
             activeTab = "answers";
           } else if (currentUser.role !== "admin") {
-            activeTab = "kiosk";
+            activeTab = "answers";
           } else {
             const route = hash.replace("#/", "").split("?")[0];
             if (["surveys", "builder", "kiosk", "answers", "devices", "users"].includes(route)) {
@@ -233,10 +237,16 @@
 
   function handleLoginSuccess(user, token) {
     currentUser = user;
-    if (currentUser.role === "site_leader" || currentUser.role === "kiosk_operator" || currentUser.role === "user") {
+    if (currentUser.role === "site_leader") {
+      isQrMode = true;
+      localStorage.setItem("sdx_app_mode", "qr");
+      switchTab("answers");
+    } else if (currentUser.role === "kiosk_operator" || currentUser.role === "user") {
+      isQrMode = false;
+      localStorage.setItem("sdx_app_mode", "kiosk");
       switchTab("answers");
     } else if (currentUser.role !== "admin") {
-      switchTab("kiosk");
+      switchTab("answers");
     } else {
       switchTab("surveys");
     }
@@ -593,7 +603,7 @@
                 </button>
               {/if}
 
-              <!-- 4. ANSWERS LOG (EXCLUSIVELY VISIBLE FOR SITE LEADERS) -->
+              <!-- 4. ANSWERS LOG (EXCLUSIVELY VISIBLE FOR SITE LEADERS & OPERATORS) -->
               <button
                 class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'answers' ? (isQrMode ? 'bg-cyan-600 text-white shadow-md' : 'bg-[#1a2b6c] text-white shadow-md') : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                 on:click={() => switchTab("answers")}
@@ -609,7 +619,7 @@
                 {/if}
               </button>
 
-              <!-- 5. DEVICE MANAGEMENT (EXCLUSIVELY KIOSK MODE) -->
+              <!-- 5. DEVICE MANAGEMENT (EXCLUSIVELY KIOSK MODE ADMIN) -->
               {#if currentUser?.role === "admin" && !isQrMode}
                 <button
                   class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'devices' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
@@ -678,21 +688,24 @@
           </div>
 
           <div class="flex items-center space-x-3 shrink-0">
-            <button
-              on:click={toggleAppMode}
-              class="px-3 py-1.5 rounded-xl text-xs font-mono font-bold border transition-all flex items-center space-x-2 shadow-xs cursor-pointer {isQrMode ? 'bg-cyan-50 dark:bg-cyan-950 border-cyan-300 dark:border-cyan-500 text-cyan-900 dark:text-cyan-200' : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-cyan-400 hover:bg-slate-200 dark:hover:bg-slate-700'}"
-              title="Toggle App Program Engine (Ctrl + M)"
-            >
-              <span class="font-bold">{isQrMode ? "📱 Mode: Web QR Hub" : "🖥️ Mode: Enterprise Kiosk"}</span>
-              <kbd 
-                class="px-2 py-0.5 text-[10px] rounded font-mono font-extrabold border shadow-xs"
-                style={isDarkMode 
-                  ? "background-color: #0f172a !important; color: #f8fafc !important; border-color: #334155 !important;" 
-                  : "background-color: #ffffff !important; color: #0f172a !important; border-color: #cbd5e1 !important;"}
+            <!-- MODE SWITCHER: EXCLUSIVELY VISIBLE AND TOGGLEABLE FOR ADMINS -->
+            {#if currentUser?.role === 'admin'}
+              <button
+                on:click={toggleAppMode}
+                class="px-3 py-1.5 rounded-xl text-xs font-mono font-bold border transition-all flex items-center space-x-2 shadow-xs cursor-pointer {isQrMode ? 'bg-cyan-50 dark:bg-cyan-950 border-cyan-300 dark:border-cyan-500 text-cyan-900 dark:text-cyan-200' : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-cyan-400 hover:bg-slate-200 dark:hover:bg-slate-700'}"
+                title="Toggle App Program Engine (Ctrl + M)"
               >
-                Ctrl+M
-              </kbd>
-            </button>
+                <span class="font-bold">{isQrMode ? "📱 Mode: Web QR Hub" : "🖥️ Mode: Enterprise Kiosk"}</span>
+                <kbd 
+                  class="px-2 py-0.5 text-[10px] rounded font-mono font-extrabold border shadow-xs"
+                  style={isDarkMode 
+                    ? "background-color: #0f172a !important; color: #f8fafc !important; border-color: #334155 !important;" 
+                    : "background-color: #ffffff !important; color: #0f172a !important; border-color: #cbd5e1 !important;"}
+                >
+                  Ctrl+M
+                </kbd>
+              </button>
+            {/if}
 
             <button
               on:click={toggleTheme}
