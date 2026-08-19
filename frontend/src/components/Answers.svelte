@@ -13,11 +13,20 @@
   let endDate = "";
   let activePreset = "ALL";
   
+  function cleanString(str) {
+    return String(str || '').trim().toLowerCase();
+  }
+
   // MULTI-FORM SELECTION STATE
   let selectedSurveyIds = [];
 
   $: if (surveys.length > 0) {
-    if (isQrMode && selectedSurveyIds.length === 0) {
+    if (isQrMode && currentUser && currentUser.role === "site_leader" && currentUser.assignedSite) {
+      const userSite = cleanString(currentUser.assignedSite);
+      selectedSurveyIds = surveys
+        .filter(s => cleanString(s.assignedSite) === userSite)
+        .map(s => s._id);
+    } else if (isQrMode && selectedSurveyIds.length === 0) {
       selectedSurveyIds = surveys.map(s => s._id);
     } else if (selectedSurveyIds.length === 0) {
       if (activeSurveyId && surveys.some(s => s._id === activeSurveyId)) {
@@ -106,12 +115,10 @@
     '#ec4899'  // pink-500
   ];
 
-  function cleanString(str) {
-    return String(str || '').trim().toLowerCase();
-  }
-
-  // Active Selected Survey Objects
-  $: selectedSurveys = surveys.filter(s => selectedSurveyIds.includes(s._id));
+  // Active Selected Survey Objects (Strictly scoped to assignedSite for Site Leaders)
+  $: selectedSurveys = (isQrMode && currentUser && currentUser.role === "site_leader" && currentUser.assignedSite)
+    ? surveys.filter(s => cleanString(s.assignedSite) === cleanString(currentUser.assignedSite))
+    : surveys.filter(s => selectedSurveyIds.includes(s._id));
 
   // Form Titles array for clean matching
   $: selectedSurveyTitles = selectedSurveys.map(s => cleanString(s.title));
@@ -145,18 +152,18 @@
       if (!selectedSurveyTitles.includes(cleanString(r.surveyTitle))) return false;
     }
 
-    // 2. ROLE SCOPING FOR SITE LEADERS IN QR MODE
+    // 2. STRICT ROLE SCOPING FOR SITE LEADERS IN QR MODE
     if (isQrMode && currentUser && currentUser.role === "site_leader" && currentUser.assignedSite) {
-      const respSite = cleanString(r.deviceId);
       const userSite = cleanString(currentUser.assignedSite);
-      
       const parentSurvey = surveys.find(s => cleanString(s.title) === cleanString(r.surveyTitle));
-      const surveyAssignedSite = parentSurvey ? cleanString(parentSurvey.assignedSite) : "";
+      if (!parentSurvey) return false;
 
-      const matchesLocation = respSite === userSite;
-      const matchesFormSite = surveyAssignedSite === userSite;
+      const surveyAssignedSite = cleanString(parentSurvey.assignedSite);
+      const respSite = cleanString(r.deviceId);
 
-      if (!matchesLocation && !matchesFormSite) return false;
+      // Must belong to this site leader's assigned site and not be cross-tagged to another specific site
+      if (surveyAssignedSite !== userSite && respSite !== userSite) return false;
+      if (surveyAssignedSite && surveyAssignedSite !== userSite) return false;
     }
 
     // 3. TABLET DEVICE SELECTION FILTER (FOR ENTERPRISE KIOSK MODE)
@@ -567,7 +574,7 @@
     style="width: {leftPanelWidth}px;"
   >
     
-    <!-- SECTION 1: FORM SELECTOR FILTER -->
+    <!-- SECTION 1: FORM SELECTOR FILTER (ADMIN ONLY) -->
     {#if !currentUser || currentUser.role !== 'site_leader'}
       <div class="flex-1 space-y-2">
         <div class="flex items-center justify-between">
@@ -905,7 +912,7 @@
                           <span class="text-[9px] font-bold text-cyan-400 uppercase font-mono tracking-wider flex items-center space-x-1">
                             <span>Field #{qIdx + 1} • {question.type}</span>
                             <span class="text-slate-500 text-[9px] hidden sm:inline-flex items-center space-x-0.5 group-hover:text-cyan-300 transition-colors">
-                              <svg class="w-3 h-3 fill-current inline-block ml-1" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                              <svg class="w-3.5 h-3.5 fill-current inline-block ml-1" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
                               <span>Click to enlarge</span>
                             </span>
                           </span>
