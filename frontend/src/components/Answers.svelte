@@ -22,18 +22,21 @@
     let deviceScopes = [];
 
     if (user) {
-      // 1. Check assignedSites array
+      // 1. Site Leader Scopes
       if (Array.isArray(user.assignedSites) && user.assignedSites.length > 0) {
         siteScopes = user.assignedSites.map(cleanString);
       } else if (user.assignedSite) {
-        // 2. Fallback: string format (comma-separated or single)
         siteScopes = String(user.assignedSite).split(',').map(cleanString);
       }
 
-      // Devices
+      // 2. Kiosk Operator Scopes
       if (Array.isArray(user.assignedDevices) && user.assignedDevices.length > 0) {
         deviceScopes = user.assignedDevices.map(cleanString);
-      } else if (user.allowedDevices) {
+      } else if (Array.isArray(user.allowedDevices) && user.allowedDevices.length > 0) {
+        deviceScopes = user.allowedDevices.map(cleanString);
+      } else if (user.assignedDevice) {
+        deviceScopes = String(user.assignedDevice).split(',').map(cleanString);
+      } else if (user.allowedDevices && typeof user.allowedDevices === 'string') {
         deviceScopes = String(user.allowedDevices).split(',').map(cleanString);
       }
     }
@@ -54,6 +57,9 @@
       selectedSurveyIds = surveys
         .filter(s => userAssignedSites.includes(cleanString(s.assignedSite)))
         .map(s => s._id);
+    } else if (!isQrMode && currentUser && (currentUser.role === "kiosk_operator" || currentUser.role === "user")) {
+      // Kiosk operators select all active forms so all assigned devices' logs are displayed
+      selectedSurveyIds = surveys.map(s => s._id);
     } else if (isQrMode && selectedSurveyIds.length === 0) {
       selectedSurveyIds = surveys.map(s => s._id);
     } else if (selectedSurveyIds.length === 0) {
@@ -137,10 +143,12 @@
     '#06b6d4', '#f59e0b', '#10b981', '#3b82f6', '#f43f5e', '#8b5cf6', '#ec4899'
   ];
 
-  // Active Selected Survey Objects (Strictly scoped to userAssignedSites for Site Leaders)
+  // Active Selected Survey Objects
   $: selectedSurveys = (isQrMode && currentUser && currentUser.role === "site_leader")
     ? surveys.filter(s => userAssignedSites.includes(cleanString(s.assignedSite)))
-    : surveys.filter(s => selectedSurveyIds.includes(s._id));
+    : (!isQrMode && currentUser && (currentUser.role === "kiosk_operator" || currentUser.role === "user"))
+      ? surveys
+      : surveys.filter(s => selectedSurveyIds.includes(s._id));
 
   $: selectedSurveyTitles = selectedSurveys.map(s => cleanString(s.title));
 
@@ -171,14 +179,7 @@
   }, []);
 
   $: filteredResponses = responses.filter((r) => {
-    // 1. STRICT FORM SELECTION FILTER
-    if (selectedSurveys.length > 0) {
-      if (!selectedSurveyTitles.includes(cleanString(r.surveyTitle))) return false;
-    } else if (currentUser && currentUser.role === "site_leader") {
-      return false; // If Site Leader has 0 matching surveys selected, show 0 responses
-    }
-
-    // 2. STRICT MULTI-SITE SCOPING FOR SITE LEADERS (WEB QR MODE)
+    // 1. STRICT MULTI-SITE SCOPING FOR SITE LEADERS (WEB QR MODE)
     if (isQrMode && currentUser && currentUser.role === "site_leader") {
       if (userAssignedSites.length === 0) return false;
 
@@ -192,21 +193,25 @@
       if (!matchesAssigned) return false;
     }
 
-    // 3. STRICT MULTI-DEVICE SCOPING FOR KIOSK OPERATORS (ENTERPRISE KIOSK MODE)
-    if (!isQrMode && currentUser && (currentUser.role === 'kiosk_operator' || currentUser.role === 'user')) {
-      if (userAssignedDevices.length > 0) {
-        const respDevice = cleanString(r.deviceId || "Tablet-A");
-        if (!userAssignedDevices.includes(respDevice)) return false;
+    // 2. STRICT MULTI-DEVICE SCOPING FOR KIOSK OPERATORS (ENTERPRISE KIOSK MODE)
+    else if (!isQrMode && currentUser && (currentUser.role === 'kiosk_operator' || currentUser.role === 'user')) {
+      if (userAssignedDevices.length === 0) return false; // Block access if no devices are assigned
+      const respDevice = cleanString(r.deviceId || "Tablet-A");
+      if (!userAssignedDevices.includes(respDevice)) return false; // Strictly only allow assigned devices
+    }
+
+    // 3. ADMIN FORM & DEVICE SELECTION FILTERS
+    else {
+      if (selectedSurveys.length > 0) {
+        if (!selectedSurveyTitles.includes(cleanString(r.surveyTitle))) return false;
+      }
+      if (!isQrMode && selectedDevices.length > 0) {
+        const respDevice = r.deviceId || "Tablet-A";
+        if (!selectedDevices.includes(respDevice)) return false;
       }
     }
 
-    // 4. TABLET DEVICE SELECTION FILTER (FOR ADMINS IN ENTERPRISE KIOSK MODE)
-    if (!isQrMode && selectedDevices.length > 0) {
-      const respDevice = r.deviceId || "Tablet-A";
-      if (!selectedDevices.includes(respDevice)) return false;
-    }
-
-    // 5. DATE RANGE FILTERS
+    // 4. DATE RANGE FILTERS
     if (startDate || endDate) {
       const responseTime = new Date(r.timestamp).getTime();
       
@@ -608,8 +613,31 @@
     style="width: {leftPanelWidth}px;"
   >
     
-    <!-- SECTION 1: FORM SELECTOR FILTER (ADMIN ONLY) -->
-    {#if !currentUser || currentUser.role !== 'site_leader'}
+    <!-- SECTION 1: ROLE-BASED SCOPE BANNERS & FORM SELECTOR -->
+    {#if isQrMode && currentUser?.role === 'site_leader'}
+      <!-- SITE LEADER SCOPED BANNER (WEB QR MODE) -->
+      <div class="p-3 bg-cyan-950/50 border border-cyan-800/60 rounded-xl space-y-1">
+        <div class="flex items-center space-x-2">
+          <span class="h-2 w-2 rounded-full bg-cyan-400 animate-ping"></span>
+          <span class="text-xs font-bold text-cyan-300 uppercase tracking-wider font-mono">Scoped Site Database</span>
+        </div>
+        <p class="text-[10px] text-slate-400 leading-tight">
+          Submissions are automatically filtered to: <strong class="text-emerald-400 font-mono">{userAssignedSites.length > 0 ? userAssignedSites.join(', ') : 'Assigned Sites'}</strong>.
+        </p>
+      </div>
+    {:else if !isQrMode && (currentUser?.role === 'kiosk_operator' || currentUser?.role === 'user')}
+      <!-- KIOSK OPERATOR SCOPED BANNER (ENTERPRISE KIOSK MODE) -->
+      <div class="p-3 bg-emerald-950/50 border border-emerald-800/60 rounded-xl space-y-1">
+        <div class="flex items-center space-x-2">
+          <span class="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span class="text-xs font-bold text-emerald-300 uppercase tracking-wider font-mono">Scoped Device Database</span>
+        </div>
+        <p class="text-[10px] text-slate-400 leading-tight">
+          Submissions are automatically filtered to devices: <strong class="text-emerald-400 font-mono">{userAssignedDevices.length > 0 ? userAssignedDevices.join(', ') : 'Assigned Devices'}</strong>.
+        </p>
+      </div>
+    {:else}
+      <!-- ADMIN FORM SELECTOR FILTER -->
       <div class="flex-1 space-y-2">
         <div class="flex items-center justify-between">
           <div>
@@ -636,7 +664,7 @@
               class="w-full bg-slate-950 border border-slate-800 text-[10px] text-slate-200 pl-7 pr-2 py-1.5 rounded-lg focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600"
             />
             <svg class="w-3.5 h-3.5 fill-current text-slate-500 absolute left-2 top-2" viewBox="0 0 24 24">
-              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 14z"/>
             </svg>
           </div>
         {/if}
@@ -682,21 +710,10 @@
           {/each}
         </div>
       </div>
-    {:else}
-      <!-- SITE LEADER SCOPED BANNER (WEB QR MODE) -->
-      <div class="p-3 bg-cyan-950/50 border border-cyan-800/60 rounded-xl space-y-1">
-        <div class="flex items-center space-x-2">
-          <span class="h-2 w-2 rounded-full bg-cyan-400 animate-ping"></span>
-          <span class="text-xs font-bold text-cyan-300 uppercase tracking-wider font-mono">Scoped Site Database</span>
-        </div>
-        <p class="text-[10px] text-slate-400 leading-tight">
-          Submissions are automatically filtered to: <strong class="text-emerald-400 font-mono">{userAssignedSites.length > 0 ? userAssignedSites.join(', ') : 'Assigned Sites'}</strong>.
-        </p>
-      </div>
     {/if}
 
-    <!-- SECTION 2: HARDWARE TABLET SITES FILTER (ENTERPRISE KIOSK MODE) -->
-    {#if !isQrMode}
+    <!-- SECTION 2: HARDWARE TABLET SITES FILTER (ADMIN ONLY IN ENTERPRISE KIOSK MODE) -->
+    {#if !isQrMode && currentUser?.role === 'admin'}
       <div class="flex-1 pt-2 sm:pt-0 lg:pt-2 border-t sm:border-t-0 lg:border-t border-slate-800/80 space-y-2 shrink-0">
         <div class="flex items-center justify-between">
           <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
@@ -748,7 +765,7 @@
                     class="accent-emerald-500 w-3 h-3 rounded shrink-0 pointer-events-none"
                   />
                   <span class="truncate flex items-center space-x-1">
-                    <svg class="w-3 h-3 fill-current inline-block shrink-0 opacity-70 group-hover:opacity-100" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+                    <svg class="w-3.5 h-3.5 fill-current text-slate-400 shrink-0" viewBox="0 0 24 24"><path d="M4 6h16v10H4V6zm16 12c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4z"/></svg>
                     <span class="truncate">{devId}</span>
                   </span>
                 </div>
@@ -830,6 +847,8 @@
         <h2 class="text-sm sm:text-base font-bold text-white tracking-tight border-l-2 border-cyan-500 pl-2.5">
           {#if currentUser?.role === "site_leader"}
             Web QR Consolidated Response Hub <span class="text-cyan-400 font-mono text-xs">({userAssignedSites.length > 0 ? userAssignedSites.join(', ') : 'Assigned Sites'})</span>
+          {:else if currentUser?.role === "kiosk_operator" || currentUser?.role === "user"}
+            Enterprise Kiosk Response Hub <span class="text-emerald-400 font-mono text-xs">({userAssignedDevices.length > 0 ? userAssignedDevices.join(', ') : 'Assigned Devices'})</span>
           {:else if selectedSurveys.length === 1}
             {selectedSurveys[0].title}
           {:else if selectedSurveys.length > 1}
@@ -842,6 +861,8 @@
           Showing <span class="text-cyan-400 font-bold">{filteredResponses.length}</span> matching submission records 
           {#if currentUser?.role === "site_leader"}
             (Scoped to: <span class="text-emerald-400 font-mono font-bold">{userAssignedSites.length > 0 ? userAssignedSites.join(', ') : 'Assigned Sites'}</span>)
+          {:else if currentUser?.role === "kiosk_operator" || currentUser?.role === "user"}
+            (Scoped to Devices: <span class="text-emerald-400 font-mono font-bold">{userAssignedDevices.length > 0 ? userAssignedDevices.join(', ') : 'Assigned Devices'}</span>)
           {:else if selectedDevices.length > 0}
             (Filtered by: <span class="text-emerald-400 font-mono font-bold">{selectedDevices.join(', ')}</span>)
           {:else if selectedSurveys.length > 0}
@@ -911,7 +932,7 @@
     <div class="flex-1 overflow-y-auto mt-3 custom-scrollbar pr-1 box-border">
       {#if filteredResponses.length === 0}
         <div class="border-2 border-dashed border-slate-800 rounded-2xl p-8 text-center text-slate-500 text-xs">
-          No submission records match your active location/search parameters.
+          No submission records match your active location/device parameters.
         </div>
 
       {:else if activeViewMode === "analytics"}
@@ -946,7 +967,7 @@
                           <span class="text-[9px] font-bold text-cyan-400 uppercase font-mono tracking-wider flex items-center space-x-1">
                             <span>Field #{qIdx + 1} • {question.type}</span>
                             <span class="text-slate-500 text-[9px] hidden sm:inline-flex items-center space-x-0.5 group-hover:text-cyan-300 transition-colors">
-                              <svg class="w-3.5 h-3.5 fill-current inline-block ml-1" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                              <svg class="w-3.5 h-3.5 fill-current inline-block ml-1" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 14z"/></svg>
                               <span>Click to enlarge</span>
                             </span>
                           </span>
@@ -1081,9 +1102,7 @@
                   </td>
                   <td class="p-2.5 border-r border-slate-800/40">
                     <span class="text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 font-mono font-bold px-2 py-0.5 rounded text-[10px] inline-flex items-center space-x-1">
-                      {#if !isQrMode}
-                        <svg class="w-3 h-3 fill-current inline-block shrink-0" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
-                      {/if}
+                      <svg class="w-3.5 h-3.5 fill-current inline-block shrink-0" viewBox="0 0 24 24"><path d="M4 6h16v10H4V6zm16 12c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4z"/></svg>
                       <span>{response.deviceId || 'Site-A'}</span>
                     </span>
                   </td>
@@ -1151,9 +1170,7 @@
                     {alert.formTitle}
                   </span>
                   <span class="text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 font-mono font-bold px-2 py-0.5 rounded text-[10px] flex items-center space-x-1">
-                    {#if !isQrMode}
-                      <svg class="w-3 h-3 fill-current inline-block" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
-                    {/if}
+                    <svg class="w-3.5 h-3.5 fill-current inline-block shrink-0" viewBox="0 0 24 24"><path d="M4 6h16v10H4V6zm16 12c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4z"/></svg>
                     <span>{alert.deviceId}</span>
                   </span>
                 </div>
