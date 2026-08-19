@@ -74,7 +74,7 @@
 
   $: ({ siteScopes: userAssignedSites, deviceScopes: userAssignedDevices } = parseUserScopes(currentUser));
 
-  // Compute all authorized form titles across the operator's assigned devices
+  // Operator authorized form names from Device Registry
   $: operatorAuthorizedForms = Array.from(new Set(
     registeredDevicesList
       .filter(d => userAssignedDevices.includes(cleanString(d.deviceName)))
@@ -90,16 +90,19 @@
         .filter(s => userAssignedSites.includes(cleanString(s.assignedSite)))
         .map(s => s._id);
     } else if (!isQrMode && currentUser && (currentUser.role === "kiosk_operator" || currentUser.role === "user")) {
-      // Force all surveys authorized in device registry to appear immediately for this operator
-      selectedSurveyIds = surveys
-        .filter(s => {
-          const sTitle = cleanString(s.title);
-          if (operatorAuthorizedForms.length === 0) return true; // Fallback if registry hasn't loaded yet
-          return operatorAuthorizedForms.includes(sTitle) || 
-                 operatorAuthorizedForms.includes('all') || 
-                 operatorAuthorizedForms.includes('all forms');
-        })
-        .map(s => s._id);
+      if (isDevicesLoaded) {
+        selectedSurveyIds = surveys
+          .filter(s => {
+            const sTitle = cleanString(s.title);
+            if (operatorAuthorizedForms.length === 0) return true;
+            return operatorAuthorizedForms.includes(sTitle) || 
+                   operatorAuthorizedForms.includes('all') || 
+                   operatorAuthorizedForms.includes('all forms');
+          })
+          .map(s => s._id);
+      } else {
+        selectedSurveyIds = [];
+      }
     } else if (isQrMode && selectedSurveyIds.length === 0) {
       selectedSurveyIds = surveys.map(s => s._id);
     } else if (selectedSurveyIds.length === 0) {
@@ -111,7 +114,6 @@
     }
   }
 
-  // SEARCH FILTER STATES
   let formSearchQuery = "";
   let selectedDevices = [];
   let deviceSearchQuery = "";
@@ -173,7 +175,6 @@
     '#06b6d4', '#f59e0b', '#10b981', '#3b82f6', '#f43f5e', '#8b5cf6', '#ec4899'
   ];
 
-  // Active Selected Survey Objects
   $: selectedSurveys = (isQrMode && currentUser && currentUser.role === "site_leader")
     ? surveys.filter(s => userAssignedSites.includes(cleanString(s.assignedSite)))
     : (!isQrMode && currentUser && (currentUser.role === "kiosk_operator" || currentUser.role === "user"))
@@ -207,7 +208,7 @@
     return acc;
   }, []);
 
-  // Strict Device Scoping Filter for Responses
+  // Strict Device Scoping Filter for Responses (Case-insensitive matching)
   $: filteredResponses = responses.filter((r) => {
     if (isQrMode && currentUser && currentUser.role === "site_leader") {
       if (userAssignedSites.length === 0) return false;
@@ -225,8 +226,9 @@
       if (userAssignedDevices.length === 0) return false;
       const respDevice = cleanString(r.deviceId || "Tablet-A");
       
-      // Must strictly belong to the operator's assigned devices
-      if (!userAssignedDevices.includes(respDevice)) return false;
+      // Check if response device matches operator's assigned devices case-insensitively
+      const isAssignedDeviceMatch = userAssignedDevices.some(dev => cleanString(dev) === respDevice);
+      if (!isAssignedDeviceMatch) return false;
     }
     else {
       if (selectedSurveys.length > 0) {
