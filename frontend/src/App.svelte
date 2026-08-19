@@ -161,11 +161,6 @@
       document.documentElement.classList.add('dark');
     }
 
-    const savedAppMode = localStorage.getItem("sdx_app_mode");
-    if (savedAppMode === "qr") {
-      isQrMode = true;
-    }
-
     const hash = window.location.hash;
     const urlParams = new URLSearchParams(
       hash.includes("?") ? hash.split("?")[1] : window.location.search,
@@ -186,10 +181,13 @@
     const storedToken = localStorage.getItem("sdx_token");
 
     // UNATHENTICATED PUBLIC SCAN OR DIRECT SURVEY ID LINK
-    if (!storedToken && (urlSurveyId || modeParam === 'qr' || window.location.search.includes("mode=qr") || hash.includes("kiosk"))) {
-      if (modeParam === 'qr' || window.location.search.includes("mode=qr") || !modeParam) {
+    if (!storedToken && (urlSurveyId || modeParam || window.location.search.includes("mode=") || hash.includes("kiosk"))) {
+      if (modeParam === 'qr') {
         isQrMode = true;
         localStorage.setItem("sdx_app_mode", "qr");
+      } else if (modeParam === 'kiosk') {
+        isQrMode = false;
+        localStorage.setItem("sdx_app_mode", "kiosk");
       }
       activeTab = "kiosk";
       isDedicatedKioskMode = true;
@@ -218,6 +216,8 @@
           } else if (currentUser.role !== "admin") {
             activeTab = "answers";
           } else {
+            const savedAppMode = localStorage.getItem("sdx_app_mode");
+            isQrMode = savedAppMode === "qr";
             const route = hash.replace("#/", "").split("?")[0];
             if (["surveys", "builder", "kiosk", "answers", "devices", "users"].includes(route)) {
               activeTab = route;
@@ -284,7 +284,6 @@
       if (surveyData.success) {
         let rawSurveys = (surveyData.surveys || []).map(normalizeSurvey);
 
-        // Fallback: If URL has a specific ID not returned in the current mode query, fetch other mode
         if (urlSurveyId && !rawSurveys.some(s => s._id === urlSurveyId)) {
           try {
             const fallbackRes = await fetch(`${API_BASE}/surveys?mode=${isQrMode ? 'kiosk' : 'qr'}`);
@@ -301,6 +300,10 @@
 
         if (urlSurveyId && surveysList.some(s => s._id === urlSurveyId)) {
           activeSurveyId = urlSurveyId;
+          const targetSurveyObj = surveysList.find(s => s._id === urlSurveyId);
+          if (targetSurveyObj && targetSurveyObj.appMode === 'kiosk' && !currentUser) {
+            isQrMode = false;
+          }
         } else if (!activeSurveyId && surveysList.length > 0 && activeTab !== "kiosk") {
           activeSurveyId = surveysList[0]._id;
         }
@@ -504,7 +507,7 @@
     const surveyId = typeof survey === 'object' ? survey._id : survey;
     const isQrSurvey = typeof survey === 'object' ? survey.appMode === 'qr' : isQrMode;
     
-    const modeString = (forceQr || isQrSurvey) ? '&mode=qr' : '';
+    const modeString = (forceQr || isQrSurvey) ? '&mode=qr' : '&mode=kiosk';
 
     let targetSite = "";
     if (typeof survey === 'object' && survey.assignedSite) {
@@ -520,7 +523,7 @@
   function copyKioskLink(survey, forceQr = false) {
     const directLink = getKioskLink(survey, forceQr);
     navigator.clipboard.writeText(directLink).then(() => {
-      copyBannerMessage = "✓ Public Web Link copied to clipboard!";
+      copyBannerMessage = "✓ Link copied to clipboard!";
       setTimeout(() => {
         copyBannerMessage = "";
       }, 3000);
@@ -539,14 +542,12 @@
   </div>
 
 {:else if !currentUser && !isDedicatedKioskMode}
-  <!-- UNAUTHENTICATED USER VIEW -->
   <Login onLoginSuccess={handleLoginSuccess} {isQrMode} />
 
 {:else}
-  <!-- AUTHENTICATED PORTAL WORKSPACE -->
   <div class="flex h-screen w-screen max-w-full max-h-screen theme-bg-main theme-text-primary overflow-hidden m-0 p-0 fixed inset-0">
     
-    <!-- PROFESSIONAL COLLAPSIBLE SIDEBAR: HIDDEN WHEN FILLING FORMS (activeTab === 'kiosk') -->
+    <!-- SIDEBAR -->
     {#if !isDedicatedKioskMode && activeTab !== 'kiosk'}
       <aside class="{isSidebarExpanded ? 'w-64' : 'w-20'} theme-bg-sidebar theme-border border-r flex flex-col justify-between shrink-0 h-full z-40 transition-all duration-300 overflow-hidden text-slate-100">
         <div class="flex flex-col h-full justify-between">
@@ -580,7 +581,6 @@
             <!-- NAVIGATION ITEMS -->
             <nav class="p-3 space-y-2">
               {#if currentUser?.role === "admin"}
-                <!-- 1. SURVEYS PORTAL -->
                 <button
                   class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'surveys' ? (isQrMode ? 'bg-cyan-600 text-white shadow-md' : 'bg-[#1a2b6c] text-white shadow-md') : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={() => switchTab("surveys")}
@@ -594,7 +594,6 @@
                   {/if}
                 </button>
 
-                <!-- 2. FORM DESIGNER -->
                 <button
                   class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'builder' ? (isQrMode ? 'bg-cyan-600 text-white shadow-md' : 'bg-[#1a2b6c] text-white shadow-md') : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                   on:click={() => switchTab("builder")}
@@ -610,7 +609,6 @@
                 </button>
               {/if}
 
-              <!-- 3. LIVE KIOSK / PREVIEW MODE (HIDDEN FOR SITE LEADERS & OPERATORS) -->
               {#if currentUser?.role !== "site_leader" && currentUser?.role !== "kiosk_operator" && currentUser?.role !== "user"}
                 <button
                   class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'kiosk' ? (isQrMode ? 'bg-cyan-600 text-white shadow-md' : 'bg-[#1a2b6c] text-white shadow-md') : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
@@ -626,7 +624,6 @@
                 </button>
               {/if}
 
-              <!-- 4. ANSWERS LOG (EXCLUSIVELY VISIBLE FOR SITE LEADERS & OPERATORS) -->
               <button
                 class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'answers' ? (isQrMode ? 'bg-cyan-600 text-white shadow-md' : 'bg-[#1a2b6c] text-white shadow-md') : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
                 on:click={() => switchTab("answers")}
@@ -642,7 +639,6 @@
                 {/if}
               </button>
 
-              <!-- 5. DEVICE MANAGEMENT (EXCLUSIVELY KIOSK MODE ADMIN) -->
               {#if currentUser?.role === "admin" && !isQrMode}
                 <button
                   class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'devices' ? 'bg-[#1a2b6c] text-white shadow-md' : 'text-slate-300 hover:bg-white/10 hover:text-white'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
@@ -658,7 +654,6 @@
                 </button>
               {/if}
 
-              <!-- 6. MODE-AWARE USER CONTROL (ADMIN ONLY) -->
               {#if currentUser?.role === "admin"}
                 <button
                   class="w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer {activeTab === 'users' ? (isQrMode ? 'bg-cyan-600 text-white shadow-md' : 'bg-[#e31b23] text-white shadow-md') : 'text-rose-400 hover:bg-white/10 hover:text-rose-300'} {isSidebarExpanded ? '' : 'justify-center px-0'}"
@@ -691,10 +686,9 @@
       </aside>
     {/if}
 
-    <!-- MAIN BODY CANVAS -->
+    <!-- MAIN CANVAS -->
     <div class="flex-1 flex flex-col h-full min-w-0 max-w-full overflow-hidden relative">
       
-      <!-- STICKY TOP NAVIGATION BAR: HIDDEN WHEN FILLING FORMS (activeTab === 'kiosk') -->
       {#if !isDedicatedKioskMode && activeTab !== 'kiosk'}
         <header class="sticky top-0 z-30 w-full h-16 theme-bg-card theme-border border-b flex items-center justify-between px-4 sm:px-6 shrink-0 box-border transition-colors duration-300 theme-shadow">
           <div class="flex items-center space-x-3 min-w-0">
@@ -711,7 +705,6 @@
           </div>
 
           <div class="flex items-center space-x-3 shrink-0">
-            <!-- MODE SWITCHER: EXCLUSIVELY VISIBLE AND TOGGLEABLE FOR ADMINS -->
             {#if currentUser?.role === 'admin'}
               <button
                 on:click={toggleAppMode}
@@ -774,7 +767,7 @@
         </header>
       {/if}
 
-      <!-- SCROLLABLE CANVAS -->
+      <!-- CANVAS BODY -->
       <main class="flex-1 theme-bg-main overflow-y-auto overflow-x-hidden w-full max-w-full box-border transition-colors duration-300 {activeTab === 'kiosk' || isDedicatedKioskMode ? 'p-0' : 'p-4 sm:p-6 lg:p-8'}">
         <div class="w-full h-full min-w-0 max-w-full {activeTab === 'kiosk' || isDedicatedKioskMode ? '' : 'max-w-7xl mx-auto'}">
           {#if activeTab === "surveys" && currentUser?.role === "admin"}
@@ -857,7 +850,9 @@
         </button>
 
         <div class="space-y-1">
-          <span class="text-[10px] font-bold text-[#e31b23] dark:text-rose-400 tracking-widest uppercase block font-mono">Public Scan QR Code</span>
+          <span class="text-[10px] font-bold text-[#e31b23] dark:text-rose-400 tracking-widest uppercase block font-mono">
+            {activeShareSurvey.appMode === 'qr' ? 'Public Scan QR Code' : 'Enterprise Terminal Link / QR'}
+          </span>
           <h3 class="text-base sm:text-lg font-extrabold text-[#1a2b6c] dark:text-white truncate max-w-[280px] mx-auto">{activeShareSurvey.title}</h3>
         </div>
 
@@ -870,7 +865,9 @@
         </div>
 
         <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto px-2 leading-relaxed">
-          Scan this QR code to load and complete this survey directly on any phone or browser.
+          {activeShareSurvey.appMode === 'qr' 
+            ? 'Scan this QR code to load and complete this survey directly on any phone or browser.' 
+            : 'Scan or open on a kiosk tablet. Requires Device PIN code before launching.'}
         </p>
 
         {#if copyBannerMessage}

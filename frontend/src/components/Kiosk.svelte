@@ -38,6 +38,9 @@
   $: currentQuestion = questions[currentQuestionIndex] || null;
   $: currentSurvey = surveys.find(s => s._id === activeSurveyId) || null;
 
+  // Mode check: A survey requires PIN if app is in Kiosk mode OR the survey is an Enterprise Kiosk survey
+  $: isKioskSurvey = currentSurvey ? (currentSurvey.appMode === 'kiosk') : !isQrMode;
+
   function parseOptionText(opt) {
     if (typeof opt === 'string') {
       try {
@@ -76,6 +79,7 @@
     const urlParams = new URLSearchParams(hash.includes("?") ? hash.split("?")[1] : window.location.search);
     const urlSurveyId = urlParams.get("id");
     const urlSiteParam = urlParams.get("site");
+    const modeParam = urlParams.get("mode");
     const savedDeviceId = localStorage.getItem("sdx_device_id");
 
     if (urlSiteParam) {
@@ -89,13 +93,15 @@
     if (targetId) {
       const targetSurvey = surveys.find(s => s._id === targetId);
       if (targetSurvey) {
-        if (isQrMode) {
+        const requiresPin = targetSurvey.appMode === 'kiosk' || modeParam === 'kiosk' || (!isQrMode && targetSurvey.appMode !== 'qr');
+        if (!requiresPin) {
           isPinVerifiedForCurrentSurvey = true;
           onSelectSurvey(targetSurvey._id);
           resetTerminal();
         } else {
           isPinVerifiedForCurrentSurvey = false;
           selectedSurveyForPin = targetSurvey;
+          onSelectSurvey(targetSurvey._id);
         }
       }
     }
@@ -104,7 +110,8 @@
   $: if (activeSurveyId && surveys.length > 0 && !isPinVerifiedForCurrentSurvey && !selectedSurveyForPin) {
     const matched = surveys.find(s => s._id === activeSurveyId);
     if (matched) {
-      if (isQrMode) {
+      const requiresPin = matched.appMode === 'kiosk' || (!isQrMode && matched.appMode !== 'qr');
+      if (!requiresPin) {
         isPinVerifiedForCurrentSurvey = true;
       } else {
         isPinVerifiedForCurrentSurvey = false;
@@ -114,7 +121,8 @@
   }
 
   function handlePromptSurveyPin(survey) {
-    if (isQrMode) {
+    const requiresPin = survey.appMode === 'kiosk' || (!isQrMode && survey.appMode !== 'qr');
+    if (!requiresPin) {
       isPinVerifiedForCurrentSurvey = true;
       onSelectSurvey(survey._id);
       selectedSurveyForPin = null;
@@ -131,14 +139,6 @@
   async function verifyFormPinAndLaunch() {
     pinError = "";
     if (!selectedSurveyForPin) return;
-
-    if (isQrMode) {
-      isPinVerifiedForCurrentSurvey = true;
-      onSelectSurvey(selectedSurveyForPin._id);
-      selectedSurveyForPin = null;
-      resetTerminal();
-      return;
-    }
 
     const cleanPin = String(enteredFormPin || "").trim();
 
@@ -359,8 +359,8 @@
 <div class="w-full h-full min-h-screen flex-1 bg-slate-100 text-slate-800 p-3 sm:p-6 lg:p-8 font-sans box-border overflow-y-auto flex flex-col justify-between select-none">
   <main class="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center min-h-0 py-6 sm:py-10 box-border relative my-auto">
     
-    <!-- PURE BLUR OVERLAY (STRICTLY REQUIRED FOR ENTERPRISE KIOSK MODE UNTIL VERIFIED) -->
-    {#if !isQrMode && !isPinVerifiedForCurrentSurvey}
+    <!-- PIN PROMPT (MANDATORY FOR KIOSK SURVEYS UNTIL VERIFIED) -->
+    {#if isKioskSurvey && !isPinVerifiedForCurrentSurvey}
       <div in:scale={{ duration: 200 }} class="fixed inset-0 z-50 backdrop-blur-xl bg-slate-900/60 flex items-center justify-center p-4">
         <div class="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center space-y-4 shadow-2xl relative">
           <div class="space-y-1">
@@ -454,11 +454,11 @@
 
                 <div class="flex items-center justify-between pt-3 border-t border-slate-200">
                   <span class="text-[11px] text-slate-600 font-semibold group-hover:text-slate-900 transition-colors">
-                    {isQrMode ? "Public Web Access" : "PIN Protected"}
+                    {survey.appMode === 'qr' ? "Public Web Access" : "PIN Protected"}
                   </span>
                   <span class="text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition-all flex items-center space-x-1.5 group-hover:scale-105 bg-[#1a2b6c] group-hover:bg-[#e31b23] text-white" style="color: #ffffff !important; background-color: #1a2b6c !important;">
                     <span style="color: #ffffff !important; font-weight: 800 !important;">
-                      {isQrMode ? "Launch Web Form ➔" : "Enter PIN & Launch ➔"}
+                      {survey.appMode === 'qr' ? "Launch Web Form ➔" : "Enter PIN & Launch ➔"}
                     </span>
                   </span>
                 </div>
@@ -488,8 +488,8 @@
         </p>
       </div>
 
-    {:else if isQrMode || isPinVerifiedForCurrentSurvey}
-      <!-- ACTIVE FORM FILLING CANVAS: BALANCED VERTICAL CENTERING & PADDING -->
+    {:else if (!isKioskSurvey) || isPinVerifiedForCurrentSurvey}
+      <!-- ACTIVE FORM CANVAS -->
       <div key={currentQuestionIndex} in:fly={{ y: 15, duration: 350 }} class="w-full bg-white border border-slate-200 rounded-3xl p-5 sm:p-8 lg:p-10 shadow-xl flex flex-col justify-between box-border my-auto">
         
         <!-- TOP PROGRESS HEADER -->
@@ -636,9 +636,7 @@
             </div>
 
           {:else if getNormalizedType(currentQuestion.type) === 'dropdown'}
-            <!-- ELEGANT COMBOBOX WITH SEARCH & "OTHER" TEXT FIELD -->
             <div class="w-full max-w-lg mx-auto space-y-4 my-auto relative" bind:this={dropdownContainerRef}>
-              
               <div class="relative">
                 <button 
                   type="button"
@@ -658,7 +656,6 @@
                     in:scale={{ duration: 150, start: 0.98 }}
                     class="absolute z-[9999] top-full mt-2 left-0 right-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-64"
                   >
-                    <!-- SEARCH INPUT HEADER -->
                     <div class="p-3 border-b border-slate-100 bg-slate-50 shrink-0">
                       <div class="relative flex items-center">
                         <input 
@@ -671,7 +668,6 @@
                       </div>
                     </div>
 
-                    <!-- SCROLLABLE CHOICES LIST -->
                     <div class="overflow-y-auto custom-scrollbar flex-1 p-1">
                       {#if filteredDropdownOptions.length === 0}
                         <div class="p-4 text-center text-xs text-slate-400 font-semibold">
@@ -702,7 +698,6 @@
                 {/if}
               </div>
 
-              <!-- SMOOTH EXPANDING TEXT FIELD FOR "OTHER" OPTION -->
               {#if selectedValue === 'Other'}
                 <div in:fly={{ y: -8, duration: 200 }} class="space-y-1.5 pt-1">
                   <label for="other-input" class="text-xs font-bold text-[#1a2b6c] block">Please specify your answer:</label>
