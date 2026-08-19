@@ -185,9 +185,12 @@
 
     const storedToken = localStorage.getItem("sdx_token");
 
-    if (!storedToken && (urlSurveyId || modeParam === 'qr' || window.location.search.includes("mode=qr"))) {
-      isQrMode = true;
-      localStorage.setItem("sdx_app_mode", "qr");
+    // UNATHENTICATED PUBLIC SCAN OR DIRECT SURVEY ID LINK
+    if (!storedToken && (urlSurveyId || modeParam === 'qr' || window.location.search.includes("mode=qr") || hash.includes("kiosk"))) {
+      if (modeParam === 'qr' || window.location.search.includes("mode=qr") || !modeParam) {
+        isQrMode = true;
+        localStorage.setItem("sdx_app_mode", "qr");
+      }
       activeTab = "kiosk";
       isDedicatedKioskMode = true;
       isSidebarExpanded = false;
@@ -266,6 +269,12 @@
 
   async function refreshDataLedger() {
     try {
+      const hash = window.location.hash;
+      const urlParams = new URLSearchParams(
+        hash.includes("?") ? hash.split("?")[1] : window.location.search,
+      );
+      const urlSurveyId = urlParams.get("id");
+
       const currentModeQuery = isQrMode ? "qr" : "kiosk";
       const surveyRes = await fetch(`${API_BASE}/surveys?mode=${currentModeQuery}`);
       if (!surveyRes.ok) {
@@ -275,10 +284,24 @@
       if (surveyData.success) {
         let rawSurveys = (surveyData.surveys || []).map(normalizeSurvey);
 
+        // Fallback: If URL has a specific ID not returned in the current mode query, fetch other mode
+        if (urlSurveyId && !rawSurveys.some(s => s._id === urlSurveyId)) {
+          try {
+            const fallbackRes = await fetch(`${API_BASE}/surveys?mode=${isQrMode ? 'kiosk' : 'qr'}`);
+            const fallbackData = await fallbackRes.json();
+            if (fallbackData.success && Array.isArray(fallbackData.surveys)) {
+              const extraSurveys = fallbackData.surveys.map(normalizeSurvey);
+              rawSurveys = [...rawSurveys, ...extraSurveys];
+            }
+          } catch (e) {}
+        }
+
         surveysList = rawSurveys;
         isOfflineMode = false;
 
-        if (!activeSurveyId && surveysList.length > 0 && activeTab !== "kiosk") {
+        if (urlSurveyId && surveysList.some(s => s._id === urlSurveyId)) {
+          activeSurveyId = urlSurveyId;
+        } else if (!activeSurveyId && surveysList.length > 0 && activeTab !== "kiosk") {
           activeSurveyId = surveysList[0]._id;
         }
       }

@@ -85,8 +85,9 @@
       deviceId = savedDeviceId;
     }
 
-    if (urlSurveyId) {
-      const targetSurvey = surveys.find(s => s._id === urlSurveyId);
+    const targetId = urlSurveyId || activeSurveyId;
+    if (targetId) {
+      const targetSurvey = surveys.find(s => s._id === targetId);
       if (targetSurvey) {
         if (isQrMode) {
           isPinVerifiedForCurrentSurvey = true;
@@ -355,7 +356,7 @@
 <div class="w-full h-full min-h-screen flex-1 bg-slate-100 text-slate-800 p-3 sm:p-6 lg:p-8 font-sans box-border overflow-y-auto flex flex-col justify-between select-none">
   <main class="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center min-h-0 py-6 sm:py-10 box-border relative my-auto">
     
-    <!-- PURE BLUR OVERLAY (EXCLUSIVELY FOR KIOSK MODE) -->
+    <!-- PURE BLUR OVERLAY (EXCLUSIVELY FOR KIOSK PIN MODE) -->
     {#if !isQrMode && (selectedSurveyForPin || (!isPinVerifiedForCurrentSurvey && activeSurveyId))}
       <div in:scale={{ duration: 200 }} class="fixed inset-0 z-50 backdrop-blur-xl bg-white/15 flex items-center justify-center p-4">
         <div class="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center space-y-4 shadow-2xl relative">
@@ -392,7 +393,7 @@
       </div>
     {/if}
 
-    {#if !activeSurveyId || !surveyTitle || questions.length === 0}
+    {#if (!activeSurveyId || !surveyTitle || questions.length === 0) && (!isQrMode || !isPinVerifiedForCurrentSurvey)}
       
       <!-- SELECTION LAUNCHER MENU CARD -->
       <div in:scale={{ duration: 300, start: 0.96 }} class="w-full bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-xl flex flex-col justify-between my-auto">
