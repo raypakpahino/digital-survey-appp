@@ -708,9 +708,14 @@
                         <button
                           type="button"
                           on:click={() => toggleAlertTrigger(question, smVal)}
-                          class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all border cursor-pointer active:scale-95 {active ? 'bg-rose-950/80 border-rose-500 text-rose-300 ring-1 ring-rose-500/30' : 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'}"
+                          class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all border cursor-pointer active:scale-95 flex items-center space-x-1.5 {active ? 'bg-rose-950/80 border-rose-500 text-rose-300 ring-1 ring-rose-500/30' : 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'}"
                         >
-                          {smVal} {active ? '🚩' : ''}
+                          <span>{smVal}</span>
+                          {#if active}
+                            <svg class="w-3 h-3 fill-current text-rose-400 shrink-0" viewBox="0 0 24 24">
+                              <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6z"/>
+                            </svg>
+                          {/if}
                         </button>
                       {/each}
                     {:else if normType === 'stars'}
@@ -719,9 +724,14 @@
                         <button
                           type="button"
                           on:click={() => toggleAlertTrigger(question, starVal)}
-                          class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all border cursor-pointer active:scale-95 {active ? 'bg-rose-950/80 border-rose-500 text-rose-300 ring-1 ring-rose-500/30' : 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'}"
+                          class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all border cursor-pointer active:scale-95 flex items-center space-x-1.5 {active ? 'bg-rose-950/80 border-rose-500 text-rose-300 ring-1 ring-rose-500/30' : 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'}"
                         >
-                          {starVal} {active ? '🚩' : ''}
+                          <span>{starVal}</span>
+                          {#if active}
+                            <svg class="w-3 h-3 fill-current text-rose-400 shrink-0" viewBox="0 0 24 24">
+                              <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6z"/>
+                            </svg>
+                          {/if}
                         </button>
                       {/each}
                     {:else if normType === 'multiple-choice' || normType === 'dropdown'}
@@ -734,9 +744,14 @@
                           <button
                             type="button"
                             on:click={() => toggleAlertTrigger(question, optText)}
-                            class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all border cursor-pointer active:scale-95 {active ? 'bg-rose-950/80 border-rose-500 text-rose-300 ring-1 ring-rose-500/30' : 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'}"
+                            class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all border cursor-pointer active:scale-95 flex items-center space-x-1.5 {active ? 'bg-rose-950/80 border-rose-500 text-rose-300 ring-1 ring-rose-500/30' : 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'}"
                           >
-                            {optText} {active ? '🚩' : ''}
+                            <span>{optText}</span>
+                            {#if active}
+                              <svg class="w-3 h-3 fill-current text-rose-400 shrink-0" viewBox="0 0 24 24">
+                                <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6z"/>
+                              </svg>
+                            {/if}
                           </button>
                         {/each}
                       {/if}
