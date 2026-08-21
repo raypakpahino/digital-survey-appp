@@ -21,6 +21,15 @@
     return String(str || '').trim().toLowerCase();
   }
 
+  function normalizeAnswerText(val) {
+    if (!val) return '';
+    return String(val)
+      .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+      .replace(/[^a-zA-Z0-9\s]/g, '')
+      .trim()
+      .toLowerCase();
+  }
+
   function parseArray(val) {
     if (Array.isArray(val)) return val.map(cleanString).filter(Boolean);
     if (typeof val === 'string' && val.trim()) {
@@ -74,14 +83,12 @@
 
   $: ({ siteScopes: userAssignedSites, deviceScopes: userAssignedDevices } = parseUserScopes(currentUser));
 
-  // Compute all authorized form titles across the operator's assigned devices
   $: operatorAuthorizedForms = Array.from(new Set(
     registeredDevicesList
       .filter(d => userAssignedDevices.includes(cleanString(d.deviceName)))
       .flatMap(d => parseArray(d.allowedFormTitle))
   ));
 
-  // MULTI-FORM SELECTION STATE
   let selectedSurveyIds = [];
 
   $: if (surveys.length > 0) {
@@ -208,7 +215,6 @@
     return acc;
   }, []);
 
-  // Updated Response Filter: Allows operators to see responses for any form authorized to their device
   $: filteredResponses = responses.filter((r) => {
     if (isQrMode && currentUser && currentUser.role === "site_leader") {
       if (userAssignedSites.length === 0) return false;
@@ -230,7 +236,6 @@
       const isAssignedDeviceMatch = userAssignedDevices.some(dev => cleanString(dev) === respDevice);
       const isAuthorizedFormMatch = operatorAuthorizedForms.length === 0 || operatorAuthorizedForms.includes(respSurvey) || operatorAuthorizedForms.includes('all');
 
-      // Allow if it came from their device OR matches an authorized form rule
       if (!isAssignedDeviceMatch && !isAuthorizedFormMatch) return false;
     }
     else {
@@ -260,46 +265,50 @@
     return true;
   });
 
-  // DYNAMIC LOW RATING INCIDENT DETECTION
+  function isAnswerTriggeringAlert(ans, question) {
+    if (!ans || ans.value === undefined || ans.value === null || ans.value === "Skipped") return false;
+    
+    const rawVal = String(ans.value);
+    const cleanVal = normalizeAnswerText(rawVal);
+    const upperRaw = rawVal.toUpperCase();
+
+    if (question && Array.isArray(question.alertTriggerValues) && question.alertTriggerValues.length > 0) {
+      return question.alertTriggerValues.some(trig => {
+        const cleanTrig = normalizeAnswerText(trig);
+        return cleanTrig && (cleanVal === cleanTrig || cleanVal.includes(cleanTrig) || cleanTrig.includes(cleanVal));
+      });
+    }
+
+    return (
+      upperRaw.includes('ANGRY') || 
+      upperRaw.includes('SAD') || 
+      cleanVal.startsWith('1 star') || 
+      cleanVal.startsWith('2 star') ||
+      cleanVal === '1' ||
+      cleanVal === '2' ||
+      cleanVal === 'no' ||
+      cleanVal.includes('poor') ||
+      cleanVal.includes('terrible') ||
+      cleanVal.includes('bad')
+    );
+  }
+
+  // ACCURATE LOW SCORE DETECTION
   $: lowRatingAlerts = filteredResponses.filter((r) => {
     const parentSurvey = surveys.find(s => cleanString(s.title) === cleanString(r.surveyTitle));
-    if (!parentSurvey || !parentSurvey.questions) return false;
+    const surveyQs = parentSurvey?.questions || [];
 
     return (r.answers || []).some((ans) => {
-      const q = parentSurvey.questions.find(sq => cleanString(sq.questionText) === cleanString(ans.questionText));
-      const val = String(ans.value || '').toUpperCase();
-
-      if (q && Array.isArray(q.alertTriggerValues) && q.alertTriggerValues.length > 0) {
-        return q.alertTriggerValues.some(trig => String(trig).toUpperCase() === val);
-      }
-
-      return (
-        val.includes('ANGRY') || 
-        val.includes('SAD') || 
-        val.includes('1 STARS') || 
-        val.includes('2 STARS') || 
-        val === '1 STAR' || 
-        val === '2 STARS'
-      );
+      const q = surveyQs.find(sq => cleanString(sq.questionText) === cleanString(ans.questionText));
+      return isAnswerTriggeringAlert(ans, q);
     });
   }).map((r) => {
     const parentSurvey = surveys.find(s => cleanString(s.title) === cleanString(r.surveyTitle));
+    const surveyQs = parentSurvey?.questions || [];
+
     const badRatings = (r.answers || []).filter((ans) => {
-      const q = parentSurvey ? parentSurvey.questions.find(sq => cleanString(sq.questionText) === cleanString(ans.questionText)) : null;
-      const val = String(ans.value || '').toUpperCase();
-
-      if (q && Array.isArray(q.alertTriggerValues) && q.alertTriggerValues.length > 0) {
-        return q.alertTriggerValues.some(trig => String(trig).toUpperCase() === val);
-      }
-
-      return (
-        val.includes('ANGRY') || 
-        val.includes('SAD') || 
-        val.includes('1 STARS') || 
-        val.includes('2 STARS') || 
-        val === '1 STAR' || 
-        val === '2 STARS'
-      );
+      const q = surveyQs.find(sq => cleanString(sq.questionText) === cleanString(ans.questionText));
+      return isAnswerTriggeringAlert(ans, q);
     });
 
     return {
@@ -767,7 +776,7 @@
               class="w-full bg-slate-950 border border-slate-800 text-[10px] text-slate-200 pl-7 pr-2 py-1.5 rounded-lg focus:outline-none focus:border-emerald-500 transition-all placeholder:text-slate-600"
             />
             <svg class="w-3.5 h-3.5 fill-current text-slate-500 absolute left-2 top-2" viewBox="0 0 24 24">
-              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 11.99 14 9.5 14z"/>
             </svg>
           </div>
         {/if}
@@ -1413,7 +1422,7 @@
         on:click={closeQuestionModal}
         class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700/80 transition-all shadow-md active:scale-95 cursor-pointer"
       >
-        ← Return:
+        ← Return
       </button>
 
       <button

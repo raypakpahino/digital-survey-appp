@@ -85,7 +85,7 @@
         }
       }).filter(optText => {
         const u = String(optText || '').toUpperCase();
-        return u === 'NO' || u.includes('BAD') || u.includes('POOR');
+        return u === 'NO' || u.includes('BAD') || u.includes('POOR') || u.includes('TERRIBLE');
       });
     }
     return [];
@@ -380,7 +380,6 @@
 </script>
 
 <div class="w-full min-h-full flex flex-col lg:flex-row animate-fade overflow-visible box-border text-slate-800 dark:text-slate-100 pb-16 relative select-none">
-  <!-- LEFT SIDEBAR: TOOLBOX -->
   <div
     class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 shrink-0 flex flex-col justify-between shadow-md h-fit lg:sticky lg:top-4 box-border self-start z-10 transition-none"
     style="width: {leftPanelWidth}px;"
@@ -431,7 +430,6 @@
     </div>
   </div>
 
-  <!-- INTERACTIVE RESIZER HANDLE -->
   <div
     on:mousedown={startResizing}
     class="hidden lg:flex w-4 cursor-col-resize items-center justify-center shrink-0 group transition-colors z-20 hover:bg-rose-500/10 active:bg-rose-500/20"
@@ -440,10 +438,8 @@
     <div class="w-1.5 h-16 rounded-full bg-slate-300 dark:bg-slate-700/80 group-hover:bg-[#e31b23] transition-colors shadow-sm"></div>
   </div>
 
-  <!-- RIGHT: DESIGN CANVAS WORKSPACE -->
   <div class="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 sm:p-8 flex flex-col shadow-md h-auto overflow-visible box-border min-w-0">
     
-    <!-- TOP CONTROL BAR -->
     <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0 shadow-inner">
       <div class="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <label for="survey-selector" class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
@@ -506,7 +502,6 @@
       </div>
     </div>
 
-    <!-- Title Input Section -->
     <div class="space-y-2.5 shrink-0 mt-6">
       <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block" for="form-heading">Form Name Header</label>
       <input
@@ -520,13 +515,11 @@
 
     <hr class="border-slate-200 dark:border-slate-800/80 my-6 shrink-0" />
 
-    <!-- Header Grid Tracker -->
     <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/40 pb-3 shrink-0">
       <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Canvas Stack</h3>
       <span class="text-xs font-bold bg-slate-50 dark:bg-slate-950 px-2.5 py-1 rounded-md text-[#1a2b6c] dark:text-cyan-400 border border-slate-200 dark:border-slate-800">{localQuestions.length} Items</span>
     </div>
 
-    <!-- EXPANDABLE FIELD CANVAS -->
     <div class="mt-6 box-border flex-1">
       {#if localQuestions.length === 0}
         <div class="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-16 text-center text-slate-400 dark:text-slate-500 text-sm leading-relaxed mt-2">
@@ -539,12 +532,10 @@
 
             <div class="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 p-6 rounded-2xl space-y-5 group hover:border-slate-300 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-950 transition-all duration-200 shadow-xs relative">
               
-              <!-- Card Header -->
               <div class="flex items-start justify-between gap-4">
                 <div class="flex-1 space-y-3">
                   <div class="flex items-center space-x-2.5">
                     
-                    <!-- REORDER BUTTONS & INDEX BADGE -->
                     <div class="flex items-center space-x-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 rounded-xl shadow-xs">
                       <span class="text-slate-700 dark:text-slate-300 px-2 text-xs font-mono font-bold">{index + 1}</span>
                       
@@ -580,7 +571,6 @@
                     class="w-full bg-transparent border-b border-transparent text-[#1a2b6c] dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-0 focus:border-slate-300 dark:focus:border-slate-700 py-1 text-base font-semibold transition-all"
                   />
 
-                  <!-- FILE UPLOADER: HEADER IMAGE -->
                   <div class="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 pt-2">
                     <span class="text-[11px] font-mono font-bold text-[#1a2b6c] dark:text-cyan-400 shrink-0 flex items-center space-x-1">
                       <svg class="w-3.5 h-3.5 fill-current inline-block mr-1" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
@@ -617,7 +607,6 @@
                 </button>
               </div>
 
-              <!-- Options Subgrid for Multiple Choice or Dropdown -->
               {#if normType === "multiple-choice" || normType === "dropdown"}
                 <div class="pl-0 sm:pl-2 pt-4 border-t border-slate-200 dark:border-slate-900/80 mt-2 space-y-3">
                   <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
@@ -638,7 +627,6 @@
                             class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-[#1a2b6c] dark:text-slate-200 px-3 py-2 flex-1 font-medium"
                           />
                           
-                          <!-- REFINED OPTION-LEVEL JUMP LOGIC SELECTOR -->
                           <div class="flex items-center space-x-1.5">
                             <span class="text-[9px] font-mono font-bold text-cyan-400 uppercase">Skip Logic:</span>
                             <select
@@ -661,7 +649,6 @@
                           >✕</button>
                         </div>
 
-                        <!-- OPTION IMAGE UPLOADER SECTION (SHOWN WHEN TOGGLED ON) -->
                         {#if question.enableOptionImages}
                           <div class="pl-8 pt-1 flex items-center space-x-3">
                             {#if optImage}
