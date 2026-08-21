@@ -268,10 +268,20 @@
   function isAnswerTriggeringAlert(ans, question) {
     if (!ans || ans.value === undefined || ans.value === null || ans.value === "Skipped") return false;
     
+    const qType = question ? String(question.type || '').toLowerCase().replace(/_/g, '-') : '';
+
+    // Ignore open inputs that don't have configured alert triggers
+    if (['number', 'date', 'text', 'short-answer', 'shortanswer'].includes(qType)) {
+      if (!question || !Array.isArray(question.alertTriggerValues) || question.alertTriggerValues.length === 0) {
+        return false;
+      }
+    }
+
     const rawVal = String(ans.value);
     const cleanVal = normalizeAnswerText(rawVal);
     const upperRaw = rawVal.toUpperCase();
 
+    // 1. Explicit Alert Triggers configured on Question
     if (question && Array.isArray(question.alertTriggerValues) && question.alertTriggerValues.length > 0) {
       return question.alertTriggerValues.some(trig => {
         const cleanTrig = normalizeAnswerText(trig);
@@ -279,18 +289,20 @@
       });
     }
 
-    return (
-      upperRaw.includes('ANGRY') || 
-      upperRaw.includes('SAD') || 
-      cleanVal.startsWith('1 star') || 
-      cleanVal.startsWith('2 star') ||
-      cleanVal === '1' ||
-      cleanVal === '2' ||
-      cleanVal === 'no' ||
-      cleanVal.includes('poor') ||
-      cleanVal.includes('terrible') ||
-      cleanVal.includes('bad')
-    );
+    // 2. Rating & Choice Default Incident Triggers
+    if (qType === 'smiley') {
+      return upperRaw.includes('ANGRY') || upperRaw.includes('SAD');
+    }
+
+    if (qType === 'stars') {
+      return cleanVal.startsWith('1 star') || cleanVal.startsWith('2 star') || cleanVal === '1' || cleanVal === '2';
+    }
+
+    if (qType === 'multiple-choice' || qType === 'dropdown') {
+      return cleanVal === 'no' || cleanVal.includes('poor') || cleanVal.includes('terrible') || cleanVal.includes('bad');
+    }
+
+    return false;
   }
 
   // ACCURATE LOW SCORE DETECTION
