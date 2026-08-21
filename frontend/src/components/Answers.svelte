@@ -243,9 +243,11 @@
     devId.toLowerCase().includes(deviceSearchQuery.trim().toLowerCase())
   );
 
+  // UNIFIED CROSS-FORM QUESTIONS FOR LOG MATRIX HEADERS
   $: displayedQuestions = selectedSurveys.reduce((acc, survey) => {
     (survey.questions || []).forEach(q => {
-      if (!acc.some(existingQ => cleanString(existingQ.questionText) === cleanString(q.questionText))) {
+      const existing = acc.find(existingQ => cleanString(existingQ.questionText) === cleanString(q.questionText));
+      if (!existing) {
         acc.push({ ...q, parentSurveyTitle: survey.title });
       }
     });
@@ -359,7 +361,7 @@
     return {
       responseId: r._id,
       formTitle: r.surveyTitle || "Form",
-      deviceId: r.deviceId || "Site",
+      deviceId: r.deviceId || (isQrMode ? "Site" : "Device"),
       timestamp: r.timestamp,
       badRatings,
       allAnswers: r.answers || []
@@ -500,19 +502,20 @@
         .trim() || rawVal;
     }
 
-    let headers = ["Record ID", "Form & Assigned Site", "Location / Site", "Submission Timestamp"];
+    const deviceOrSiteHeader = isQrMode ? "Location / Site" : "Device";
+    let headers = ["Record ID", "Form Identity", deviceOrSiteHeader, "Submission Timestamp"];
     targetQuestions.forEach((q) => headers.push(q.questionText));
 
     let rowsHtml = filteredResponses.map((r, index) => {
       let recId = r._id ? r._id.slice(-8) : `LOG-${index + 1}`;
-      let tabletId = r.deviceId || "Site-A";
-      let formName = isQrMode ? `${r.surveyTitle || 'Form'} [${tabletId}]` : (r.surveyTitle || "Form");
+      let deviceOrSiteVal = r.deviceId || (isQrMode ? "Site-A" : "Tablet-A");
+      let formName = r.surveyTitle || "Form";
       let timestamp = new Date(r.timestamp).toLocaleString();
 
       let rowCells = [
         `<td style="font-family: 'Consolas', monospace; font-weight: bold; color: #0284c7; text-align: center; padding: 8px 12px;">${recId}</td>`,
         `<td style="font-family: 'Segoe UI', sans-serif; font-weight: bold; color: #0284c7; text-align: left; padding: 8px 12px;">${formName}</td>`,
-        `<td style="font-family: 'Consolas', monospace; font-weight: bold; color: #059669; text-align: center; padding: 8px 12px;">${tabletId}</td>`,
+        `<td style="font-family: 'Consolas', monospace; font-weight: bold; color: #059669; text-align: center; padding: 8px 12px;">${deviceOrSiteVal}</td>`,
         `<td style="white-space: nowrap; color: #475569; text-align: center; padding: 8px 12px;">${timestamp}</td>`
       ];
 
@@ -742,10 +745,9 @@
               class="min-w-[140px] lg:w-full text-left border px-3 py-2 rounded-xl transition-all duration-200 flex items-center justify-between group shrink-0 active:scale-[0.98] cursor-pointer shadow-xs {isSelected ? 'bg-cyan-50 dark:bg-cyan-950/80 border-cyan-500 text-slate-900 dark:text-white ring-1 ring-cyan-500/40 font-bold' : 'bg-slate-50/60 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-400'}"
             >
               <div class="flex items-center space-x-2.5 truncate pr-1">
-                <!-- ACCENT CHECKBOX REPLACEMENT: PERFECT HIGH CONTRAST CHECKBOX -->
                 <div class="w-4 h-4 rounded flex items-center justify-center shrink-0 border transition-colors {isSelected ? 'bg-cyan-600 border-cyan-600 text-white' : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700'}">
                   {#if isSelected}
-                    <svg class="w-3 h-3 fill-current text-white" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                    <svg class="w-3 h-3 fill-current text-white" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                   {/if}
                 </div>
 
@@ -776,12 +778,12 @@
       </div>
     {/if}
 
-    <!-- SECTION 2: TABLET SITES FILTER -->
+    <!-- SECTION 2: TABLET / SITES FILTER -->
     {#if !isQrMode && currentUser?.role === 'admin'}
       <div class="flex-1 pt-2 sm:pt-0 lg:pt-2 border-t sm:border-t-0 lg:border-t border-slate-200 dark:border-slate-800/80 space-y-2 shrink-0">
         <div class="flex items-center justify-between">
           <span class="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-            Tablet Sites {#if selectedDevices.length > 0}<span class="text-emerald-600 dark:text-emerald-400 font-mono">({selectedDevices.length}/{availableDevices.length})</span>{/if}
+            Devices {#if selectedDevices.length > 0}<span class="text-emerald-600 dark:text-emerald-400 font-mono">({selectedDevices.length}/{availableDevices.length})</span>{/if}
           </span>
           <div class="flex items-center space-x-1">
             {#if availableDevices.length > 0}
@@ -799,7 +801,7 @@
             <input
               type="text"
               bind:value={deviceSearchQuery}
-              placeholder="Search {availableDevices.length} locations..."
+              placeholder="Search {availableDevices.length} devices..."
               class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[10px] text-slate-800 dark:text-slate-200 pl-7 pr-2 py-1.5 rounded-lg focus:outline-none focus:border-emerald-500 transition-all placeholder:text-slate-400"
             />
             <svg class="w-3.5 h-3.5 fill-current text-slate-400 absolute left-2 top-2" viewBox="0 0 24 24">
@@ -810,9 +812,9 @@
 
         <div class="space-y-1 max-h-36 overflow-y-auto custom-scrollbar pt-0.5 pr-0.5">
           {#if availableDevices.length === 0}
-            <span class="text-[9px] text-slate-400 font-mono block">No location logs available</span>
+            <span class="text-[9px] text-slate-400 font-mono block">No device logs available</span>
           {:else if filteredAvailableDevices.length === 0}
-            <span class="text-[9px] text-slate-400 font-mono block">No locations match "{deviceSearchQuery}"</span>
+            <span class="text-[9px] text-slate-400 font-mono block">No devices match "{deviceSearchQuery}"</span>
           {:else}
             {#each filteredAvailableDevices as devId}
               {@const isSelected = selectedDevices.includes(devId)}
@@ -929,7 +931,7 @@
           {:else if currentUser?.role === "kiosk_operator" || currentUser?.role === "user"}
             (Scoped to Devices: <span class="text-emerald-400 font-mono font-bold">{userAssignedDevices.length > 0 ? userAssignedDevices.join(', ') : 'Assigned Devices'}</span>)
           {:else if selectedDevices.length > 0}
-            (Filtered by: <span class="text-emerald-400 font-mono font-bold">{selectedDevices.join(', ')}</span>)
+            (Filtered by Devices: <span class="text-emerald-400 font-mono font-bold">{selectedDevices.join(', ')}</span>)
           {:else if selectedSurveys.length > 0}
             (Forms: <span class="text-cyan-300 font-mono font-bold">{selectedSurveys.map(s => s.title).join(', ')}</span>)
           {/if}.
@@ -1140,7 +1142,7 @@
                 {/if}
                 <th class="p-2.5 border-r border-slate-800/60 w-20">ID Token</th>
                 <th class="p-2.5 border-r border-slate-800/60 w-32">Form Identity</th>
-                <th class="p-2.5 border-r border-slate-800/60 w-28">Location / Site</th>
+                <th class="p-2.5 border-r border-slate-800/60 w-28">{isQrMode ? 'Location / Site' : 'Device'}</th>
                 <th class="p-2.5 border-r border-slate-800/60 w-36">Date & Time</th>
                 {#each displayedQuestions as question}
                   <th class="p-2.5 border-r border-slate-800/60 max-w-xs truncate">{question.questionText}</th>
@@ -1172,9 +1174,9 @@
                   <td class="p-2.5 border-r border-slate-800/40">
                     <span class="text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 font-mono font-bold px-2 py-0.5 rounded text-[10px] inline-flex items-center space-x-1">
                       <svg class="w-3.5 h-3.5 fill-current inline-block shrink-0" viewBox="0 0 24 24"><path d="M4 6h16v10H4V6zm16 12c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4z"/></svg>
-                      <span>{response.deviceId || 'Site-A'}</span>
+                      <span>{response.deviceId || (isQrMode ? 'Site-A' : 'Tablet-A')}</span>
                     </span>
-                </td>
+                  </td>
                   <td class="p-2.5 text-slate-400 border-r border-slate-800/40 font-mono text-[10px] group-hover:text-slate-200">
                     {new Date(response.timestamp).toLocaleString()}
                   </td>
@@ -1248,7 +1250,6 @@
                 </span>
               </div>
 
-              <!-- Top summary flagged issue box -->
               <div class="space-y-1.5">
                 <span class="text-[9px] font-bold text-rose-400 uppercase tracking-widest block font-mono">Flagged Issue:</span>
                 {#each alert.badRatings as bad}
