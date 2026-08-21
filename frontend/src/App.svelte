@@ -17,7 +17,7 @@
   let activeSurveyId = "";
   let isOfflineMode = false;
   let isDedicatedKioskMode = false;
-  let isSidebarExpanded = true;
+  let isSidebarExpanded = false; // Default collapsed unless restored
   let isDarkMode = true;
 
   // GLOBAL DUAL-APP ENGINE MODE (PERSISTED IN LOCALSTORAGE)
@@ -31,6 +31,11 @@
   // AUTHENTICATION STATE
   let currentUser = null;
   let isAuthChecking = true;
+
+  function toggleSidebar() {
+    isSidebarExpanded = !isSidebarExpanded;
+    localStorage.setItem('sdx_sidebar_expanded', isSidebarExpanded ? 'true' : 'false');
+  }
 
   function toggleTheme() {
     isDarkMode = !isDarkMode;
@@ -59,7 +64,6 @@
     await refreshDataLedger();
   }
 
-  // NON-BLOCKING TAB SWITCHER
   function switchTab(tab) {
     const isOperator = currentUser && (currentUser.role === "kiosk_operator" || currentUser.role === "user");
     const isSiteLeader = currentUser && currentUser.role === "site_leader";
@@ -153,6 +157,9 @@
       document.documentElement.classList.add('dark');
     }
 
+    const savedSidebar = localStorage.getItem('sdx_sidebar_expanded');
+    isSidebarExpanded = savedSidebar === 'true';
+
     const searchParams = new URLSearchParams(window.location.search);
     const hashPart = window.location.hash;
     const hashParams = new URLSearchParams(hashPart.includes("?") ? hashPart.split("?")[1] : "");
@@ -169,7 +176,6 @@
       activeSurveyId = urlSurveyId;
     }
 
-    // IF ENTERING DIRECTLY VIA QR CODE / PUBLIC LINK
     if (urlSurveyId || modeParam || hashPart.includes("kiosk")) {
       if (modeParam === 'qr') {
         isQrMode = true;
@@ -181,7 +187,7 @@
       activeTab = "kiosk";
       isDedicatedKioskMode = true;
       isSidebarExpanded = false;
-      isAuthChecking = false; // UNBLOCK IMMEDIATELY SO KIOSK RENDERS
+      isAuthChecking = false;
       refreshDataLedger();
       return;
     }
@@ -253,10 +259,6 @@
     currentUser = null;
   }
 
-  function cleanString(str) {
-    return String(str || '').trim().toLowerCase();
-  }
-
   async function refreshDataLedger() {
     try {
       const searchParams = new URLSearchParams(window.location.search);
@@ -296,7 +298,6 @@
         }
       }
 
-      // ONLY FETCH RESPONSES IF LOGGED IN / IN ANSWERS TAB TO AVOID BOTTLENECKING PUBLIC SURVEYS
       if (!isDedicatedKioskMode && activeTab !== "kiosk") {
         const responseRes = await fetch(`${API_BASE}/responses?mode=${currentModeQuery}`);
         if (responseRes.ok) {
@@ -549,7 +550,7 @@
             <div class="px-4 h-16 theme-border border-b flex items-center justify-between box-border shrink-0">
               <div class="flex items-center space-x-3 overflow-hidden">
                 <button
-                  on:click={() => (isSidebarExpanded = !isSidebarExpanded)}
+                  on:click={toggleSidebar}
                   class="p-2.5 rounded-xl text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 transition-all flex items-center justify-center focus:outline-none active:scale-95 shadow-sm shrink-0 cursor-pointer"
                   title={isSidebarExpanded ? "Collapse to Icon Rail" : "Expand Sidebar"}
                 >

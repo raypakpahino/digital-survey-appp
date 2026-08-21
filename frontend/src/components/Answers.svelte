@@ -89,7 +89,21 @@
       .flatMap(d => parseArray(d.allowedFormTitle))
   ));
 
+  // PERSISTED MULTI-FORM SELECTION STATE
   let selectedSurveyIds = [];
+
+  function loadSavedSurveySelections() {
+    try {
+      const saved = sessionStorage.getItem("sdx_answers_selected_surveys");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return null;
+  }
 
   $: if (surveys.length > 0) {
     if (isQrMode && currentUser && currentUser.role === "site_leader") {
@@ -107,17 +121,42 @@
                    operatorAuthorizedForms.includes('all forms');
           })
           .map(s => s._id);
-      } else {
-        selectedSurveyIds = [];
       }
-    } else if (isQrMode && selectedSurveyIds.length === 0) {
-      selectedSurveyIds = surveys.map(s => s._id);
-    } else if (selectedSurveyIds.length === 0) {
-      if (activeSurveyId && surveys.some(s => s._id === activeSurveyId)) {
-        selectedSurveyIds = [activeSurveyId];
-      } else {
-        selectedSurveyIds = [surveys[0]._id];
+    } else {
+      // ADMIN: Restore user's previous selection state across refreshes
+      const saved = loadSavedSurveySelections();
+      if (saved && saved.some(id => surveys.some(s => s._id === id))) {
+        selectedSurveyIds = saved.filter(id => surveys.some(s => s._id === id));
+      } else if (selectedSurveyIds.length === 0) {
+        if (activeSurveyId && surveys.some(s => s._id === activeSurveyId)) {
+          selectedSurveyIds = [activeSurveyId];
+        } else {
+          selectedSurveyIds = [surveys[0]._id];
+        }
       }
+    }
+  }
+
+  function toggleSurveySelection(surveyId) {
+    if (selectedSurveyIds.includes(surveyId)) {
+      if (selectedSurveyIds.length > 1) {
+        selectedSurveyIds = selectedSurveyIds.filter(id => id !== surveyId);
+      }
+    } else {
+      selectedSurveyIds = [...selectedSurveyIds, surveyId];
+    }
+    sessionStorage.setItem("sdx_answers_selected_surveys", JSON.stringify(selectedSurveyIds));
+  }
+
+  function selectAllSurveys() {
+    selectedSurveyIds = surveys.map(s => s._id);
+    sessionStorage.setItem("sdx_answers_selected_surveys", JSON.stringify(selectedSurveyIds));
+  }
+
+  function deselectAllSurveys() {
+    if (surveys.length > 0) {
+      selectedSurveyIds = [surveys[0]._id];
+      sessionStorage.setItem("sdx_answers_selected_surveys", JSON.stringify(selectedSurveyIds));
     }
   }
 
@@ -270,7 +309,6 @@
     
     const qType = question ? String(question.type || '').toLowerCase().replace(/_/g, '-') : '';
 
-    // Ignore open inputs that don't have configured alert triggers
     if (['number', 'date', 'text', 'short-answer', 'shortanswer'].includes(qType)) {
       if (!question || !Array.isArray(question.alertTriggerValues) || question.alertTriggerValues.length === 0) {
         return false;
@@ -281,7 +319,6 @@
     const cleanVal = normalizeAnswerText(rawVal);
     const upperRaw = rawVal.toUpperCase();
 
-    // 1. Explicit Alert Triggers configured on Question
     if (question && Array.isArray(question.alertTriggerValues) && question.alertTriggerValues.length > 0) {
       return question.alertTriggerValues.some(trig => {
         const cleanTrig = normalizeAnswerText(trig);
@@ -289,7 +326,6 @@
       });
     }
 
-    // 2. Rating & Choice Default Incident Triggers
     if (qType === 'smiley') {
       return upperRaw.includes('ANGRY') || upperRaw.includes('SAD');
     }
@@ -305,7 +341,6 @@
     return false;
   }
 
-  // ACCURATE LOW SCORE DETECTION
   $: lowRatingAlerts = filteredResponses.filter((r) => {
     const parentSurvey = surveys.find(s => cleanString(s.title) === cleanString(r.surveyTitle));
     const surveyQs = parentSurvey?.questions || [];
@@ -332,26 +367,6 @@
       allAnswers: r.answers || []
     };
   });
-
-  function toggleSurveySelection(surveyId) {
-    if (selectedSurveyIds.includes(surveyId)) {
-      if (selectedSurveyIds.length > 1) {
-        selectedSurveyIds = selectedSurveyIds.filter(id => id !== surveyId);
-      }
-    } else {
-      selectedSurveyIds = [...selectedSurveyIds, surveyId];
-    }
-  }
-
-  function selectAllSurveys() {
-    selectedSurveyIds = surveys.map(s => s._id);
-  }
-
-  function deselectAllSurveys() {
-    if (surveys.length > 0) {
-      selectedSurveyIds = [surveys[0]._id];
-    }
-  }
 
   function toggleDeviceFilter(devId) {
     if (selectedDevices.includes(devId)) {
@@ -788,7 +803,7 @@
               class="w-full bg-slate-950 border border-slate-800 text-[10px] text-slate-200 pl-7 pr-2 py-1.5 rounded-lg focus:outline-none focus:border-emerald-500 transition-all placeholder:text-slate-600"
             />
             <svg class="w-3.5 h-3.5 fill-current text-slate-500 absolute left-2 top-2" viewBox="0 0 24 24">
-              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 11.99 14 9.5 14z"/>
+              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
             </svg>
           </div>
         {/if}
@@ -1181,7 +1196,7 @@
   </div>
 </div>
 
-<!-- LOW RATING NOTIFICATION POPUP DRAWER -->
+<!-- LOW RATING NOTIFICATION POPUP DRAWER (HIGH CONTRAST & CLEAR COLOR PALETTE) -->
 {#if isNotificationOpen}
   <div class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex justify-end animate-fade">
     <div class="w-full max-w-xl bg-slate-900 border-l border-slate-800 h-full p-5 flex flex-col justify-between shadow-2xl space-y-4 box-border overflow-y-auto custom-scrollbar">
@@ -1232,12 +1247,15 @@
                 </span>
               </div>
 
+              <!-- Top summary flagged issue box -->
               <div class="space-y-1.5">
                 <span class="text-[9px] font-bold text-rose-400 uppercase tracking-widest block font-mono">Flagged Issue:</span>
                 {#each alert.badRatings as bad}
-                  <div class="text-xs font-bold text-rose-200 bg-rose-950/60 border border-rose-800/60 px-3 py-2 rounded-lg flex items-center justify-between shadow-inner">
-                    <span class="truncate pr-2">{bad.questionText}</span>
-                    <span class="font-mono text-rose-300 font-black text-xs shrink-0 bg-rose-900/60 px-2 py-0.5 rounded border border-rose-700/50">{bad.value}</span>
+                  <div class="text-xs font-bold bg-slate-900/90 border border-rose-500/50 px-3.5 py-2.5 rounded-xl flex items-center justify-between shadow-sm">
+                    <span class="text-slate-100 font-semibold truncate pr-2">{bad.questionText}</span>
+                    <span class="font-mono text-white font-black text-xs shrink-0 bg-rose-600 px-2.5 py-1 rounded-md border border-rose-400/60 shadow-xs flex items-center space-x-1">
+                      <span>{bad.value}</span>
+                    </span>
                   </div>
                 {/each}
               </div>
@@ -1251,17 +1269,26 @@
                   <span class="text-[10px] text-cyan-400 font-mono">{alert.allAnswers.length} Fields</span>
                 </button>
 
+                <!-- Full submission breakdown with clear high-contrast badge colors -->
                 {#if isExpanded}
-                  <div class="mt-2 bg-slate-900/90 border border-slate-800 p-3 rounded-lg space-y-2 animate-fade">
-                    <span class="text-[9px] uppercase font-mono font-bold text-cyan-400 block border-b border-slate-800 pb-1">
+                  <div class="mt-2 bg-slate-900 border border-slate-800 p-3.5 rounded-xl space-y-2 animate-fade">
+                    <span class="text-[9px] uppercase font-mono font-bold text-cyan-400 block border-b border-slate-800 pb-1.5">
                       Complete User Submission Breakdown:
                     </span>
-                    <div class="space-y-1.5">
+                    <div class="space-y-2">
                       {#each alert.allAnswers as ans}
-                        {@const isBadVal = alert.badRatings.some(b => b.questionText === ans.questionText)}
-                        <div class="p-2 rounded text-xs flex flex-row items-center justify-between gap-1 {isBadVal ? 'bg-rose-950/40 border border-rose-900/40 text-rose-200' : 'bg-slate-950/80 border border-slate-800 text-slate-300'}">
-                          <span class="font-medium text-slate-300 truncate pr-2">{ans.questionText}:</span>
-                          <span class="font-bold font-mono {isBadVal ? 'text-rose-400' : 'text-cyan-300'}">{ans.value || 'N/A'}</span>
+                        {@const isBadVal = alert.badRatings.some(b => cleanString(b.questionText) === cleanString(ans.questionText))}
+                        <div class="p-2.5 rounded-xl text-xs flex flex-row items-center justify-between gap-2 {isBadVal ? 'bg-slate-950 border border-rose-500/60 shadow-xs' : 'bg-slate-950/80 border border-slate-800 text-slate-300'}">
+                          <span class="font-medium {isBadVal ? 'text-slate-100 font-bold' : 'text-slate-300'} truncate pr-2">{ans.questionText}:</span>
+                          {#if isBadVal}
+                            <span class="font-mono text-white font-extrabold text-xs px-2.5 py-1 rounded-md bg-rose-600 border border-rose-400 shrink-0 shadow-xs">
+                              {ans.value || 'N/A'}
+                            </span>
+                          {:else}
+                            <span class="font-mono font-bold text-cyan-300 shrink-0">
+                              {ans.value || 'N/A'}
+                            </span>
+                          {/if}
                         </div>
                       {/each}
                     </div>
@@ -1434,7 +1461,7 @@
         on:click={closeQuestionModal}
         class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700/80 transition-all shadow-md active:scale-95 cursor-pointer"
       >
-        ← Return
+        ← Return:
       </button>
 
       <button
