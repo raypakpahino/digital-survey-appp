@@ -82,7 +82,7 @@ Prerequisites:
 Installation Steps:
 
 1. Clone the repository:
-   git clone https://github.com/your-username/digital-survey-platform.git
+   git clone https://github.com/raypakpahino/digital-survey-appp.git
    cd digital-survey-platform
 
 2. Install dependencies:
