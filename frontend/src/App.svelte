@@ -17,7 +17,7 @@
   let activeSurveyId = "";
   let isOfflineMode = false;
   let isDedicatedKioskMode = false;
-  let isSidebarExpanded = false; // Default collapsed unless restored
+  let isSidebarExpanded = false;
   let isDarkMode = true;
 
   // GLOBAL DUAL-APP ENGINE MODE (PERSISTED IN LOCALSTORAGE)
@@ -705,7 +705,19 @@
                 class="px-3 py-1.5 rounded-xl text-xs font-mono font-bold border transition-all flex items-center space-x-2 shadow-xs cursor-pointer {isQrMode ? 'bg-cyan-50 dark:bg-cyan-950 border-cyan-300 dark:border-cyan-500 text-cyan-900 dark:text-cyan-200' : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-cyan-400 hover:bg-slate-200 dark:hover:bg-slate-700'}"
                 title="Toggle App Program Engine (Ctrl + M)"
               >
-                <span class="font-bold">{isQrMode ? "📱 Mode: Web QR Hub" : "🖥️ Mode: Enterprise Kiosk"}</span>
+                <!-- PROFESSIONAL SVG ICONS REPLACING EMOJIS -->
+                {#if isQrMode}
+                  <svg class="w-4 h-4 fill-current text-cyan-600 dark:text-cyan-400" viewBox="0 0 24 24">
+                    <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
+                  </svg>
+                  <span class="font-bold">Mode: Web QR Hub</span>
+                {:else}
+                  <svg class="w-4 h-4 fill-current text-cyan-600 dark:text-cyan-400" viewBox="0 0 24 24">
+                    <path d="M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7v2H8v2h8v-2h-2v-2h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H3V4h18v12z"/>
+                  </svg>
+                  <span class="font-bold">Mode: Enterprise Kiosk</span>
+                {/if}
+
                 <kbd 
                   class="px-2 py-0.5 text-[10px] rounded font-mono font-extrabold border shadow-xs"
                   style={isDarkMode 
@@ -724,10 +736,16 @@
             >
               <div class="flex items-center space-x-2 text-xs font-semibold">
                 {#if isDarkMode}
-                  <span class="text-amber-400 text-sm">🌙</span>
+                  <!-- PROFESSIONAL MOON SVG -->
+                  <svg class="w-3.5 h-3.5 fill-current text-amber-400" viewBox="0 0 24 24">
+                    <path d="M12.3 2a10 10 0 0 0-.19 20 10.04 10.04 0 0 0 9.8-7.73 1 1 0 0 0-1.25-1.21A8 8 0 0 1 10.94 4.34a1 1 0 0 0-1.21-1.25c-.47-.7-.95-.97-1.43-1.09z"/>
+                  </svg>
                   <span class="theme-text-secondary text-[11px] hidden md:inline">Dark</span>
                 {:else}
-                  <span class="text-amber-500 text-sm">☀️</span>
+                  <!-- PROFESSIONAL SUN SVG -->
+                  <svg class="w-3.5 h-3.5 fill-current text-amber-500" viewBox="0 0 24 24">
+                    <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/>
+                  </svg>
                   <span class="theme-text-primary text-[11px] font-bold hidden md:inline">Light</span>
                 {/if}
               </div>
