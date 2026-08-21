@@ -89,7 +89,6 @@
       .flatMap(d => parseArray(d.allowedFormTitle))
   ));
 
-  // PERSISTED MULTI-FORM SELECTION STATE
   let selectedSurveyIds = [];
 
   function loadSavedSurveySelections() {
@@ -123,7 +122,6 @@
           .map(s => s._id);
       }
     } else {
-      // ADMIN: Restore user's previous selection state across refreshes
       const saved = loadSavedSurveySelections();
       if (saved && saved.some(id => surveys.some(s => s._id === id))) {
         selectedSurveyIds = saved.filter(id => surveys.some(s => s._id === id));
@@ -674,48 +672,48 @@
 
 <div class="w-full h-auto lg:h-[calc(100vh-5rem)] flex flex-col lg:flex-row animate-fade overflow-y-auto lg:overflow-hidden box-border p-1 relative">
   
-  <!-- LEFT SIDE CONTROL PANEL -->
+  <!-- LEFT SIDE CONTROL PANEL (THEMED FOR LIGHT & DARK) -->
   <div 
-    class="w-full bg-slate-900 border border-slate-800/80 rounded-2xl p-4 shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3 box-border shadow-lg transition-none"
+    class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3 box-border shadow-md transition-none text-slate-800 dark:text-slate-100"
     style="width: {leftPanelWidth}px;"
   >
     
     <!-- SECTION 1: ROLE-BASED SCOPE BANNERS & FORM SELECTOR -->
     {#if isQrMode && currentUser?.role === 'site_leader'}
-      <div class="p-3 bg-cyan-950/50 border border-cyan-800/60 rounded-xl space-y-1">
+      <div class="p-3 bg-cyan-50 dark:bg-cyan-950/50 border border-cyan-200 dark:border-cyan-800/60 rounded-xl space-y-1">
         <div class="flex items-center space-x-2">
-          <span class="h-2 w-2 rounded-full bg-cyan-400 animate-ping"></span>
-          <span class="text-xs font-bold text-cyan-300 uppercase tracking-wider font-mono">Scoped Site Database</span>
+          <span class="h-2 w-2 rounded-full bg-cyan-500 animate-ping"></span>
+          <span class="text-xs font-bold text-cyan-800 dark:text-cyan-300 uppercase tracking-wider font-mono">Scoped Site Database</span>
         </div>
-        <p class="text-[10px] text-slate-400 leading-tight">
-          Submissions are automatically filtered to: <strong class="text-emerald-400 font-mono">{userAssignedSites.length > 0 ? userAssignedSites.join(', ') : 'Assigned Sites'}</strong>.
+        <p class="text-[10px] text-slate-600 dark:text-slate-400 leading-tight">
+          Submissions are automatically filtered to: <strong class="text-emerald-600 dark:text-emerald-400 font-mono">{userAssignedSites.length > 0 ? userAssignedSites.join(', ') : 'Assigned Sites'}</strong>.
         </p>
       </div>
     {:else if !isQrMode && (currentUser?.role === 'kiosk_operator' || currentUser?.role === 'user')}
-      <div class="p-3 bg-emerald-950/50 border border-emerald-800/60 rounded-xl space-y-1">
+      <div class="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/60 rounded-xl space-y-1">
         <div class="flex items-center space-x-2">
-          <span class="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
-          <span class="text-xs font-bold text-emerald-300 uppercase tracking-wider font-mono">Scoped Device Database</span>
+          <span class="h-2 w-2 rounded-full bg-emerald-500 animate-ping"></span>
+          <span class="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider font-mono">Scoped Device Database</span>
         </div>
-        <p class="text-[10px] text-slate-400 leading-tight">
-          Submissions are automatically filtered to devices: <strong class="text-emerald-400 font-mono">{userAssignedDevices.length > 0 ? userAssignedDevices.join(', ') : 'Assigned Devices'}</strong>.
+        <p class="text-[10px] text-slate-600 dark:text-slate-400 leading-tight">
+          Submissions are automatically filtered to devices: <strong class="text-emerald-600 dark:text-emerald-400 font-mono">{userAssignedDevices.length > 0 ? userAssignedDevices.join(', ') : 'Assigned Devices'}</strong>.
         </p>
       </div>
     {:else}
       <div class="flex-1 space-y-2">
         <div class="flex items-center justify-between">
           <div>
-            <h3 class="text-[11px] font-bold text-white uppercase tracking-wider">
+            <h3 class="text-[11px] font-extrabold text-[#1a2b6c] dark:text-white uppercase tracking-wider">
               {isQrMode ? 'Filter by Form' : 'Select Forms'} ({selectedSurveyIds.length})
             </h3>
-            <p class="text-[10px] text-slate-400 mt-0.5 leading-tight hidden lg:block">
+            <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight hidden lg:block">
               {isQrMode ? 'Select specific forms to filter submission logs.' : 'Check multiple forms to compare metrics and export logs.'}
             </p>
           </div>
           <div class="flex items-center space-x-1">
-            <button on:click={selectAllSurveys} class="text-[9px] font-bold text-cyan-400 hover:underline cursor-pointer">All</button>
-            <span class="text-slate-600 text-[9px]">•</span>
-            <button on:click={deselectAllSurveys} class="text-[9px] font-bold text-rose-400 hover:underline cursor-pointer">Reset</button>
+            <button on:click={selectAllSurveys} class="text-[9px] font-bold text-cyan-600 dark:text-cyan-400 hover:underline cursor-pointer">All</button>
+            <span class="text-slate-400 text-[9px]">•</span>
+            <button on:click={deselectAllSurveys} class="text-[9px] font-bold text-rose-500 hover:underline cursor-pointer">Reset</button>
           </div>
         </div>
 
@@ -725,9 +723,9 @@
               type="text"
               bind:value={formSearchQuery}
               placeholder="Search forms..."
-              class="w-full bg-slate-950 border border-slate-800 text-[10px] text-slate-200 pl-7 pr-2 py-1.5 rounded-lg focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600"
+              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[10px] text-slate-800 dark:text-slate-200 pl-7 pr-2 py-1.5 rounded-lg focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-400"
             />
-            <svg class="w-3.5 h-3.5 fill-current text-slate-500 absolute left-2 top-2" viewBox="0 0 24 24">
+            <svg class="w-3.5 h-3.5 fill-current text-slate-400 absolute left-2 top-2" viewBox="0 0 24 24">
               <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
             </svg>
           </div>
@@ -739,21 +737,24 @@
             {@const logCount = responses.filter((r) => cleanString(r.surveyTitle) === cleanString(survey.title)).length}
             
             <button
+              type="button"
               on:click={() => toggleSurveySelection(survey._id)}
-              class="min-w-[140px] lg:w-full text-left border px-3 py-2 rounded-xl transition-all duration-200 flex items-center justify-between group shrink-0 active:scale-[0.98] cursor-pointer {isSelected ? 'bg-cyan-950/80 border-cyan-500 text-white shadow-sm ring-1 ring-cyan-500/30' : 'bg-slate-950/40 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/60 text-slate-400'}"
+              class="min-w-[140px] lg:w-full text-left border px-3 py-2 rounded-xl transition-all duration-200 flex items-center justify-between group shrink-0 active:scale-[0.98] cursor-pointer shadow-xs {isSelected ? 'bg-cyan-50 dark:bg-cyan-950/80 border-cyan-500 text-slate-900 dark:text-white ring-1 ring-cyan-500/40 font-bold' : 'bg-slate-50/60 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-400'}"
             >
-              <div class="flex items-center space-x-2 truncate pr-1">
-                <input 
-                  type="checkbox" 
-                  checked={isSelected} 
-                  class="accent-cyan-500 w-3.5 h-3.5 rounded shrink-0 pointer-events-none"
-                />
+              <div class="flex items-center space-x-2.5 truncate pr-1">
+                <!-- ACCENT CHECKBOX REPLACEMENT: PERFECT HIGH CONTRAST CHECKBOX -->
+                <div class="w-4 h-4 rounded flex items-center justify-center shrink-0 border transition-colors {isSelected ? 'bg-cyan-600 border-cyan-600 text-white' : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700'}">
+                  {#if isSelected}
+                    <svg class="w-3 h-3 fill-current text-white" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                  {/if}
+                </div>
+
                 <div class="flex flex-col truncate">
-                  <span class="text-xs font-bold transition-colors truncate {isSelected ? 'text-cyan-300' : 'text-slate-300 group-hover:text-cyan-400'}">
+                  <span class="text-xs transition-colors truncate {isSelected ? 'text-[#1a2b6c] dark:text-cyan-300 font-extrabold' : 'text-slate-700 dark:text-slate-300 font-medium group-hover:text-cyan-600 dark:group-hover:text-cyan-400'}">
                     {survey.title}
                   </span>
                   {#if isQrMode && survey.assignedSite}
-                    <span class="text-[9px] text-emerald-400 font-mono font-bold truncate">
+                    <span class="text-[9px] text-emerald-600 dark:text-emerald-400 font-mono font-bold truncate">
                       Site: {survey.assignedSite}
                     </span>
                   {:else if !isQrMode}
@@ -763,12 +764,11 @@
                   {/if}
                 </div>
               </div>
+
               {#if isQrMode}
-                <span class="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold shrink-0 ml-1 {isSelected ? 'bg-cyan-900/80 text-cyan-300' : 'bg-slate-900 text-slate-500'}">
+                <span class="text-[9px] px-2 py-0.5 rounded font-mono font-bold shrink-0 ml-1.5 {isSelected ? 'bg-cyan-600 text-white shadow-xs' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-400'}">
                   {logCount}
                 </span>
-              {:else if isSelected}
-                <span class="text-cyan-400 font-bold text-xs shrink-0 ml-1">✓</span>
               {/if}
             </button>
           {/each}
@@ -778,18 +778,18 @@
 
     <!-- SECTION 2: TABLET SITES FILTER -->
     {#if !isQrMode && currentUser?.role === 'admin'}
-      <div class="flex-1 pt-2 sm:pt-0 lg:pt-2 border-t sm:border-t-0 lg:border-t border-slate-800/80 space-y-2 shrink-0">
+      <div class="flex-1 pt-2 sm:pt-0 lg:pt-2 border-t sm:border-t-0 lg:border-t border-slate-200 dark:border-slate-800/80 space-y-2 shrink-0">
         <div class="flex items-center justify-between">
-          <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-            Tablet Sites {#if selectedDevices.length > 0}<span class="text-emerald-400 font-mono">({selectedDevices.length}/{availableDevices.length})</span>{/if}
+          <span class="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+            Tablet Sites {#if selectedDevices.length > 0}<span class="text-emerald-600 dark:text-emerald-400 font-mono">({selectedDevices.length}/{availableDevices.length})</span>{/if}
           </span>
           <div class="flex items-center space-x-1">
             {#if availableDevices.length > 0}
-              <button on:click={selectAllDevices} class="text-[9px] font-bold text-emerald-400 hover:underline cursor-pointer">All</button>
-              <span class="text-slate-600 text-[9px]">•</span>
+              <button on:click={selectAllDevices} class="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer">All</button>
+              <span class="text-slate-400 text-[9px]">•</span>
             {/if}
             {#if selectedDevices.length > 0 || deviceSearchQuery}
-              <button on:click={clearDeviceFilters} class="text-[9px] font-bold text-rose-400 hover:underline cursor-pointer">Clear</button>
+              <button on:click={clearDeviceFilters} class="text-[9px] font-bold text-rose-500 hover:underline cursor-pointer">Clear</button>
             {/if}
           </div>
         </div>
@@ -800,9 +800,9 @@
               type="text"
               bind:value={deviceSearchQuery}
               placeholder="Search {availableDevices.length} locations..."
-              class="w-full bg-slate-950 border border-slate-800 text-[10px] text-slate-200 pl-7 pr-2 py-1.5 rounded-lg focus:outline-none focus:border-emerald-500 transition-all placeholder:text-slate-600"
+              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[10px] text-slate-800 dark:text-slate-200 pl-7 pr-2 py-1.5 rounded-lg focus:outline-none focus:border-emerald-500 transition-all placeholder:text-slate-400"
             />
-            <svg class="w-3.5 h-3.5 fill-current text-slate-500 absolute left-2 top-2" viewBox="0 0 24 24">
+            <svg class="w-3.5 h-3.5 fill-current text-slate-400 absolute left-2 top-2" viewBox="0 0 24 24">
               <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
             </svg>
           </div>
@@ -810,31 +810,32 @@
 
         <div class="space-y-1 max-h-36 overflow-y-auto custom-scrollbar pt-0.5 pr-0.5">
           {#if availableDevices.length === 0}
-            <span class="text-[9px] text-slate-500 font-mono block">No location logs available</span>
+            <span class="text-[9px] text-slate-400 font-mono block">No location logs available</span>
           {:else if filteredAvailableDevices.length === 0}
-            <span class="text-[9px] text-slate-500 font-mono block">No locations match "{deviceSearchQuery}"</span>
+            <span class="text-[9px] text-slate-400 font-mono block">No locations match "{deviceSearchQuery}"</span>
           {:else}
             {#each filteredAvailableDevices as devId}
               {@const isSelected = selectedDevices.includes(devId)}
               {@const devLogCount = responses.filter(r => (r.deviceId || "Tablet-A") === devId).length}
 
               <button
+                type="button"
                 on:click={() => toggleDeviceFilter(devId)}
-                class="w-full text-left px-2.5 py-1.5 rounded-lg text-[10px] font-mono transition-all border flex items-center justify-between shadow-xs active:scale-[0.99] cursor-pointer group {isSelected ? 'bg-emerald-950/80 border-emerald-500/80 text-emerald-200 ring-1 ring-emerald-500/30 font-bold' : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200'}"
+                class="w-full text-left px-2.5 py-1.5 rounded-lg text-[10px] font-mono transition-all border flex items-center justify-between shadow-xs active:scale-[0.99] cursor-pointer group {isSelected ? 'bg-emerald-50 dark:bg-emerald-950/80 border-emerald-500 text-emerald-950 dark:text-emerald-200 ring-1 ring-emerald-500/40 font-bold' : 'bg-slate-50/60 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-400'}"
               >
-                <div class="flex items-center space-x-2 truncate pr-1">
-                  <input 
-                    type="checkbox" 
-                    checked={isSelected} 
-                    class="accent-emerald-500 w-3 h-3 rounded shrink-0 pointer-events-none"
-                  />
+                <div class="flex items-center space-x-2.5 truncate pr-1">
+                  <div class="w-3.5 h-3.5 rounded flex items-center justify-center shrink-0 border transition-colors {isSelected ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700'}">
+                    {#if isSelected}
+                      <svg class="w-2.5 h-2.5 fill-current text-white" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                    {/if}
+                  </div>
                   <span class="truncate flex items-center space-x-1">
-                    <svg class="w-3.5 h-3.5 fill-current text-slate-400 shrink-0" viewBox="0 0 24 24"><path d="M4 6h16v10H4V6zm16 12c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4z"/></svg>
+                    <svg class="w-3.5 h-3.5 fill-current inline-block shrink-0 opacity-70" viewBox="0 0 24 24"><path d="M4 6h16v10H4V6zm16 12c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4z"/></svg>
                     <span class="truncate">{devId}</span>
                   </span>
                 </div>
 
-                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0 ml-1 {isSelected ? 'bg-emerald-900/80 text-emerald-300' : 'bg-slate-900 text-slate-500'}">
+                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0 ml-1 {isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}">
                   {devLogCount}
                 </span>
               </button>
@@ -845,11 +846,11 @@
     {/if}
 
     <!-- SECTION 3: DATE FILTERS PANEL -->
-    <div class="flex-1 pt-2 sm:pt-0 lg:pt-2 border-t sm:border-t-0 lg:border-t border-slate-800/80 space-y-2 shrink-0">
+    <div class="flex-1 pt-2 sm:pt-0 lg:pt-2 border-t sm:border-t-0 lg:border-t border-slate-200 dark:border-slate-800/80 space-y-2 shrink-0">
       <div class="flex items-center justify-between">
-        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Date Filters</span>
+        <span class="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Date Filters</span>
         {#if startDate || endDate || activePreset !== 'ALL'}
-          <button on:click={clearFilters} class="text-[9px] font-bold text-rose-400 hover:underline cursor-pointer">
+          <button on:click={clearFilters} class="text-[9px] font-bold text-rose-500 hover:underline cursor-pointer">
             Reset
           </button>
         {/if}
@@ -861,7 +862,7 @@
           {#each [['ALL', 'All'], ['TODAY', 'Today'], ['7DAYS', '7 Days'], ['30DAYS', '30 Days']] as [presetKey, presetLabel]}
             <button
               on:click={() => applyDatePreset(presetKey)}
-              class="py-1 px-0.5 rounded-md text-[9px] font-bold transition-all border hover:scale-105 active:scale-95 cursor-pointer {activePreset === presetKey ? 'bg-cyan-600 border-cyan-500 text-white shadow-xs ring-1 ring-cyan-500/30' : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200'}"
+              class="py-1 px-0.5 rounded-md text-[9px] font-bold transition-all border hover:scale-105 active:scale-95 cursor-pointer {activePreset === presetKey ? 'bg-cyan-600 border-cyan-500 text-white shadow-xs ring-1 ring-cyan-500/30' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}"
             >
               {presetLabel}
             </button>
@@ -877,7 +878,7 @@
             type="date"
             bind:value={startDate}
             on:change={() => (activePreset = 'CUSTOM')}
-            class="w-full bg-slate-950 border border-slate-800 text-[11px] text-slate-200 px-2 py-1 rounded-md focus:outline-none focus:border-cyan-500 cursor-pointer transition-all hover:border-slate-700"
+            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-800 dark:text-slate-200 px-2 py-1 rounded-md focus:outline-none focus:border-cyan-500 cursor-pointer transition-all"
           />
         </div>
         <div class="space-y-0.5">
@@ -887,7 +888,7 @@
             type="date"
             bind:value={endDate}
             on:change={() => (activePreset = 'CUSTOM')}
-            class="w-full bg-slate-950 border border-slate-800 text-[11px] text-slate-200 px-2 py-1 rounded-md focus:outline-none focus:border-cyan-500 cursor-pointer transition-all hover:border-slate-700"
+            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-800 dark:text-slate-200 px-2 py-1 rounded-md focus:outline-none focus:border-cyan-500 cursor-pointer transition-all"
           />
         </div>
       </div>
@@ -900,7 +901,7 @@
     class="hidden lg:flex w-4 cursor-col-resize items-center justify-center shrink-0 group transition-colors z-20 hover:bg-cyan-500/10 active:bg-cyan-500/20"
     title="Drag left/right to resize panels"
   >
-    <div class="w-1.5 h-16 rounded-full bg-slate-700/80 group-hover:bg-cyan-500 group-hover:shadow-md group-hover:shadow-cyan-500/30 group-active:bg-cyan-400 transition-all"></div>
+    <div class="w-1.5 h-16 rounded-full bg-slate-300 dark:bg-slate-700/80 group-hover:bg-cyan-500 group-hover:shadow-md group-hover:shadow-cyan-500/30 group-active:bg-cyan-400 transition-all"></div>
   </div>
 
   <!-- RIGHT MAIN ANALYTICS WORKSPACE -->
@@ -1196,7 +1197,7 @@
   </div>
 </div>
 
-<!-- LOW RATING NOTIFICATION POPUP DRAWER (HIGH CONTRAST & CLEAR COLOR PALETTE) -->
+<!-- LOW RATING NOTIFICATION POPUP DRAWER -->
 {#if isNotificationOpen}
   <div class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex justify-end animate-fade">
     <div class="w-full max-w-xl bg-slate-900 border-l border-slate-800 h-full p-5 flex flex-col justify-between shadow-2xl space-y-4 box-border overflow-y-auto custom-scrollbar">
@@ -1269,7 +1270,6 @@
                   <span class="text-[10px] text-cyan-400 font-mono">{alert.allAnswers.length} Fields</span>
                 </button>
 
-                <!-- Full submission breakdown with clear high-contrast badge colors -->
                 {#if isExpanded}
                   <div class="mt-2 bg-slate-900 border border-slate-800 p-3.5 rounded-xl space-y-2 animate-fade">
                     <span class="text-[9px] uppercase font-mono font-bold text-cyan-400 block border-b border-slate-800 pb-1.5">
@@ -1461,7 +1461,7 @@
         on:click={closeQuestionModal}
         class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700/80 transition-all shadow-md active:scale-95 cursor-pointer"
       >
-        ← Return:
+        ← Return
       </button>
 
       <button
